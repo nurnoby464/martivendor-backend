@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import Company from "../module/company/company.schema";
 import { AppError } from "./appError";
+import mongoose from "mongoose";
 
 export const companyIdentifier = async (
   req: Request,
@@ -20,7 +21,7 @@ export const companyIdentifier = async (
   }
   if (!company) {
     const companyId = req.headers["x-company-id"] as string | undefined;
-    if (companyId) {
+    if (companyId && mongoose.Types.ObjectId.isValid(companyId)) {
       company = await Company.findOne({ _id: companyId, status: "active" })
         .select("_id company_name logo subdomain domain status")
         .lean<any>();

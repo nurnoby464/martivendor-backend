@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.companyIdentifier = void 0;
 const company_schema_1 = __importDefault(require("../module/company/company.schema"));
 const appError_1 = require("./appError");
+const mongoose_1 = __importDefault(require("mongoose"));
 const companyIdentifier = async (req, res, next) => {
     let company = null;
     const subdomain = req.headers["x-subdomain"];
@@ -19,7 +20,7 @@ const companyIdentifier = async (req, res, next) => {
     }
     if (!company) {
         const companyId = req.headers["x-company-id"];
-        if (companyId) {
+        if (companyId && mongoose_1.default.Types.ObjectId.isValid(companyId)) {
             company = await company_schema_1.default.findOne({ _id: companyId, status: "active" })
                 .select("_id company_name logo subdomain domain status")
                 .lean();
