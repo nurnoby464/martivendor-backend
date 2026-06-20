@@ -34,7 +34,8 @@ const app = (0, express_1.default)();
 const allowOrigin = [
     "http://localhost:3000",
     "https://rupbaan-frontend-3b7f.vercel.app",
-    "https://luzia-weld.vercel.app"
+    "https://luzia-weld.vercel.app",
+    "https://ankorabd.vercel.app"
 ];
 app.use((req, res, next) => {
     const origin = req.headers.origin;
