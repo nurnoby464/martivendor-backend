@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Banner = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const BannerSchema = new mongoose_1.Schema({
+    companyId: { type: mongoose_1.Types.ObjectId, ref: "Company", required: true },
     text: {
         type: String,
         trim: true,
@@ -133,18 +134,12 @@ BannerSchema.statics.getActiveBanners = async function () {
         active: true,
         $and: [
             {
-                $or: [
-                    { startDate: { $lte: now } },
-                    { startDate: null }
-                ]
+                $or: [{ startDate: { $lte: now } }, { startDate: null }],
             },
             {
-                $or: [
-                    { endDate: { $gte: now } },
-                    { endDate: null }
-                ]
-            }
-        ]
+                $or: [{ endDate: { $gte: now } }, { endDate: null }],
+            },
+        ],
     }).sort({ order: 1, createdAt: -1 });
 };
 exports.Banner = mongoose_1.default.model("Banner", BannerSchema);

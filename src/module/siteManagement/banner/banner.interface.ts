@@ -2,6 +2,7 @@ import { Document, Model, Types } from "mongoose";
 
 // Base Banner Interface
 export interface IBanner {
+  companyId:Types.ObjectId;
   text?: string | null;
   imageUrl: string;
   imagePublicId?: string;

@@ -26,7 +26,6 @@ export const companyIdentifier = async (
         .select("_id company_name logo subdomain domain status")
         .lean<any>();
     }
-    console.log("companyId in req.headers", companyId);
   }
 
   if (!company && req.params.company_id) {

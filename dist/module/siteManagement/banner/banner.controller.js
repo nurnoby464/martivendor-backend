@@ -35,32 +35,33 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteMultipleBanners = exports.bulkUpdateOrders = exports.toggleBannerStatus = exports.deleteBanner = exports.updateBanner = exports.getBannerById = exports.getActiveBanners = exports.getAllBanners = exports.createBanner = void 0;
 const BannerService = __importStar(require("../banner/banner.service"));
+const asyncHandler_1 = require("../../../utils/asyncHandler");
+const ApiResponse_1 = require("../../../utils/ApiResponse");
+const appError_1 = require("../../../middlewares/appError");
 // Create new banner
-const createBanner = async (req, res) => {
-    try {
-        const banner = await BannerService.createBanner(req.body);
-        res.status(201).json({
-            success: true,
-            message: 'Banner created successfully',
-            data: banner,
-        });
+exports.createBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed to create Banner");
     }
-    catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message || 'Failed to create banner',
-        });
-    }
-};
-exports.createBanner = createBanner;
+    const banner = await BannerService.createBanner(companyId, req.body);
+    return ApiResponse_1.ApiResponse.created(res, banner, "Banner created successfully");
+});
 // Get all banners (admin)
 const getAllBanners = async (req, res) => {
+    const companyId = req.company?._id;
+    if (!companyId) {
+        return res.status(400).json({
+            success: false,
+            message: "Failed to fetch banners",
+        });
+    }
     try {
         const { active, page, limit, sortBy, sortOrder } = req.query;
         // Build params object only with defined values
         const params = {};
         if (active !== undefined) {
-            params.active = active === 'true';
+            params.active = active === "true";
         }
         if (page !== undefined) {
             params.page = Number(page);
@@ -74,174 +75,97 @@ const getAllBanners = async (req, res) => {
         if (sortOrder !== undefined) {
             params.sortOrder = sortOrder;
         }
-        const result = await BannerService.getAllBanners(params);
-        res.status(200).json(result);
+        const result = await BannerService.getAllBanners(companyId, params);
+        return res.status(200).json(result);
     }
     catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: error.message || 'Failed to fetch banners',
+            message: error.message || "Failed to fetch banners",
         });
     }
 };
 exports.getAllBanners = getAllBanners;
 // Get active banners for frontend
-const getActiveBanners = async (req, res) => {
-    try {
-        const banners = await BannerService.getActiveBanners();
-        res.status(200).json({
-            success: true,
-            data: banners,
-            count: banners.length,
-        });
+exports.getActiveBanners = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.company?._id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Company id not found");
     }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to fetch active banners',
-        });
-    }
-};
-exports.getActiveBanners = getActiveBanners;
+    const banners = await BannerService.getActiveBanners(companyId);
+    return ApiResponse_1.ApiResponse.success(res, { banners, count: banners.length }, "Active banners fetched successfully");
+});
 // Get single banner
-const getBannerById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const banner = await BannerService.getBannerById(id);
-        if (!banner) {
-            res.status(404).json({
-                success: false,
-                message: 'Banner not found',
-            });
-            return;
-        }
-        res.status(200).json({
-            success: true,
-            data: banner,
-        });
+exports.getBannerById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed to fetch banner");
     }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to fetch banner',
-        });
+    const { id } = req.params;
+    const banner = await BannerService.getBannerById(id, companyId);
+    if (!banner) {
+        throw new appError_1.AppError("Banner not found", 404);
     }
-};
-exports.getBannerById = getBannerById;
+    return ApiResponse_1.ApiResponse.success(res, banner, "Banner fetched successfully");
+});
 // Update banner
-const updateBanner = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const banner = await BannerService.updateBanner(id, req.body);
-        if (!banner) {
-            res.status(404).json({
-                success: false,
-                message: 'Banner not found',
-            });
-            return;
-        }
-        res.status(200).json({
-            success: true,
-            message: 'Banner updated successfully',
-            data: banner,
-        });
+exports.updateBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed to update banner");
     }
-    catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message || 'Failed to update banner',
-        });
+    const { id } = req.params;
+    const banner = await BannerService.updateBanner(id, companyId, req.body);
+    if (!banner) {
+        throw new appError_1.AppError("Banner not found", 404);
     }
-};
-exports.updateBanner = updateBanner;
+    return ApiResponse_1.ApiResponse.success(res, banner, "Banner updated successfully");
+});
 // Delete banner
-const deleteBanner = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const banner = await BannerService.deleteBanner(id);
-        if (!banner) {
-            res.status(404).json({
-                success: false,
-                message: 'Banner not found',
-            });
-            return;
-        }
-        // Note: Cloudinary cleanup should be handled by frontend or separate service
-        res.status(200).json({
-            success: true,
-            message: 'Banner deleted successfully',
-            data: { imagePublicId: banner.imagePublicId }, // Send back for cleanup
-        });
+exports.deleteBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed to delete banner");
     }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to delete banner',
-        });
+    const { id } = req.params;
+    const banner = await BannerService.deleteBanner(id, companyId);
+    if (!banner) {
+        throw new appError_1.AppError("Banner not found", 404);
     }
-};
-exports.deleteBanner = deleteBanner;
+    // Note: Cloudinary cleanup should be handled by frontend or separate service
+    return ApiResponse_1.ApiResponse.success(res, { imagePublicId: banner.imagePublicId }, "Banner deleted successfully");
+});
 // Toggle banner status
-const toggleBannerStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const banner = await BannerService.toggleBannerStatus(id);
-        if (!banner) {
-            res.status(404).json({
-                success: false,
-                message: 'Banner not found',
-            });
-            return;
-        }
-        res.status(200).json({
-            success: true,
-            message: `Banner ${banner.active ? 'activated' : 'deactivated'} successfully`,
-            data: banner,
-        });
+exports.toggleBannerStatus = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed to toggle banner status");
     }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to toggle banner status',
-        });
+    const { id } = req.params;
+    const banner = await BannerService.toggleBannerStatus(id, companyId);
+    if (!banner) {
+        throw new appError_1.AppError("Banner not found", 404);
     }
-};
-exports.toggleBannerStatus = toggleBannerStatus;
+    return ApiResponse_1.ApiResponse.success(res, banner, `Banner ${banner.active ? "activated" : "deactivated"} successfully`);
+});
 // Bulk update banner orders
-const bulkUpdateOrders = async (req, res) => {
-    try {
-        const { banners } = req.body;
-        await BannerService.bulkUpdateOrders(banners);
-        res.status(200).json({
-            success: true,
-            message: 'Banner orders updated successfully',
-        });
+exports.bulkUpdateOrders = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed to update banner orders");
     }
-    catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message || 'Failed to update banner orders',
-        });
-    }
-};
-exports.bulkUpdateOrders = bulkUpdateOrders;
+    const { banners } = req.body;
+    await BannerService.bulkUpdateOrders(companyId, banners);
+    return ApiResponse_1.ApiResponse.success(res, null, "Banner orders updated successfully");
+});
 // Delete multiple banners
-const deleteMultipleBanners = async (req, res) => {
-    try {
-        const { ids } = req.body;
-        const deletedCount = await BannerService.deleteMultipleBanners(ids);
-        res.status(200).json({
-            success: true,
-            message: `${deletedCount} banner(s) deleted successfully`,
-            data: { deletedCount },
-        });
+exports.deleteMultipleBanners = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed to delete banners");
     }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to delete banners',
-        });
-    }
-};
-exports.deleteMultipleBanners = deleteMultipleBanners;
+    const { ids } = req.body;
+    const deletedCount = await BannerService.deleteMultipleBanners(companyId, ids);
+    return ApiResponse_1.ApiResponse.success(res, { deletedCount }, `${deletedCount} banner(s) deleted successfully`);
+});
 //# sourceMappingURL=banner.controller.js.map

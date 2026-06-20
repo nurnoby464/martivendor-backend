@@ -1,5 +1,6 @@
 import { Document, Model, Types } from "mongoose";
 export interface IBanner {
+    companyId: Types.ObjectId;
     text?: string | null;
     imageUrl: string;
     imagePublicId?: string;

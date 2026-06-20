@@ -1,8 +1,9 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 import { IBannerDocument, IBannerModel } from "./banner.interface";
 
 const BannerSchema = new Schema<IBannerDocument, IBannerModel>(
   {
+    companyId: { type: Types.ObjectId, ref: "Company", required: true },
     text: {
       type: String,
       trim: true,
@@ -86,36 +87,35 @@ BannerSchema.index({ active: 1, order: 1, createdAt: -1 });
 // Instance method
 BannerSchema.methods.isActive = function (this: IBannerDocument): boolean {
   if (!this.active) return false;
-  
+
   const now = new Date();
-  
+
   if (this.startDate && new Date(this.startDate) > now) return false;
   if (this.endDate && new Date(this.endDate) < now) return false;
-  
+
   return true;
 };
 
 // Static method
-BannerSchema.statics.getActiveBanners = async function (): Promise<IBannerDocument[]> {
+BannerSchema.statics.getActiveBanners = async function (): Promise<
+  IBannerDocument[]
+> {
   const now = new Date();
-  
+
   return this.find({
     active: true,
     $and: [
       {
-        $or: [
-          { startDate: { $lte: now } },
-          { startDate: null }
-        ]
+        $or: [{ startDate: { $lte: now } }, { startDate: null }],
       },
       {
-        $or: [
-          { endDate: { $gte: now } },
-          { endDate: null }
-        ]
-      }
-    ]
+        $or: [{ endDate: { $gte: now } }, { endDate: null }],
+      },
+    ],
   }).sort({ order: 1, createdAt: -1 });
 };
 
-export const Banner = mongoose.model<IBannerDocument, IBannerModel>("Banner", BannerSchema);
+export const Banner = mongoose.model<IBannerDocument, IBannerModel>(
+  "Banner",
+  BannerSchema,
+);
