@@ -906,43 +906,121 @@ export const updatePayment = async (
 
   return purchase;
 };
+
 export const deletePurchase = async (
   id: string,
   company_id: mongoose.Types.ObjectId,
   req: Request,
 ) => {
-  const purchase = await Purchase.findOne({ _id: id, company_id });
-  if (!purchase) throw new AppError("Purchase not found", 404);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (purchase.status !== "pending") {
-    throw new AppError(
-      `Only pending purchases can be deleted (current status: ${purchase.status})`,
-      422,
+  try {
+    const purchase = await Purchase.findOne({ _id: id, company_id }).session(session);
+    if (!purchase) throw new AppError("Purchase not found", 404);
+
+    // if (purchase.status !== "pending") {
+    //   throw new AppError(
+    //     `Only pending purchases can be deleted (current status: ${purchase.status})`,
+    //     422,
+    //   );
+    // }
+
+    const before = { total_amount: purchase.total_amount };
+
+    // Reverse vendor financials
+    await Vendor.findByIdAndUpdate(
+      purchase.vendor_id,
+      {
+        $inc: {
+          total_payable: -purchase.total_amount,
+          total_paid: -purchase.paid_amount,
+          due: -purchase.due_amount,
+        },
+      },
+      { session },
     );
+
+    // ── Reverse stock per item, then decide if the variant can be removed ──
+    for (const item of purchase.items) {
+      await ProductVariant.findByIdAndUpdate(
+        item.variant_id,
+        { $inc: { stock: -item.quantity } },
+        { session },
+      );
+
+      const usedElsewhere = await Purchase.exists({
+        _id: { $ne: purchase._id },
+        company_id,
+        "items.variant_id": item.variant_id,
+      }).session(session);
+
+      if (!usedElsewhere) {
+        // Nobody else stocked this variant — created solely by this purchase.
+        await ProductVariant.findByIdAndDelete(item.variant_id, { session });
+      }
+    }
+
+    // ── For each unique product on this purchase, re-sync or remove ──
+    for (const productId of purchase.product_ids) {
+      const remainingVariants = await ProductVariant.find({
+        product_id: productId,
+      }).session(session);
+
+      if (remainingVariants.length === 0) {
+        const usedElsewhere = await Purchase.exists({
+          _id: { $ne: purchase._id },
+          company_id,
+          product_ids: productId,
+        }).session(session);
+
+        if (!usedElsewhere) {
+          await Product.findByIdAndDelete(productId, { session });
+        }
+      } else {
+        const [totals] = await ProductVariant.aggregate([
+          { $match: { product_id: productId } },
+          {
+            $group: {
+              _id: null,
+              total_stock: { $sum: "$stock" },
+              variant_count: { $sum: 1 },
+            },
+          },
+        ]).session(session);
+
+        await Product.findByIdAndUpdate(
+          productId,
+          {
+            $set: {
+              total_stock: totals?.total_stock ?? 0,
+              stock: totals?.total_stock ?? 0,
+              variant_count: totals?.variant_count ?? 0,
+            },
+          },
+          { session },
+        );
+      }
+    }
+
+    // Permanently remove the purchase itself
+    await Purchase.findByIdAndDelete(id, { session });
+
+    await session.commitTransaction();
+
+    auditLog({
+      req,
+      action: AUDIT_ACTIONS.PURCHASE_DELETED,
+      targetModel: "Purchase",
+      targetId: purchase._id,
+      before,
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
   }
-
-  const before = {
-    total_amount: purchase.total_amount,
-  };
-
-  // Reverse vendor financials
-  await Vendor.findByIdAndUpdate(purchase.vendor_id, {
-    $inc: {
-      total_payable: -purchase.total_amount,
-      total_paid: -purchase.paid_amount,
-      due: -purchase.due_amount,
-    },
-  });
-
-  await Purchase.findByIdAndUpdate(id, { $set: { is_deleted: true } });
-
-  auditLog({
-    req,
-    action: AUDIT_ACTIONS.PURCHASE_DELETED,
-    targetModel: "Purchase",
-    targetId: purchase._id,
-    before,
-  });
 };
 
 interface PurchaseItemSnapshot {

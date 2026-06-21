@@ -616,31 +616,93 @@ const updatePayment = async (id, company_id, payload, req) => {
 };
 exports.updatePayment = updatePayment;
 const deletePurchase = async (id, company_id, req) => {
-    const purchase = await purchase_schema_1.default.findOne({ _id: id, company_id });
-    if (!purchase)
-        throw new appError_1.AppError("Purchase not found", 404);
-    if (purchase.status !== "pending") {
-        throw new appError_1.AppError(`Only pending purchases can be deleted (current status: ${purchase.status})`, 422);
+    const session = await mongoose_2.default.startSession();
+    session.startTransaction();
+    try {
+        const purchase = await purchase_schema_1.default.findOne({ _id: id, company_id }).session(session);
+        if (!purchase)
+            throw new appError_1.AppError("Purchase not found", 404);
+        // if (purchase.status !== "pending") {
+        //   throw new AppError(
+        //     `Only pending purchases can be deleted (current status: ${purchase.status})`,
+        //     422,
+        //   );
+        // }
+        const before = { total_amount: purchase.total_amount };
+        // Reverse vendor financials
+        await vendor_schema_1.default.findByIdAndUpdate(purchase.vendor_id, {
+            $inc: {
+                total_payable: -purchase.total_amount,
+                total_paid: -purchase.paid_amount,
+                due: -purchase.due_amount,
+            },
+        }, { session });
+        // ── Reverse stock per item, then decide if the variant can be removed ──
+        for (const item of purchase.items) {
+            await product_variant_schema_1.default.findByIdAndUpdate(item.variant_id, { $inc: { stock: -item.quantity } }, { session });
+            const usedElsewhere = await purchase_schema_1.default.exists({
+                _id: { $ne: purchase._id },
+                company_id,
+                "items.variant_id": item.variant_id,
+            }).session(session);
+            if (!usedElsewhere) {
+                // Nobody else stocked this variant — created solely by this purchase.
+                await product_variant_schema_1.default.findByIdAndDelete(item.variant_id, { session });
+            }
+        }
+        // ── For each unique product on this purchase, re-sync or remove ──
+        for (const productId of purchase.product_ids) {
+            const remainingVariants = await product_variant_schema_1.default.find({
+                product_id: productId,
+            }).session(session);
+            if (remainingVariants.length === 0) {
+                const usedElsewhere = await purchase_schema_1.default.exists({
+                    _id: { $ne: purchase._id },
+                    company_id,
+                    product_ids: productId,
+                }).session(session);
+                if (!usedElsewhere) {
+                    await product_schema_1.default.findByIdAndDelete(productId, { session });
+                }
+            }
+            else {
+                const [totals] = await product_variant_schema_1.default.aggregate([
+                    { $match: { product_id: productId } },
+                    {
+                        $group: {
+                            _id: null,
+                            total_stock: { $sum: "$stock" },
+                            variant_count: { $sum: 1 },
+                        },
+                    },
+                ]).session(session);
+                await product_schema_1.default.findByIdAndUpdate(productId, {
+                    $set: {
+                        total_stock: totals?.total_stock ?? 0,
+                        stock: totals?.total_stock ?? 0,
+                        variant_count: totals?.variant_count ?? 0,
+                    },
+                }, { session });
+            }
+        }
+        // Permanently remove the purchase itself
+        await purchase_schema_1.default.findByIdAndDelete(id, { session });
+        await session.commitTransaction();
+        (0, auditLogger_1.auditLog)({
+            req,
+            action: audit_interface_1.AUDIT_ACTIONS.PURCHASE_DELETED,
+            targetModel: "Purchase",
+            targetId: purchase._id,
+            before,
+        });
     }
-    const before = {
-        total_amount: purchase.total_amount,
-    };
-    // Reverse vendor financials
-    await vendor_schema_1.default.findByIdAndUpdate(purchase.vendor_id, {
-        $inc: {
-            total_payable: -purchase.total_amount,
-            total_paid: -purchase.paid_amount,
-            due: -purchase.due_amount,
-        },
-    });
-    await purchase_schema_1.default.findByIdAndUpdate(id, { $set: { is_deleted: true } });
-    (0, auditLogger_1.auditLog)({
-        req,
-        action: audit_interface_1.AUDIT_ACTIONS.PURCHASE_DELETED,
-        targetModel: "Purchase",
-        targetId: purchase._id,
-        before,
-    });
+    catch (err) {
+        await session.abortTransaction();
+        throw err;
+    }
+    finally {
+        session.endSession();
+    }
 };
 exports.deletePurchase = deletePurchase;
 const updateStock = async (req) => {

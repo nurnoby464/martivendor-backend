@@ -70,6 +70,7 @@ exports.updatePayment = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 exports.remove = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const company_id = new mongoose_1.default.Types.ObjectId(req.user.company_id);
+    console.log("in purchase");
     await PurchaseService.deletePurchase(req.params.id, company_id, req);
     return ApiResponse_1.ApiResponse.success(res, null, "Purchase deleted successfully");
 });

@@ -24,7 +24,7 @@ export const getCategoryTree = asyncHandler(
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-
+console.log("companyID",req.user.company_id)
     const { categories, total } = await CategoryService.searchCategories({
       company_id: req.user.company_id!,
       ...(search && { search }),
