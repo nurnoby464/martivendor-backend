@@ -38,8 +38,8 @@ const allowOrigin = [
   "https://rupbaan-frontend-3b7f.vercel.app",
   "https://luzia-weld.vercel.app",
   "https://ankorabd.vercel.app",
-  "https://ankorabd.com/",
-  "https://www.ankorabd.com/"
+  "https://ankorabd.com",
+  "https://www.ankorabd.com"
 ];
 
 app.use((req, res, next) => {
