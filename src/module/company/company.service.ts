@@ -15,7 +15,7 @@ import { auditLog } from "../../utils/auditLogger";
 import { AUDIT_ACTIONS } from "../audit/audit.interface";
 import { sanitizeData } from "../../utils/sanitizeData";
 import Session from "../auth/auth.schema";
-import { TCreateNavItem } from "./company.header.validation";
+import { TCreateNavItem, TDeleteNavItem } from "./company.header.validation";
 import { NavConfig } from "./company.header.schema";
 
 const ADMIN_ROLES = [
@@ -216,7 +216,7 @@ const updateUser = async (
     {
       $set: updateData,
     },
-    { new: true, runValidators: true },
+    { returnDocument: "after", runValidators: true },
   ).select("-password -reset_token -reset_token_exp");
 
   if (!updated) throw new AppError("User update failed", 500);
@@ -295,7 +295,7 @@ const updateMyCompany = async (
   const updated = await Company.findByIdAndUpdate(
     companyId,
     { $set: update },
-    { new: true, runValidators: true },
+    { returnDocument: "after", runValidators: true },
   ).lean();
 
   return updated;
@@ -337,7 +337,7 @@ const updateSocialMedia = async (
   const updated = await Company.findByIdAndUpdate(
     companyId,
     { $set: socialUpdate },
-    { new: true, runValidators: true },
+    { returnDocument: "after", runValidators: true },
   ).lean();
   return updated;
 };
@@ -365,11 +365,10 @@ const createHeaderNav = async (
       },
     },
     {
-      new: true,
+      returnDocument: "after",
       upsert: true,
     },
   );
-  console.log(result)
   if (!result) {
     throw new AppError(`Failed to create this ${label} nav`);
   }
@@ -387,6 +386,38 @@ const getHeaderNav = async (companyId: Types.ObjectId) => {
   return navItems;
 };
 
+const deleteHeaderNav = async (
+  companyId: Types.ObjectId,
+  payload: TDeleteNavItem,
+) => {
+  const { id, navItemId } = payload;
+  const existing = await NavConfig.findOne({
+    companyId,
+    _id: new Types.ObjectId(id),
+  });
+  if (!existing) {
+    throw new AppError("This nav items not found", 404);
+  }
+  const result = await NavConfig.findOneAndUpdate(
+    { companyId, _id: new Types.ObjectId(id) },
+    {
+      $pull: {
+        navItems: {
+          _id: new Types.ObjectId(navItemId),
+        },
+      },
+    },
+    {
+      returnDocument: "after",
+      runValidators: true,
+    },
+  );
+  if (!result) {
+    throw new AppError("Failed to delete navIem", 400);
+  }
+  return result;
+};
+
 export const CompanyServices = {
   createCompanyUser,
   getAllUsers,
@@ -398,4 +429,5 @@ export const CompanyServices = {
   updateSocialMedia,
   createHeaderNav,
   getHeaderNav,
+  deleteHeaderNav,
 };

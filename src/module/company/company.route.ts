@@ -15,7 +15,7 @@ import {
 } from "../../middlewares/AuthenticateHelper";
 import { CompanyControllers } from "./company.controller";
 import { companyIdentifier } from "../../middlewares/companyIdentifier";
-import { CreateNavItemSchema } from "./company.header.validation";
+import { CreateNavItemSchema, DeleteNavItemSchema } from "./company.header.validation";
 
 const router = express.Router();
 router.get("/my-company", companyIdentifier, CompanyControllers.getMyCompany);
@@ -50,14 +50,22 @@ router.patch(
 
 router.patch(
   "/my-company",
+  guard("super_admin", "admin"),
   validate({ body: updateCompanySchema }),
   CompanyControllers.updateMyCompany,
 );
 router.patch(
   "/social-media",
+  guard("super_admin", "admin"),
   validate({ body: updateSocialMediaSchema }),
   CompanyControllers.updateSocialMedia,
 );
+// router.patch(
+//   "/nav-items",
+//   guard("super_admin", "admin"),
+//   validate({ body: updateSocialMediaSchema }),
+//   CompanyControllers.updateSocialMedia,
+// );
 
 // ─── Delete ───────────────────────────────────────────────
 router.delete(
@@ -65,6 +73,12 @@ router.delete(
   guard("super_admin", "admin"),
   validate({ params: userParamsSchema }),
   CompanyControllers.deleteUser,
+);
+router.delete(
+  "/nav/:id/item/:navItemId",
+  guard("super_admin", "admin","site_management"),
+  validate({ params: DeleteNavItemSchema }),
+  CompanyControllers.deleteHeaderNav,
 );
 
 // header

@@ -4,6 +4,7 @@ import { CompanyServices } from "./company.service";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { UpdateSocialMediaInput, UserQueryInput } from "./company.validation";
 import { Types } from "mongoose";
+import { TDeleteNavItem } from "./company.header.validation";
 
 const createCompanyUser: express.RequestHandler = asyncHandler(
   async (req, res) => {
@@ -99,28 +100,32 @@ const createHeaderNav: express.RequestHandler = asyncHandler(
     }
 
     const result = await CompanyServices.createHeaderNav(companyId, req.body);
-    return ApiResponse.created(
-      res,
-      result,
-      "Nav items created successfully",
-    );
+    return ApiResponse.created(res, result, "Nav items created successfully");
   },
 );
 
-const getHeaderNav: express.RequestHandler = asyncHandler(
+const getHeaderNav: express.RequestHandler = asyncHandler(async (req, res) => {
+  const companyId = req.company?._id;
+  if (!companyId) {
+    return ApiResponse.error(res, "Failed, Company id is required");
+  }
+
+  const result = await CompanyServices.getHeaderNav(companyId);
+  return ApiResponse.success(res, result, "Nav items fetched successfully");
+});
+const deleteHeaderNav: express.RequestHandler = asyncHandler(
   async (req, res) => {
-    console.log("in get")
-    const companyId = req.company?._id;
+    const companyId = req.user.company_id;
     if (!companyId) {
       return ApiResponse.error(res, "Failed, Company id is required");
     }
-
-    const result = await CompanyServices.getHeaderNav(companyId);
-    return ApiResponse.success(
-      res,
-      result,
-      "Nav items fetched successfully",
-    );
+    const payload: TDeleteNavItem = {
+      id: req.params.id as string,
+      navItemId: req.params.navItemId as string,
+    };
+    console.log(payload);
+    const result = await CompanyServices.deleteHeaderNav(companyId, payload);
+    return ApiResponse.success(res, result, "Nav items deleted successfully");
   },
 );
 
@@ -134,5 +139,6 @@ export const CompanyControllers = {
   updateMyCompany,
   updateSocialMedia,
   createHeaderNav,
-  getHeaderNav
+  getHeaderNav,
+  deleteHeaderNav,
 };

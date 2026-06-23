@@ -33,7 +33,9 @@ const NavItemSchema = z
 // ── Update: _id required, all fields optional except the refine rule ──
 export const UpdateNavItemSchema = z
   .object({
-    _id: z.string().min(1, "_id is required"),
+    _id: z.string().min(1, "_id is required").refine(isValidObjectId, {
+      message: "_id must be a valid ObjectId",
+    }),
     label: z.string().min(1, "Label is required").trim().optional(),
     keyword: z.string().trim().optional(),
     sectionTitle: z.string().trim().optional(),
@@ -57,7 +59,7 @@ export const UpdateNavItemSchema = z
 
 // ── Delete: only _id needed ──
 export const DeleteNavItemSchema = z.object({
-  _id: z.string().min(1, "_id is required").refine(isValidObjectId, {
+  id: z.string().min(1, "_id is required").refine(isValidObjectId, {
     message: "_id must be a valid ObjectId",
   }),
   navItemId: z.string().min(1, "_id is required").refine(isValidObjectId, {
