@@ -1,16 +1,50 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompanyServices = void 0;
-const mongoose_1 = __importDefault(require("mongoose"));
+const mongoose_1 = __importStar(require("mongoose"));
 const appError_1 = require("../../middlewares/appError");
 const super_admin_schema_1 = __importDefault(require("../super_admin/super_admin.schema"));
 const company_schema_1 = __importDefault(require("./company.schema"));
 const auditLogger_1 = require("../../utils/auditLogger");
 const audit_interface_1 = require("../audit/audit.interface");
 const auth_schema_1 = __importDefault(require("../auth/auth.schema"));
+const company_header_schema_1 = require("./company.header.schema");
 const ADMIN_ROLES = [
     "account",
     "site_management",
@@ -185,7 +219,7 @@ const updateUser = async (userId, payload, req) => {
     }
     const updated = await super_admin_schema_1.default.findByIdAndUpdate(userId, {
         $set: updateData,
-    }, { new: true, runValidators: true }).select("-password -reset_token -reset_token_exp");
+    }, { returnDocument: "after", runValidators: true }).select("-password -reset_token -reset_token_exp");
     if (!updated)
         throw new appError_1.AppError("User update failed", 500);
     if (payload.is_active === false) {
@@ -250,7 +284,7 @@ const updateMyCompany = async (companyId, data) => {
     if (data.logo && data.logo.trim() !== "") {
         update.logo = data.logo;
     }
-    const updated = await company_schema_1.default.findByIdAndUpdate(companyId, { $set: update }, { new: true, runValidators: true }).lean();
+    const updated = await company_schema_1.default.findByIdAndUpdate(companyId, { $set: update }, { returnDocument: "after", runValidators: true }).lean();
     return updated;
 };
 const updateSocialMedia = async (companyId, data) => {
@@ -262,8 +296,15 @@ const updateSocialMedia = async (companyId, data) => {
     // build $set only for fields that were actually sent
     const socialUpdate = {};
     const fields = [
-        "facebook", "instagram", "twitter", "youtube",
-        "tiktok", "linkedin", "whatsapp", "pinterest", "website",
+        "facebook",
+        "instagram",
+        "twitter",
+        "youtube",
+        "tiktok",
+        "linkedin",
+        "whatsapp",
+        "pinterest",
+        "website",
     ];
     fields.forEach((field) => {
         const value = data.social_media?.[field];
@@ -272,8 +313,129 @@ const updateSocialMedia = async (companyId, data) => {
             socialUpdate[`social_media.${field}`] = value === "" ? null : value;
         }
     });
-    const updated = await company_schema_1.default.findByIdAndUpdate(companyId, { $set: socialUpdate }, { new: true, runValidators: true }).lean();
+    const updated = await company_schema_1.default.findByIdAndUpdate(companyId, { $set: socialUpdate }, { returnDocument: "after", runValidators: true }).lean();
     return updated;
+};
+const createHeaderNav = async (companyId, input) => {
+    const { label } = input;
+    const existing = await company_header_schema_1.NavConfig.findOne({
+        companyId,
+        "navItems.label": label,
+    });
+    if (existing) {
+        throw new appError_1.AppError(`${label} is already exist in nav items.`);
+    }
+    const result = await company_header_schema_1.NavConfig.findOneAndUpdate({
+        companyId,
+    }, {
+        $push: {
+            navItems: input,
+        },
+    }, {
+        returnDocument: "after",
+        upsert: true,
+    });
+    if (!result) {
+        throw new appError_1.AppError(`Failed to create this ${label} nav`);
+    }
+    return result;
+};
+const getHeaderNav = async (companyId) => {
+    const navItems = await company_header_schema_1.NavConfig.findOne({
+        companyId,
+    }).lean();
+    if (!navItems) {
+        return [];
+    }
+    return navItems;
+};
+const reOrderHeaderNav = async (companyId, navConfigId, input) => {
+    const session = await mongoose_1.default.startSession();
+    try {
+        let updated;
+        session.startTransaction();
+        const navConfig = await company_header_schema_1.NavConfig.findOne({
+            companyId,
+            _id: navConfigId,
+        }).session(session);
+        if (!navConfig) {
+            throw new appError_1.AppError("This nav items not found", 404);
+        }
+        const existingId = new Set(navConfig.navItems.map((item) => item._id.toString()));
+        const incomingIds = input.navItems.map((item) => item._id);
+        const allBelong = incomingIds.every((id) => existingId.has(id));
+        if (!allBelong || incomingIds.length !== existingId.size) {
+            throw new appError_1.AppError("navItems must match the existing nav items exactly", 400);
+        }
+        const orderMap = new Map(input.navItems.map((i) => [i._id, i.order]));
+        navConfig.navItems = navConfig.navItems
+            .map((item) => {
+            item.order = orderMap.get(item._id.toString()) ?? item.order;
+            return item;
+        })
+            .sort((a, b) => a.order - b.order);
+        updated = await navConfig.save({ session });
+        // await session.commitTransaction()
+        return updated;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        throw error;
+    }
+    finally {
+        await session.endSession();
+    }
+};
+const updateHeaderNav = async (companyId, navId, input) => {
+    const { _id } = input;
+    // console.log(input, navId);
+    const existing = await company_header_schema_1.NavConfig.findOne({
+        companyId,
+        _id: navId,
+    });
+    if (!existing) {
+        throw new appError_1.AppError("This nav items not found", 404);
+    }
+    const result = await company_header_schema_1.NavConfig.findOneAndUpdate({ companyId, _id: navId, "navItems._id": new mongoose_1.Types.ObjectId(_id) }, {
+        $set: {
+            "navItems.$.label": input.label,
+            "navItems.$.keyword": input.keyword,
+            "navItems.$.sectionTitle": input.sectionTitle,
+            "navItems.$.isActiveInNav": input.isActiveInNav,
+            "navItems.$.showOnHomepage": input.showOnHomepage,
+        },
+    }, {
+        returnDocument: "after",
+        runValidators: true,
+    });
+    if (!result) {
+        throw new appError_1.AppError("Failed to delete navIem", 400);
+    }
+    return result;
+};
+const deleteHeaderNav = async (companyId, payload) => {
+    const { id, navItemId } = payload;
+    const existing = await company_header_schema_1.NavConfig.findOne({
+        companyId,
+        _id: new mongoose_1.Types.ObjectId(id),
+    });
+    if (!existing) {
+        throw new appError_1.AppError("This nav items not found", 404);
+    }
+    const result = await company_header_schema_1.NavConfig.findOneAndUpdate({ companyId, _id: new mongoose_1.Types.ObjectId(id) }, {
+        $pull: {
+            navItems: {
+                _id: new mongoose_1.Types.ObjectId(navItemId),
+            },
+        },
+    }, {
+        returnDocument: "after",
+        runValidators: true,
+    });
+    if (!result) {
+        throw new appError_1.AppError("Failed to delete navIem", 400);
+    }
+    return result;
 };
 exports.CompanyServices = {
     createCompanyUser,
@@ -283,6 +445,11 @@ exports.CompanyServices = {
     deleteUser,
     getMyCompany,
     updateMyCompany,
-    updateSocialMedia
+    updateSocialMedia,
+    createHeaderNav,
+    getHeaderNav,
+    deleteHeaderNav,
+    updateHeaderNav,
+    reOrderHeaderNav,
 };
 //# sourceMappingURL=company.service.js.map

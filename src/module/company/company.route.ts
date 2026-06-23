@@ -15,7 +15,7 @@ import {
 } from "../../middlewares/AuthenticateHelper";
 import { CompanyControllers } from "./company.controller";
 import { companyIdentifier } from "../../middlewares/companyIdentifier";
-import { CreateNavItemSchema, DeleteNavItemSchema, UpdateNavItemSchema, UpdateParamsSchema } from "./company.header.validation";
+import { CreateNavItemSchema, DeleteNavItemSchema, ReorderNavItemsBodySchema, UpdateNavItemSchema, UpdateParamsSchema } from "./company.header.validation";
 
 const router = express.Router();
 router.get("/my-company", companyIdentifier, CompanyControllers.getMyCompany);
@@ -70,8 +70,8 @@ router.patch(
 router.patch(
   "/nav-items/:id/reorder",
   guard("super_admin", "admin","site_management"),
-  validate({params:UpdateParamsSchema, body: UpdateNavItemSchema }),
-  CompanyControllers.updateHeaderNav,
+  validate({params:UpdateParamsSchema, body: ReorderNavItemsBodySchema }),
+  CompanyControllers.reOrderHeaderNav,
 );
 
 // ─── Delete ───────────────────────────────────────────────

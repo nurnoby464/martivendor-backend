@@ -114,6 +114,22 @@ const getHeaderNav: express.RequestHandler = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, result, "Nav items fetched successfully");
 });
 
+const reOrderHeaderNav: express.RequestHandler = asyncHandler(
+  async (req, res) => {
+    const companyId = req.user.company_id;
+  
+    if (!companyId) {
+      return ApiResponse.error(res, "Failed, Company id is required");
+    }
+    const navConfigId = req.params.id as string;
+    const result = await CompanyServices.reOrderHeaderNav(
+      companyId,
+      new Types.ObjectId(navConfigId),
+      req.body,
+    );
+    return ApiResponse.success(res, result, "Nav items reorder successfully");
+  },
+);
 const updateHeaderNav: express.RequestHandler = asyncHandler(
   async (req, res) => {
     const companyId = req.user.company_id;
@@ -157,4 +173,5 @@ export const CompanyControllers = {
   getHeaderNav,
   deleteHeaderNav,
   updateHeaderNav,
+  reOrderHeaderNav,
 };

@@ -390,6 +390,53 @@ const getHeaderNav = async (companyId: Types.ObjectId) => {
   return navItems;
 };
 
+const reOrderHeaderNav = async (
+  companyId: Types.ObjectId,
+  navConfigId: Types.ObjectId,
+  input: { navItems: { _id: string; order: number }[] },
+) => {
+  const session = await mongoose.startSession();
+  try {
+    let updated;
+    session.startTransaction();
+    const navConfig = await NavConfig.findOne({
+      companyId,
+      _id: navConfigId,
+    }).session(session);
+    if (!navConfig) {
+      throw new AppError("This nav items not found", 404);
+    }
+    const existingId = new Set(
+      navConfig.navItems.map((item) => item._id.toString()),
+    );
+    const incomingIds = input.navItems.map((item) => item._id);
+    const allBelong = incomingIds.every((id) => existingId.has(id));
+    if (!allBelong || incomingIds.length !== existingId.size) {
+      throw new AppError(
+        "navItems must match the existing nav items exactly",
+        400,
+      );
+    }
+
+    const orderMap = new Map(input.navItems.map((i) => [i._id, i.order]));
+    navConfig.navItems = navConfig.navItems
+      .map((item) => {
+        item.order = orderMap.get(item._id.toString()) ?? item.order;
+        return item;
+      })
+      .sort((a, b) => a.order - b.order);
+    updated = await navConfig.save({ session });
+
+    // await session.commitTransaction()
+    return updated;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 const updateHeaderNav = async (
   companyId: Types.ObjectId,
   navId: Types.ObjectId,
@@ -474,4 +521,5 @@ export const CompanyServices = {
   getHeaderNav,
   deleteHeaderNav,
   updateHeaderNav,
+  reOrderHeaderNav,
 };

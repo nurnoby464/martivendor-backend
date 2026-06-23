@@ -4,6 +4,7 @@ exports.CompanyControllers = void 0;
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const company_service_1 = require("./company.service");
 const ApiResponse_1 = require("../../utils/ApiResponse");
+const mongoose_1 = require("mongoose");
 const createCompanyUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const user = await company_service_1.CompanyServices.createCompanyUser(req.body, req);
     return ApiResponse_1.ApiResponse.created(res, user, "Company user created successfully");
@@ -50,6 +51,52 @@ const updateSocialMedia = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const updated = await company_service_1.CompanyServices.updateSocialMedia(companyId, data);
     return ApiResponse_1.ApiResponse.success(res, updated, "Social media updated successfully");
 });
+const createHeaderNav = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed, Company id is required");
+    }
+    const result = await company_service_1.CompanyServices.createHeaderNav(companyId, req.body);
+    return ApiResponse_1.ApiResponse.created(res, result, "Nav items created successfully");
+});
+const getHeaderNav = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.company?._id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed, Company id is required");
+    }
+    const result = await company_service_1.CompanyServices.getHeaderNav(companyId);
+    return ApiResponse_1.ApiResponse.success(res, result, "Nav items fetched successfully");
+});
+const reOrderHeaderNav = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed, Company id is required");
+    }
+    const navConfigId = req.params.id;
+    const result = await company_service_1.CompanyServices.reOrderHeaderNav(companyId, new mongoose_1.Types.ObjectId(navConfigId), req.body);
+    return ApiResponse_1.ApiResponse.success(res, result, "Nav items reorder successfully");
+});
+const updateHeaderNav = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed, Company id is required");
+    }
+    const navId = req.params.id;
+    const result = await company_service_1.CompanyServices.updateHeaderNav(companyId, new mongoose_1.Types.ObjectId(navId), req.body);
+    return ApiResponse_1.ApiResponse.success(res, result, "Nav items deleted successfully");
+});
+const deleteHeaderNav = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+        return ApiResponse_1.ApiResponse.error(res, "Failed, Company id is required");
+    }
+    const payload = {
+        id: req.params.id,
+        navItemId: req.params.navItemId,
+    };
+    const result = await company_service_1.CompanyServices.deleteHeaderNav(companyId, payload);
+    return ApiResponse_1.ApiResponse.success(res, result, "Nav items deleted successfully");
+});
 exports.CompanyControllers = {
     createCompanyUser,
     getAllUsers,
@@ -59,5 +106,10 @@ exports.CompanyControllers = {
     getMyCompany,
     updateMyCompany,
     updateSocialMedia,
+    createHeaderNav,
+    getHeaderNav,
+    deleteHeaderNav,
+    updateHeaderNav,
+    reOrderHeaderNav,
 };
 //# sourceMappingURL=company.controller.js.map

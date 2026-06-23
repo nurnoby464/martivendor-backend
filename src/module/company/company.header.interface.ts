@@ -1,6 +1,7 @@
 import { Document, Types } from "mongoose";
 
 export interface INavItem {
+   _id: Types.ObjectId;
   label: string;
   keyword?: string;
   sectionTitle?: string;
