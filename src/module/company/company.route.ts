@@ -15,9 +15,11 @@ import {
 } from "../../middlewares/AuthenticateHelper";
 import { CompanyControllers } from "./company.controller";
 import { companyIdentifier } from "../../middlewares/companyIdentifier";
+import { CreateNavItemSchema } from "./company.header.validation";
 
 const router = express.Router();
 router.get("/my-company", companyIdentifier, CompanyControllers.getMyCompany);
+router.get("/nav-items", companyIdentifier, CompanyControllers.getHeaderNav);
 router.use(authenticate);
 router.use(verifySession);
 router.post(
@@ -63,5 +65,14 @@ router.delete(
   guard("super_admin", "admin"),
   validate({ params: userParamsSchema }),
   CompanyControllers.deleteUser,
+);
+
+// header
+
+router.post(
+  "/nav-items",
+  guard("super_admin", "admin", "site_management"),
+  validate({ body: CreateNavItemSchema }),
+  CompanyControllers.createHeaderNav,
 );
 export const CompanyRouter = router;

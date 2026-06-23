@@ -91,6 +91,39 @@ const updateSocialMedia: express.RequestHandler = asyncHandler(
   },
 );
 
+const createHeaderNav: express.RequestHandler = asyncHandler(
+  async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+      return ApiResponse.error(res, "Failed, Company id is required");
+    }
+
+    const result = await CompanyServices.createHeaderNav(companyId, req.body);
+    return ApiResponse.created(
+      res,
+      result,
+      "Nav items created successfully",
+    );
+  },
+);
+
+const getHeaderNav: express.RequestHandler = asyncHandler(
+  async (req, res) => {
+    console.log("in get")
+    const companyId = req.company?._id;
+    if (!companyId) {
+      return ApiResponse.error(res, "Failed, Company id is required");
+    }
+
+    const result = await CompanyServices.getHeaderNav(companyId);
+    return ApiResponse.success(
+      res,
+      result,
+      "Nav items fetched successfully",
+    );
+  },
+);
+
 export const CompanyControllers = {
   createCompanyUser,
   getAllUsers,
@@ -100,4 +133,6 @@ export const CompanyControllers = {
   getMyCompany,
   updateMyCompany,
   updateSocialMedia,
+  createHeaderNav,
+  getHeaderNav
 };
