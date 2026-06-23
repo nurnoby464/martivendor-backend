@@ -113,6 +113,22 @@ const getHeaderNav: express.RequestHandler = asyncHandler(async (req, res) => {
   const result = await CompanyServices.getHeaderNav(companyId);
   return ApiResponse.success(res, result, "Nav items fetched successfully");
 });
+
+const updateHeaderNav: express.RequestHandler = asyncHandler(
+  async (req, res) => {
+    const companyId = req.user.company_id;
+    if (!companyId) {
+      return ApiResponse.error(res, "Failed, Company id is required");
+    }
+    const navId = req.params.id as string;
+    const result = await CompanyServices.updateHeaderNav(
+      companyId,
+      new Types.ObjectId(navId),
+      req.body,
+    );
+    return ApiResponse.success(res, result, "Nav items deleted successfully");
+  },
+);
 const deleteHeaderNav: express.RequestHandler = asyncHandler(
   async (req, res) => {
     const companyId = req.user.company_id;
@@ -123,7 +139,6 @@ const deleteHeaderNav: express.RequestHandler = asyncHandler(
       id: req.params.id as string,
       navItemId: req.params.navItemId as string,
     };
-    console.log(payload);
     const result = await CompanyServices.deleteHeaderNav(companyId, payload);
     return ApiResponse.success(res, result, "Nav items deleted successfully");
   },
@@ -141,4 +156,5 @@ export const CompanyControllers = {
   createHeaderNav,
   getHeaderNav,
   deleteHeaderNav,
+  updateHeaderNav,
 };

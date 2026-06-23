@@ -15,7 +15,11 @@ import { auditLog } from "../../utils/auditLogger";
 import { AUDIT_ACTIONS } from "../audit/audit.interface";
 import { sanitizeData } from "../../utils/sanitizeData";
 import Session from "../auth/auth.schema";
-import { TCreateNavItem, TDeleteNavItem } from "./company.header.validation";
+import {
+  TCreateNavItem,
+  TDeleteNavItem,
+  TUpdateNavItem,
+} from "./company.header.validation";
 import { NavConfig } from "./company.header.schema";
 
 const ADMIN_ROLES = [
@@ -386,6 +390,45 @@ const getHeaderNav = async (companyId: Types.ObjectId) => {
   return navItems;
 };
 
+const updateHeaderNav = async (
+  companyId: Types.ObjectId,
+  navId: Types.ObjectId,
+  input: TUpdateNavItem,
+) => {
+  const { _id } = input;
+
+  // console.log(input, navId);
+  const existing = await NavConfig.findOne({
+    companyId,
+    _id: navId,
+  });
+
+  if (!existing) {
+    throw new AppError("This nav items not found", 404);
+  }
+
+  const result = await NavConfig.findOneAndUpdate(
+    { companyId, _id: navId, "navItems._id": new Types.ObjectId(_id) },
+    {
+      $set: {
+        "navItems.$.label": input.label,
+        "navItems.$.keyword": input.keyword,
+        "navItems.$.sectionTitle": input.sectionTitle,
+        "navItems.$.isActiveInNav": input.isActiveInNav,
+        "navItems.$.showOnHomepage": input.showOnHomepage,
+      },
+    },
+    {
+      returnDocument: "after",
+      runValidators: true,
+    },
+  );
+  if (!result) {
+    throw new AppError("Failed to delete navIem", 400);
+  }
+  return result;
+};
+
 const deleteHeaderNav = async (
   companyId: Types.ObjectId,
   payload: TDeleteNavItem,
@@ -430,4 +473,5 @@ export const CompanyServices = {
   createHeaderNav,
   getHeaderNav,
   deleteHeaderNav,
+  updateHeaderNav,
 };
