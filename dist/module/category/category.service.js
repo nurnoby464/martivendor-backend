@@ -15,6 +15,7 @@ const generateSlug = (name) => {
     return slug || `category-${Date.now()}`;
 };
 const assertUniqSlug = async (slug, company_id, excludeId) => {
+    console.log(slug);
     const filter = { company_id, slug };
     if (excludeId)
         filter._id = { $ne: excludeId };
@@ -27,7 +28,11 @@ const assertUniqSlug = async (slug, company_id, excludeId) => {
 const createCategory = async (payload) => {
     const { company_id, name, parent_id, image, createdBy } = payload;
     const slug = generateSlug(name);
-    await assertUniqSlug(slug, company_id);
+    // await assertUniqSlug(slug, company_id);
+    const filter = { company_id, slug, parent_id };
+    const exists = await category_schema_1.default.findOne(filter).lean();
+    if (exists)
+        throw new appError_1.AppError(`Category "${slug}" already exists`, 409);
     let path = [];
     let depth = 0;
     if (parent_id) {

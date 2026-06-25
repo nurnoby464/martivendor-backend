@@ -51,7 +51,7 @@ const CategorySchema = new mongoose_1.Schema({
 }, { timestamps: true });
 // Better indexes for array path
 CategorySchema.index({ company_id: 1, parent_id: 1 });
-CategorySchema.index({ company_id: 1, slug: 1 }, { unique: true });
+CategorySchema.index({ company_id: 1, slug: 1, parent_id: 1 }, { unique: true });
 CategorySchema.index({ company_id: 1, path: 1 }); // Works with array
 CategorySchema.index({ company_id: 1, depth: 1 });
 const Category = (0, mongoose_1.model)("Category", CategorySchema);

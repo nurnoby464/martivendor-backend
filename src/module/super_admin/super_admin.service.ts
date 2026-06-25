@@ -212,6 +212,7 @@ const createCompany = async (payload: CreateNewCompanyInput, req: Request) => {
             _id: companyId,
             company_name: company_name,
             company_email: company_email,
+            companyNavName:company_name,
             phone: phone,
             address: address,
             admin_id: adminId, // ← set directly, no update needed

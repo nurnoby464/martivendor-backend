@@ -9,6 +9,7 @@ export interface ICompany {
   domain: string | null; // ← new
   subdomain: string | null; // ← new
   status: "active" | "inactive" | "suspended";
+  companyNavName:string;
   social_media?: {
     facebook?: string;
     instagram?: string;

@@ -102,6 +102,7 @@ export const companyQuerySchema = z.object({
 
 export const updateCompanySchema = z.object({
   company_name: z.string().trim().min(2).max(200).optional(),
+  companyNavName: z.string().trim().min(2).max(200).optional(),
   phone: z.string().trim().min(7).max(20).optional(),
   address: z.string().trim().min(5).max(500).optional(),
   logo: z.string().url("Logo must be a valid URL").nullable().optional(),

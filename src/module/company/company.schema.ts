@@ -61,6 +61,7 @@ const CompanySchema = new Schema<ICompanyDocument>(
       ],
       // example: "fashion-zone" → fashion-zone.yourplatform.com
     },
+    companyNavName: { type: String, required: true },
     social_media: {
       facebook: { type: String, trim: true },
       instagram: { type: String, trim: true },

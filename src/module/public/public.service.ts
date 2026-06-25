@@ -201,7 +201,10 @@ export const searchCategories = async (payload: {
     // 1. find the root match
     const root = await Category.findOne({
       ...baseFilter,
-      name: { $regex: `^${search.trim()}$`, $options: "i" },
+      $or: [
+        { name: { $regex: `^${search.trim()}$`, $options: "i" } },
+        { slug: { $regex: `^${search.trim()}$`, $options: "i" } },
+      ],
     }).lean<ICategoryDocument>();
 
     if (!root) return { categories: [], total: 0 };

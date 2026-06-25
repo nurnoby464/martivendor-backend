@@ -54,6 +54,7 @@ const CompanySchema = new mongoose_1.Schema({
         ],
         // example: "fashion-zone" → fashion-zone.yourplatform.com
     },
+    companyNavName: { type: String, required: true },
     social_media: {
         facebook: { type: String, trim: true },
         instagram: { type: String, trim: true },

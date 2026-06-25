@@ -277,7 +277,7 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
               localField: "product_id",
               foreignField: "_id",
               as: "_product",
-              pipeline: [{ $project: { name: 1 } }],
+              pipeline: [{ $project: { name: 1, category_id: 1 } }], // ← also grab category_id
             },
           },
           {
@@ -288,11 +288,104 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
                   "Unknown Product",
                 ],
               },
+              category_id: { $arrayElemAt: ["$_product.category_id", 0] }, // ← flatten it out
+            },
+          },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category_id",
+              foreignField: "_id",
+              as: "_categoryDoc",
+              pipeline: [{ $project: { name: 1, slug: 1, path: 1 } }],
+            },
+          },
+          {
+            $addFields: {
+              _categoryDoc: { $arrayElemAt: ["$_categoryDoc", 0] },
+            },
+          },
+          {
+            $addFields: {
+              // root → ... → leaf, as an array of ObjectIds
+              _categoryChain: {
+                $concatArrays: [
+                  { $ifNull: ["$_categoryDoc.path", []] },
+                  {
+                    $cond: [
+                      { $ifNull: ["$_categoryDoc._id", false] },
+                      ["$_categoryDoc._id"],
+                      [],
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "_categoryChain",
+              foreignField: "_id",
+              as: "_categoryChainDocs",
+              pipeline: [{ $project: { name: 1 } }],
+            },
+          },
+          {
+            $addFields: {
+              // re-order by walking _categoryChain (the correct order), not _categoryChainDocs (arbitrary order)
+              categoryPath: {
+                $map: {
+                  input: "$_categoryChain",
+                  as: "id",
+                  in: {
+                    $let: {
+                      vars: {
+                        matched: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$_categoryChainDocs",
+                                as: "c",
+                                cond: { $eq: ["$$c._id", "$$id"] },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                      in: "$$matched.name",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
+            $addFields: {
+              categoryBreadcrumb: {
+                $reduce: {
+                  input: "$categoryPath",
+                  initialValue: "",
+                  in: {
+                    $cond: [
+                      { $eq: ["$$value", ""] },
+                      "$$this",
+                      { $concat: ["$$value", " => ", "$$this"] },
+                    ],
+                  },
+                },
+              },
+              categoryName: {
+                $ifNull: ["$_categoryDoc.name", "Uncategorized"],
+              }, // leaf name only, unchanged behavior
+              categorySlug: "$_categoryDoc.slug",
             },
           },
           {
             $addFields: {
               color: {
+                /* unchanged */
                 $getField: {
                   field: "value",
                   input: {
@@ -310,6 +403,7 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
                 },
               },
               size: {
+                /* unchanged */
                 $getField: {
                   field: "value",
                   input: {
@@ -333,6 +427,11 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
               _id: 1,
               product_id: 1,
               company_id: 1,
+              category_id: 1, // ← add
+              categoryName: 1, // ← add
+              categorySlug: 1, // ← add
+              categoryPath: 1, // ["Men", "Shirt"]
+              categoryBreadcrumb: 1,
               sku: 1,
               image: 1,
               buying_price: 1,

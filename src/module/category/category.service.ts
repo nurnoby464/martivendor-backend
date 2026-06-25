@@ -20,6 +20,7 @@ const assertUniqSlug = async (
   company_id: mongoose.Types.ObjectId,
   excludeId?: string,
 ) => {
+  console.log(slug);
   const filter: Record<string, unknown> = { company_id, slug };
   if (excludeId) filter._id = { $ne: excludeId };
   const exists = await Category.findOne(filter).lean();
@@ -40,8 +41,11 @@ export const createCategory = async (payload: {
   const { company_id, name, parent_id, image, createdBy } = payload;
 
   const slug = generateSlug(name);
-  await assertUniqSlug(slug, company_id);
+  // await assertUniqSlug(slug, company_id);
 
+  const filter: Record<string, unknown> = { company_id, slug, parent_id };
+  const exists = await Category.findOne(filter).lean();
+  if (exists) throw new AppError(`Category "${slug}" already exists`, 409);
   let path: mongoose.Types.ObjectId[] = [];
   let depth = 0;
 

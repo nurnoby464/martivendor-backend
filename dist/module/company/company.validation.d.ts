@@ -44,6 +44,7 @@ export declare const companyQuerySchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const updateCompanySchema: z.ZodObject<{
     company_name: z.ZodOptional<z.ZodString>;
+    companyNavName: z.ZodOptional<z.ZodString>;
     phone: z.ZodOptional<z.ZodString>;
     address: z.ZodOptional<z.ZodString>;
     logo: z.ZodOptional<z.ZodNullable<z.ZodString>>;

@@ -164,7 +164,10 @@ const searchCategories = async (payload) => {
         // 1. find the root match
         const root = await category_schema_1.default.findOne({
             ...baseFilter,
-            name: { $regex: `^${search.trim()}$`, $options: "i" },
+            $or: [
+                { name: { $regex: `^${search.trim()}$`, $options: "i" } },
+                { slug: { $regex: `^${search.trim()}$`, $options: "i" } },
+            ],
         }).lean();
         if (!root)
             return { categories: [], total: 0 };

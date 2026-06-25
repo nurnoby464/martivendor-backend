@@ -290,6 +290,8 @@ const updateMyCompany = async (
   if (data.company_name !== undefined) update.company_name = data.company_name;
   if (data.phone !== undefined) update.phone = data.phone;
   if (data.address !== undefined) update.address = data.address;
+  if (data.companyNavName !== undefined)
+    update.companyNavName = data.companyNavName;
 
   // logo: only update if a non-empty URL was provided
   if (data.logo && data.logo.trim() !== "") {
