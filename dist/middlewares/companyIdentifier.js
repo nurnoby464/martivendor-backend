@@ -4,14 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.companyIdentifier = void 0;
-const company_schema_1 = __importDefault(require("../module/company/company.schema"));
+const seller_schema_1 = __importDefault(require("../module/seller/seller.schema"));
 const appError_1 = require("./appError");
 const mongoose_1 = __importDefault(require("mongoose"));
 const companyIdentifier = async (req, res, next) => {
     let company = null;
     const subdomain = req.headers["x-subdomain"];
     if (subdomain) {
-        company = await company_schema_1.default.findOne({
+        company = await seller_schema_1.default.findOne({
             subdomain: subdomain.toLocaleLowerCase().trim(),
             status: "active",
         })
@@ -21,14 +21,14 @@ const companyIdentifier = async (req, res, next) => {
     if (!company) {
         const companyId = req.headers["x-company-id"];
         if (companyId && mongoose_1.default.Types.ObjectId.isValid(companyId)) {
-            company = await company_schema_1.default.findOne({ _id: companyId, status: "active" })
+            company = await seller_schema_1.default.findOne({ _id: companyId, status: "active" })
                 .select("_id company_name logo subdomain domain status")
                 .lean();
         }
     }
-    if (!company && req.params.company_id) {
-        const company = await company_schema_1.default.findOne({
-            _id: req.params.company_id,
+    if (!company && req.params.sellerId) {
+        const company = await seller_schema_1.default.findOne({
+            _id: req.params.sellerId,
             status: "active",
         })
             .select("_id company_name logo subdomain domain status")
@@ -42,7 +42,7 @@ const companyIdentifier = async (req, res, next) => {
             .replace(/:\d+$/, "") // remove port (localhost:3000 → localhost)
             .toLowerCase();
         if (domain && domain !== "localhost") {
-            company = await company_schema_1.default.findOne({ domain, status: "active" })
+            company = await seller_schema_1.default.findOne({ domain, status: "active" })
                 .select("_id company_name logo subdomain domain status")
                 .lean();
         }

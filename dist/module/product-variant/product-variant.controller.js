@@ -42,36 +42,36 @@ const ApiResponse_1 = require("../../utils/ApiResponse");
 const ProductVariantServices = __importStar(require("./product-variant.service"));
 const mongoose_1 = __importDefault(require("mongoose"));
 exports.createVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const company_id = new mongoose_1.default.Types.ObjectId(req.user.company_id);
+    const sellerId = new mongoose_1.default.Types.ObjectId(req.user.sellerId);
     const variant = await ProductVariantServices.createVariant({
         ...req.body,
         product_id: req.params.id,
-        company_id,
+        sellerId,
     }, req);
     return ApiResponse_1.ApiResponse.created(res, variant, "Variant created successfully");
 });
 exports.getVariants = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const variants = await ProductVariantServices.getVariants({
         product_id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
     });
     return ApiResponse_1.ApiResponse.success(res, variants);
 });
 exports.getVariantById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const company_id = new mongoose_1.default.Types.ObjectId(req.user.company_id);
-    const variant = await ProductVariantServices.getVariantById(req.params.variantId, company_id);
+    const sellerId = new mongoose_1.default.Types.ObjectId(req.user.sellerId);
+    const variant = await ProductVariantServices.getVariantById(req.params.variantId, sellerId);
     ApiResponse_1.ApiResponse.success(res, variant, "Variant fetched successfully");
 });
 exports.updateVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const company_id = new mongoose_1.default.Types.ObjectId(req.user.company_id);
-    const variant = await ProductVariantServices.updateVariant(req.params.variantId, company_id, req.body, req);
+    const sellerId = new mongoose_1.default.Types.ObjectId(req.user.sellerId);
+    const variant = await ProductVariantServices.updateVariant(req.params.variantId, sellerId, req.body, req);
     return ApiResponse_1.ApiResponse.success(res, variant, "Variant updated successfully");
 });
 exports.deleteVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const variant = await ProductVariantServices.deleteVariant({
         id: req.params.variantId,
         product_id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         req,
     });
     return ApiResponse_1.ApiResponse.success(res, null, "Variant deactivated successfully");

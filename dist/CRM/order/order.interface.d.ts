@@ -22,7 +22,7 @@ export interface IShippingAddress {
     zip: string | null;
 }
 export interface IOrder {
-    company_id: Types.ObjectId;
+    sellerId: Types.ObjectId;
     order_number: string;
     customer: Types.ObjectId;
     items: IOrderItem[];
@@ -42,7 +42,7 @@ export interface IOrder {
 export interface IOrderDocument extends IOrder, Document {
 }
 export interface ICreateOrderPayload {
-    companyId: Types.ObjectId;
+    sellerId: Types.ObjectId;
     input: TCreateOrderInput;
 }
 export type IEmptyOrderItem = IOrderItem | [];

@@ -59,16 +59,16 @@ const updatePassword = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     return ApiResponse_1.ApiResponse.success(res, null, result.message);
 });
 const registerCustomer = async (req, res) => {
-    const company_id = new mongoose_1.Types.ObjectId(req.company?._id); // set by resolveCompany middleware
-    const user = await auth_service_1.AuthServices.registerCustomer(company_id, req.body);
+    const sellerId = new mongoose_1.Types.ObjectId(req.company?._id); // set by resolveCompany middleware
+    const user = await auth_service_1.AuthServices.registerCustomer(sellerId, req.body);
     return ApiResponse_1.ApiResponse.created(res, user, "Registration Successfully");
 };
 exports.registerCustomer = registerCustomer;
 const updateProfile = async (req, res) => {
-    const company_id = req.user.company_id;
-    if (!company_id)
+    const sellerId = req.user.sellerId;
+    if (!sellerId)
         throw new appError_1.AppError("Company ID not found in user data", 400);
-    const user = await auth_service_1.AuthServices.updateProfile(company_id, req.user._id, req.body);
+    const user = await auth_service_1.AuthServices.updateProfile(sellerId, req.user._id, req.body);
     return ApiResponse_1.ApiResponse.created(res, user, "Profile update Successfully");
 };
 exports.updateProfile = updateProfile;

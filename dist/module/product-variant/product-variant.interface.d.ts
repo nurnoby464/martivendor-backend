@@ -5,7 +5,7 @@ export interface IAttribute {
 }
 export interface IProductVariant {
     product_id: mongoose.Types.ObjectId;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     attributes: IAttribute[];
     sku: string;
     image: string | null;

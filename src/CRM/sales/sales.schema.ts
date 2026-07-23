@@ -42,9 +42,9 @@ const customerSnapshotsSchema = new Schema<ICustomerSnapshot>({
 
 const saleSchema = new Schema<ISaleDocument>(
   {
-    companyId: {
+    sellerId: {
       type: Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "Seller",
       required: true,
     },
     saleCode: {
@@ -105,9 +105,9 @@ const saleSchema = new Schema<ISaleDocument>(
   },
   { timestamps: true },
 );
-saleSchema.index({ companyId: 1, saleDate: -1 });
-saleSchema.index({ companyId: 1, paymentStatus: 1 });
-saleSchema.index({ companyId: 1, status: 1 });
+saleSchema.index({ sellerId: 1, saleDate: -1 });
+saleSchema.index({ sellerId: 1, paymentStatus: 1 });
+saleSchema.index({ sellerId: 1, status: 1 });
 
 const Sale = model<ISaleDocument>("Sale", saleSchema);
 export default Sale;

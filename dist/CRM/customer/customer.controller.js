@@ -40,7 +40,7 @@ const asyncHandler_1 = require("../../utils/asyncHandler");
 const CustomerServices = __importStar(require("./customer.service"));
 const appError_1 = require("../../middlewares/appError");
 exports.getCustomerList = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = new mongoose_1.Types.ObjectId(req.user.company_id);
+    const companyId = new mongoose_1.Types.ObjectId(req.user.sellerId);
     if (!companyId) {
         throw new appError_1.AppError("Company not found", 404);
     }

@@ -27,7 +27,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   };
 
   const { products, total } = await ProductService.getProducts({
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
     ...query,
   });
 
@@ -45,7 +45,7 @@ export const getProductById = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await ProductService.getProductById({
       id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
     });
 
     return ApiResponse.success(res, result);
@@ -56,7 +56,7 @@ export const updateProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const product = await ProductService.updateProduct({
       id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       data: req.body,
       req,
     });
@@ -69,7 +69,7 @@ export const deleteProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const product = await ProductService.deleteProduct({
       id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       req,
     });
 

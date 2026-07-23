@@ -24,7 +24,7 @@ const shippingAddressSchema = new mongoose_1.Schema({
     zip: { type: String, default: null },
 }, { _id: false });
 const orderSchema = new mongoose_1.Schema({
-    company_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Seller", required: true },
     order_number: { type: String, required: true },
     customer: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -65,11 +65,11 @@ const orderSchema = new mongoose_1.Schema({
     note: { type: String, default: null },
 }, { timestamps: true });
 // indexes
-orderSchema.index({ company_id: 1, order_number: 1 }, { unique: true });
-orderSchema.index({ company_id: 1, customer_id: 1 });
-orderSchema.index({ company_id: 1, order_status: 1 });
-orderSchema.index({ company_id: 1, payment_status: 1 });
-orderSchema.index({ company_id: 1, createdAt: -1 }); // recent orders list
+orderSchema.index({ sellerId: 1, order_number: 1 }, { unique: true });
+orderSchema.index({ sellerId: 1, customer_id: 1 });
+orderSchema.index({ sellerId: 1, order_status: 1 });
+orderSchema.index({ sellerId: 1, payment_status: 1 });
+orderSchema.index({ sellerId: 1, createdAt: -1 }); // recent orders list
 const Order = (0, mongoose_1.model)("Order", orderSchema);
 exports.default = Order;
 //# sourceMappingURL=order.schema.js.map

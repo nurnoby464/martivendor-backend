@@ -58,7 +58,7 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
 export type AuditTargetModel =
   | "User"
-  | "Company"
+  | "Seller"
   | "Session"
   | "Vendor"
   | "Category"

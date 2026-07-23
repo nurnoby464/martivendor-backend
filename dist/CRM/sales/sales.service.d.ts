@@ -1,7 +1,7 @@
 import mongoose, { Types } from "mongoose";
 import { CreateSaleInput } from "./sales.validation";
 interface ICreateSalePayload {
-    companyId: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     createdBy: mongoose.Types.ObjectId | null;
     input: CreateSaleInput;
     createdByType: "staff" | "system";

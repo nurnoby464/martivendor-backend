@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const customerSchema = new mongoose_1.Schema({
-    companyId: {
+    sellerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Company",
+        ref: "Seller",
         required: true,
     },
     userId: {
@@ -49,10 +49,10 @@ const customerSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-customerSchema.index({ companyId: 1, phone: 1 }, { unique: true });
-customerSchema.index({ companyId: 1, email: 1 }, { unique: true, sparse: true });
-customerSchema.index({ companyId: 1, due: -1 }); // desending order due report
-customerSchema.index({ companyId: 1, lastPurchasedAt: -1 }); // recent customers
+customerSchema.index({ sellerId: 1, phone: 1 }, { unique: true });
+customerSchema.index({ sellerId: 1, email: 1 }, { unique: true, sparse: true });
+customerSchema.index({ sellerId: 1, due: -1 }); // desending order due report
+customerSchema.index({ sellerId: 1, lastPurchasedAt: -1 }); // recent customers
 const Customer = (0, mongoose_1.model)("Customer", customerSchema);
 exports.default = Customer;
 //# sourceMappingURL=customer.schema.js.map

@@ -9,7 +9,7 @@ import { CompanyQueryInput, UpdateCompanyInput } from "../company/company.valida
 interface ListQuery extends ParsedQs {
     page?: string;
     limit?: string;
-    company_id?: string;
+    sellerId?: string;
     role?: string;
     is_active?: string;
 }

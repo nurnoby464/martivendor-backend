@@ -9,14 +9,14 @@ const auth_controller_1 = require("./auth.controller");
 const validate_1 = require("../../middlewares/validate");
 const auth_schema_1 = require("./auth.schema");
 const AuthenticateHelper_1 = require("../../middlewares/AuthenticateHelper");
-const super_admin_validation_1 = require("../super_admin/super_admin.validation");
+const user_validation_1 = require("../user/user.validation");
 const companyIdentifier_1 = require("../../middlewares/companyIdentifier");
 const auth_validation_1 = require("./auth.validation");
 const router = express_1.default.Router();
 // public
 router.post("/login", (0, validate_1.validate)({ body: auth_schema_1.loginSchema }), auth_controller_1.AuthController.login);
 router.post("/refresh", auth_controller_1.AuthController.refresh);
-router.post("/register", (0, validate_1.validate)({ body: super_admin_validation_1.registerCustomerSchema }), companyIdentifier_1.companyIdentifier, auth_controller_1.AuthController.registerCustomer);
+router.post("/register", (0, validate_1.validate)({ body: user_validation_1.registerCustomerSchema }), companyIdentifier_1.companyIdentifier, auth_controller_1.AuthController.registerCustomer);
 router.delete("/session/:userId/:sessionId", (0, validate_1.validate)({ params: auth_schema_1.sessionParamsSchema }), auth_controller_1.AuthController.removeSession);
 // protected
 router.post("/logout", auth_controller_1.AuthController.logout);

@@ -11,7 +11,7 @@ const createVendor = asyncHandler(async (req: Request, res: Response) => {
   const vendor = await VendorService.createVendor(
     {
       ...req.body,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       createdBy: req.user._id,
     },
     req,
@@ -31,7 +31,7 @@ const getVendors = asyncHandler(async (req: Request, res: Response) => {
     sort_order: string;
   };
   const { vendors, total } = await VendorService.getVendors({
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
     ...query,
   });
 
@@ -49,7 +49,7 @@ const getVendors = asyncHandler(async (req: Request, res: Response) => {
 const getVendorById = asyncHandler(async (req: Request, res: Response) => {
   const vendor = await VendorService.getVendorById({
     id: req.params.id as string,
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
   });
 
   return ApiResponse.success(res, vendor);
@@ -59,12 +59,12 @@ const getVendorById = asyncHandler(async (req: Request, res: Response) => {
 const updateVendor = asyncHandler(async (req: Request, res: Response) => {
   const before = await VendorService.getVendorById({
     id: req.params.id as string,
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
   });
 
   const vendor = await VendorService.updateVendor({
     id: req.params.id as string,
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
     data: req.body,
     req,
   });
@@ -76,7 +76,7 @@ const updateVendor = asyncHandler(async (req: Request, res: Response) => {
 const deleteVendor = asyncHandler(async (req: Request, res: Response) => {
   const vendor = await VendorService.deleteVendor({
     id: req.params.id as string,
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
     req,
   });
 
@@ -87,7 +87,7 @@ const deleteVendor = asyncHandler(async (req: Request, res: Response) => {
 const addNote = asyncHandler(async (req: Request, res: Response) => {
   const note = await VendorService.addVendorNote({
     id: req.params.id as string,
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
     text: req.body.text,
     createdBy: req.user._id,
   });
@@ -107,7 +107,7 @@ const deleteNote = asyncHandler(async (req: Request, res: Response) => {
   await VendorService.deleteVendorNote({
     id: req.params.id as string,
     noteId: req.params.noteId as string,
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
   });
 
   auditLog({

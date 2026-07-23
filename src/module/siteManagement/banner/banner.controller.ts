@@ -8,19 +8,19 @@ import { AppError } from "../../../middlewares/appError";
 // Create new banner
 export const createBanner = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
       return ApiResponse.error(res, "Failed to create Banner");
     }
-    const banner = await BannerService.createBanner(companyId, req.body);
+    const banner = await BannerService.createBanner(sellerId, req.body);
     return ApiResponse.created(res, banner, "Banner created successfully");
   },
 );
 
 // Get all banners (admin)
 export const getAllBanners = async (req: Request, res: Response) => {
-  const companyId = req.company?._id;
-  if (!companyId) {
+  const sellerId = req.company?._id;
+  if (!sellerId) {
     return res.status(400).json({
       success: false,
       message: "Failed to fetch banners",
@@ -52,7 +52,7 @@ export const getAllBanners = async (req: Request, res: Response) => {
       params.sortOrder = sortOrder as "asc" | "desc";
     }
 
-    const result = await BannerService.getAllBanners(companyId, params);
+    const result = await BannerService.getAllBanners(sellerId, params);
 
     return res.status(200).json(result);
   } catch (error: any) {
@@ -66,12 +66,12 @@ export const getAllBanners = async (req: Request, res: Response) => {
 // Get active banners for frontend
 export const getActiveBanners = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.company?._id;
-    if (!companyId) {
+    const sellerId = req.company?._id;
+    if (!sellerId) {
       return ApiResponse.error(res, "Company id not found");
     }
 
-    const banners = await BannerService.getActiveBanners(companyId);
+    const banners = await BannerService.getActiveBanners(sellerId);
 
     return ApiResponse.success(
       res,
@@ -84,12 +84,12 @@ export const getActiveBanners = asyncHandler(
 // Get single banner
 export const getBannerById = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
       return ApiResponse.error(res, "Failed to fetch banner");
     }
     const { id } = req.params;
-    const banner = await BannerService.getBannerById(id as string, companyId);
+    const banner = await BannerService.getBannerById(id as string, sellerId);
 
     if (!banner) {
       throw new AppError("Banner not found", 404);
@@ -102,14 +102,14 @@ export const getBannerById = asyncHandler(
 // Update banner
 export const updateBanner = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
       return ApiResponse.error(res, "Failed to update banner");
     }
     const { id } = req.params;
     const banner = await BannerService.updateBanner(
       id as string,
-      companyId,
+      sellerId,
       req.body,
     );
 
@@ -124,12 +124,12 @@ export const updateBanner = asyncHandler(
 // Delete banner
 export const deleteBanner = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
       return ApiResponse.error(res, "Failed to delete banner");
     }
     const { id } = req.params;
-    const banner = await BannerService.deleteBanner(id as string, companyId);
+    const banner = await BannerService.deleteBanner(id as string, sellerId);
 
     if (!banner) {
       throw new AppError("Banner not found", 404);
@@ -147,14 +147,14 @@ export const deleteBanner = asyncHandler(
 // Toggle banner status
 export const toggleBannerStatus = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
       return ApiResponse.error(res, "Failed to toggle banner status");
     }
     const { id } = req.params;
     const banner = await BannerService.toggleBannerStatus(
       id as string,
-      companyId,
+      sellerId,
     );
 
     if (!banner) {
@@ -172,12 +172,12 @@ export const toggleBannerStatus = asyncHandler(
 // Bulk update banner orders
 export const bulkUpdateOrders = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
       return ApiResponse.error(res, "Failed to update banner orders");
     }
     const { banners } = req.body;
-    await BannerService.bulkUpdateOrders(companyId, banners);
+    await BannerService.bulkUpdateOrders(sellerId, banners);
 
     return ApiResponse.success(res, null, "Banner orders updated successfully");
   },
@@ -186,13 +186,13 @@ export const bulkUpdateOrders = asyncHandler(
 // Delete multiple banners
 export const deleteMultipleBanners = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
       return ApiResponse.error(res, "Failed to delete banners");
     }
     const { ids } = req.body;
     const deletedCount = await BannerService.deleteMultipleBanners(
-      companyId,
+      sellerId,
       ids,
     );
 

@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Banner = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const BannerSchema = new mongoose_1.Schema({
-    companyId: { type: mongoose_1.Types.ObjectId, ref: "Company", required: true },
+    companyId: { type: mongoose_1.Types.ObjectId, ref: "Seller", required: true },
     text: {
         type: String,
         trim: true,

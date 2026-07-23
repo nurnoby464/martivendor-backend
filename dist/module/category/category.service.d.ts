@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { Request } from "express";
 import { ICategoryDocument } from "./category.interface";
 export declare const createCategory: (payload: {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     name: string;
     parent_id?: string | null;
     image?: string | null;
@@ -16,7 +16,7 @@ export declare const createCategory: (payload: {
     id: string;
 }>;
 export declare const getCategoryTree: (payload: {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     query?: string;
     skip: number;
     limit: number;
@@ -25,7 +25,7 @@ export declare const getCategoryTree: (payload: {
     total: number;
 }>;
 export declare const getCategories: (payload: {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     page: number;
     limit: number;
     search?: string;
@@ -42,7 +42,7 @@ export declare const getCategories: (payload: {
 }>;
 export declare const getCategoryById: (payload: {
     id: string;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
 }) => Promise<ICategoryDocument & Required<{
     _id: mongoose.Types.ObjectId;
 }> & {
@@ -50,7 +50,7 @@ export declare const getCategoryById: (payload: {
 }>;
 export declare const updateCategory: (payload: {
     id: string;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     req: Request;
     data: {
         name?: string;
@@ -66,7 +66,7 @@ export declare const updateCategory: (payload: {
 }>;
 export declare const deleteCategory: (payload: {
     id: string;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     req: Request;
 }) => Promise<mongoose.Document<unknown, {}, ICategoryDocument, {}, mongoose.DefaultSchemaOptions> & ICategoryDocument & Required<{
     _id: mongoose.Types.ObjectId;
@@ -93,7 +93,7 @@ type CategorySearchItem = {
     image: string | null;
 };
 export declare const searchCategories: (payload: {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     search?: string;
     skip: number;
     limit: number;

@@ -3,7 +3,7 @@ import { IBannerDocument, IBannerModel } from "./banner.interface";
 
 const BannerSchema = new Schema<IBannerDocument, IBannerModel>(
   {
-    companyId: { type: Types.ObjectId, ref: "Company", required: true },
+    companyId: { type: Types.ObjectId, ref: "Seller", required: true },
     text: {
       type: String,
       trim: true,

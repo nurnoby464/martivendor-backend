@@ -38,7 +38,7 @@ export const auditLog = (params: IAuditParams): void => {
 
   // fire and forget — never await, never block main request
   Audit.create({
-    company_id: req.user.company_id ?? null,
+    sellerId: req.user.sellerId ?? null,
     performedBy: {
       userId: req.user._id,
       name: req.user.name,
@@ -47,7 +47,7 @@ export const auditLog = (params: IAuditParams): void => {
       sessionId: req.user.sessionId,
       ip: req.ip ?? null,
       userAgent: req.headers["user-agent"] ?? null,
-      company_id: req.user.company_id ?? null,
+      sellerId: req.user.sellerId ?? null,
     },
     action,
     status,

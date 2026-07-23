@@ -20,20 +20,20 @@ const generateSlug = (name) => {
 };
 // const assertUniqProductSku = async (
 //   sku: string,
-//   company_id: mongoose.Types.ObjectId,
+//   sellerId: mongoose.Types.ObjectId,
 //   excludeId?: string,
 // ) => {
-//   const filter: Record<string, unknown> = { company_id, sku };
+//   const filter: Record<string, unknown> = { sellerId, sku };
 //   if (excludeId) filter._id = { $ne: excludeId };
 //   const exists = await Product.findOne(filter).lean();
 //   if (exists) throw new AppError(`Product SKU "${sku}" already exists`, 409);
 // };
 // const assertUniqVariantSku = async (
 //   sku: string,
-//   company_id: mongoose.Types.ObjectId,
+//   sellerId: mongoose.Types.ObjectId,
 //   excludeId?: string,
 // ) => {
-//   const filter: Record<string, unknown> = { company_id, sku };
+//   const filter: Record<string, unknown> = { sellerId, sku };
 //   if (excludeId) filter._id = { $ne: excludeId };
 //   const exists = await ProductVariant.findOne(filter).lean();
 //   if (exists) throw new AppError(`Variant SKU "${sku}" already exists`, 409);
@@ -41,16 +41,16 @@ const generateSlug = (name) => {
 // ─── Create product ───────────────────────────────────────
 // export const createProduct = async (
 //   payload: CreateProductInput & {
-//     company_id: mongoose.Types.ObjectId;
+//     sellerId: mongoose.Types.ObjectId;
 //     createdBy: mongoose.Types.ObjectId;
 //   },
 //   req: Request,
 // ) => {
-//   const { company_id, createdBy, ...rest } = payload;
+//   const { sellerId, createdBy, ...rest } = payload;
 //   // validate category belongs to company
 //   // const category = await Category.findOne({
 //   //   _id: category_id,
-//   //   company_id,
+//   //   sellerId,
 //   //   is_active: true,
 //   // }).lean();
 //   // if (!category) throw new AppError("Category not found or inactive", 404);
@@ -58,16 +58,16 @@ const generateSlug = (name) => {
 //   // validate vendor belongs to company
 //   // const vendor = await Vendor.findOne({
 //   //   _id: vendor_id,
-//   //   company_id,
+//   //   sellerId,
 //   //   is_active: true,
 //   // }).lean();
 //   // if (!vendor) throw new AppError("Vendor not found or inactive", 404);
 //   // unique slug check
-//   const slugExists = await Product.findOne({ company_id, slug }).lean();
+//   const slugExists = await Product.findOne({ sellerId, slug }).lean();
 //   if (slugExists)
 //     throw new AppError(`Product "${rest.name}" already exists`, 409);
 //   const product = await Product.create(
-//     sanitizeData({ ...rest, company_id, createdBy, slug }),
+//     sanitizeData({ ...rest, sellerId, createdBy, slug }),
 //   );
 //   auditLog({
 //     req,
@@ -88,17 +88,17 @@ const generateSlug = (name) => {
 // };
 // ─── Get all products (paginated) ────────────────────────
 const getProducts = async (payload) => {
-    const { company_id, page, limit, search, category_id, vendor_id, has_variants, is_active, low_stock, sort_by, sort_order, } = payload;
-    if (!company_id)
-        throw new appError_1.AppError("company_id is required", 400);
-    const filter = { company_id };
+    const { sellerId, page, limit, search, category_id, vendor_id, has_variants, is_active, low_stock, sort_by, sort_order, } = payload;
+    if (!sellerId)
+        throw new appError_1.AppError("sellerId is required", 400);
+    const filter = { sellerId };
     if (is_active !== undefined)
         filter.is_active = is_active;
     if (has_variants !== undefined)
         filter.has_variants = has_variants;
     if (category_id) {
         const allDescendantCategories = await category_schema_1.default.find({
-            company_id,
+            sellerId,
             path: new mongoose_1.default.Types.ObjectId(category_id), // ✅ array contains match
             is_active: true,
         }).lean();
@@ -138,7 +138,7 @@ exports.getProducts = getProducts;
 const getProductById = async (payload) => {
     const product = await product_schema_1.default.findOne({
         _id: payload.id,
-        company_id: payload.company_id,
+        sellerId: payload.sellerId,
     })
         .populate("category_id", "name slug path depth")
         // .populate("vendor_id", "name phone email")
@@ -150,7 +150,7 @@ const getProductById = async (payload) => {
     let variants = [];
     if (product.has_variants) {
         variants = await product_variant_schema_1.default.find({
-            company_id: payload.company_id,
+            sellerId: payload.sellerId,
             product_id: payload.id,
             is_active: true,
         }).lean();
@@ -160,15 +160,15 @@ const getProductById = async (payload) => {
 exports.getProductById = getProductById;
 // ─── Update product ───────────────────────────────────────
 const updateProduct = async (payload) => {
-    const { id, company_id, data } = payload;
-    const product = await product_schema_1.default.findOne({ _id: id, company_id });
+    const { id, sellerId, data } = payload;
+    const product = await product_schema_1.default.findOne({ _id: id, sellerId });
     if (!product)
         throw new appError_1.AppError("Product not found", 404);
     // validate new category if changing
     if (data.category_id) {
         const category = await category_schema_1.default.findOne({
             _id: data.category_id,
-            company_id,
+            sellerId,
             is_active: true,
         }).lean();
         if (!category)
@@ -179,7 +179,7 @@ const updateProduct = async (payload) => {
     if (data.vendor_id) {
         const vendor = await vendor_schema_1.default.findOne({
             _id: data.vendor_id,
-            company_id,
+            sellerId,
             is_active: true,
         }).lean();
         if (!vendor)
@@ -188,7 +188,7 @@ const updateProduct = async (payload) => {
     }
     const before = {
         name: product.name,
-        company_id: product.company_id,
+        sellerId: product.sellerId,
         category_id: product.category_id,
         // vendor_id: product.vendor_id,
     };
@@ -196,7 +196,7 @@ const updateProduct = async (payload) => {
     if (data.name && data.name !== product.name) {
         const newSlug = generateSlug(data.name);
         const slugExists = await product_schema_1.default.findOne({
-            company_id,
+            sellerId,
             slug: newSlug,
             _id: { $ne: id },
         }).lean();
@@ -235,7 +235,7 @@ const updateProduct = async (payload) => {
             slug: product.slug,
             buying_price: product.buying_price,
             selling_price: product.selling_price,
-            company_id: product.company_id,
+            sellerId: product.sellerId,
             category_id: product.category_id,
             // vendor_id: product.vendor_id,
         },
@@ -245,8 +245,8 @@ const updateProduct = async (payload) => {
 exports.updateProduct = updateProduct;
 // ─── Delete product ───────────────────────────────────────
 const deleteProduct = async (payload) => {
-    const { id, company_id } = payload;
-    const product = await product_schema_1.default.findOne({ _id: id, company_id });
+    const { id, sellerId } = payload;
+    const product = await product_schema_1.default.findOne({ _id: id, sellerId });
     if (!product)
         throw new appError_1.AppError("Product not found", 404);
     const before = {

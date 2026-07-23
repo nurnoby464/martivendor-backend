@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-import { UserRole } from "../module/super_admin/super_admin.interface";
+import { UserRole } from "../module/user/super_admin.interface";
+import { ProfileType } from "../module/user/user.interface";
 
 // ─── Extend Express Request ───────────────────────────────
 declare global {
@@ -10,9 +11,9 @@ declare global {
         email: string;
         name: string;
         role: UserRole;
-        company_id: mongoose.Types.ObjectId | null;
+        sellerId: mongoose.Types.ObjectId | null;
         profileId: mongoose.Types.ObjectId | null;
-        profileType: "Customer" | "Staff" | null;
+        profileType:ProfileType | null;
         sessionId: string;
         passwordChangedAt: number | null;
         iat?: number; 

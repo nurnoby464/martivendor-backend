@@ -1,8 +1,4 @@
 import { model, Schema } from "mongoose";
-import ProductVariant from "../product-variant/product-variant.schema";
-import Product from "../product/product.schema";
-import Vendor from "../vendor/vendor.schema";
-import Company from "../company/company.schema"; // adjust path
 import { IPurchaseDocument } from "./purchase.interface";
 
 const purchaseItemSchema = new Schema(
@@ -30,7 +26,7 @@ const purchaseItemSchema = new Schema(
 
 const PurchaseSchema = new Schema<IPurchaseDocument>(
   {
-    company_id: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
     vendor_id: { type: Schema.Types.ObjectId, ref: "Vendor", required: true },
     // ── Summary only ──────────────────────────────────────
     items: { type: [purchaseItemSchema], required: true },
@@ -72,9 +68,9 @@ PurchaseSchema.pre("save", function () {
 });
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
-PurchaseSchema.index({ company_id: 1, createdAt: -1 });
-PurchaseSchema.index({ company_id: 1, vendor_id: 1, createdAt: -1 });
-PurchaseSchema.index({ company_id: 1, status: 1 });
+PurchaseSchema.index({ sellerId: 1, createdAt: -1 });
+PurchaseSchema.index({ sellerId: 1, vendor_id: 1, createdAt: -1 });
+PurchaseSchema.index({ sellerId: 1, status: 1 });
 PurchaseSchema.index({ vendor_id: 1, status: 1 });
 
 const Purchase = model<IPurchaseDocument>("Purchase", PurchaseSchema);

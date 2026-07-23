@@ -34,7 +34,7 @@ export const authenticate: express.RequestHandler = async (req, res, next) => {
     }
     req.user = {
       _id: decoded._id,
-      company_id: decoded.company_id,
+      sellerId: decoded.sellerId,
       sessionId: decoded.sessionId,
       profileId:decoded.profileId,
       profileType:decoded.profileType,

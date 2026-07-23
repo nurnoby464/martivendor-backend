@@ -46,9 +46,9 @@ const UserSchema = new mongoose_1.Schema({
             message: "Invalid role: {VALUE}",
         },
     },
-    company_id: {
+    sellerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Company",
+        ref: "Seller",
         default: null,
         // null for super_admin | set for admin and all role users
     },
@@ -83,10 +83,10 @@ const UserSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 // ─── Indexes ─────────────────────────────────────────────
-UserSchema.index({ company_id: 1, role: 1 });
+UserSchema.index({ sellerId: 1, role: 1 });
 UserSchema.index({ createdBy: 1 });
-UserSchema.index({ company_id: 1, email: 1 }, { unique: true });
-UserSchema.index({ company_id: 1, phone: 1 }, {
+UserSchema.index({ sellerId: 1, email: 1 }, { unique: true });
+UserSchema.index({ sellerId: 1, phone: 1 }, {
     unique: true,
     sparse: true,
 });

@@ -42,7 +42,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const jwt_config_1 = require("./../../config/jwt.config");
 const appError_2 = require("../../middlewares/appError");
 const jwtHelper_1 = require("../../utils/jwtHelper");
-const super_admin_schema_1 = __importDefault(require("../super_admin/super_admin.schema"));
+const user_schema_1 = __importDefault(require("../user/user.schema"));
 const auth_schema_1 = __importDefault(require("./auth.schema"));
 const helper_1 = require("../../utils/helper");
 const staff_schema_1 = __importDefault(require("../../CRM/staff/staff.schema"));
@@ -50,7 +50,7 @@ const customer_schema_1 = __importDefault(require("../../CRM/customer/customer.s
 const login = async (payload, req) => {
     const MAX_SESSIONS = 6;
     const { email, password } = payload;
-    const existing = await super_admin_schema_1.default.findOne({ email, is_active: true }).select("+password");
+    const existing = await user_schema_1.default.findOne({ email, is_active: true }).select("+password");
     if (!existing) {
         throw new appError_2.AppError("This email user not found", 400);
     }
@@ -105,7 +105,7 @@ const login = async (payload, req) => {
     //   // email: existing.email,
     //   // name: existing.name,
     //   role: existing.role,
-    //   company_id: existing.company_id ?? null,
+    //   sellerId: existing.sellerId ?? null,
     //   sessionId: session._id.toString(),
     //   passwordChangedAt: existing.passwordChangedAt?.getTime() ?? null
     // };
@@ -120,7 +120,7 @@ const login = async (payload, req) => {
         secret: jwt_config_1.jwtConfig.refresh.secret,
         expiresIn: jwt_config_1.jwtConfig.refresh.expiresIn,
     });
-    const result = await super_admin_schema_1.default.findByIdAndUpdate(existing._id, { last_login: new Date() }, { returnDocument: "after", runValidators: true });
+    const result = await user_schema_1.default.findByIdAndUpdate(existing._id, { last_login: new Date() }, { returnDocument: "after", runValidators: true });
     if (!result) {
         throw new appError_2.AppError("Last login not updated");
     }
@@ -166,7 +166,7 @@ const refresh = async (refreshToken) => {
         throw new appError_2.AppError("Session expired. Please log in again", 401);
     }
     // 3. find user
-    const user = await super_admin_schema_1.default.findOne({ _id: session.userId, is_active: true });
+    const user = await user_schema_1.default.findOne({ _id: session.userId, is_active: true });
     if (!user) {
         throw new appError_2.AppError("User no longer exists", 401);
     }
@@ -189,7 +189,7 @@ const removeSession = async (sessionId, userId) => {
 };
 const updatePassword = async (payload) => {
     const { userId, sessionId, oldPassword, newPassword } = payload;
-    const user = await super_admin_schema_1.default.findOne({
+    const user = await user_schema_1.default.findOne({
         _id: new mongoose_1.Types.ObjectId(userId),
         is_active: true,
     }).select("+password");
@@ -216,11 +216,11 @@ const updatePassword = async (payload) => {
         message: "Password updated. All other sessions have been logged out.",
     };
 };
-const registerCustomer = async (company_id, input) => {
+const registerCustomer = async (sellerId, input) => {
     const { name, phone, email, password } = input;
     // 1. check duplicate phone under same company
-    const existing = await super_admin_schema_1.default.findOne({
-        company_id,
+    const existing = await user_schema_1.default.findOne({
+        sellerId,
         email,
         role: "customer",
     });
@@ -228,21 +228,21 @@ const registerCustomer = async (company_id, input) => {
         throw new appError_2.AppError("This email already registered", 409);
     }
     // 3. create user — NO customer CRM doc yet
-    const user = await super_admin_schema_1.default.create({
-        company_id,
+    const user = await user_schema_1.default.create({
+        sellerId,
         name,
         email,
         password,
         role: "customer",
         profileType: "Customer",
-        is_active: true,
+        isActive: true,
     });
     // 4. strip password before returning
     const { password: _, ...safeUser } = user.toObject();
     return safeUser;
 };
 const getMe = async (userId, sessionId) => {
-    const user = await super_admin_schema_1.default.findById(userId).lean();
+    const user = await user_schema_1.default.findById(userId).lean();
     if (!user)
         throw new appError_2.AppError("User not found", 404);
     const session = await auth_schema_1.default.findById(sessionId).lean();
@@ -290,7 +290,7 @@ const updateProfile = async (companyId, userId, input) => {
                 throw new appError_2.AppError("Profile not found", 404);
             }
         }
-        const user = await super_admin_schema_1.default.findByIdAndUpdate(userId, { $set: { name: userData?.name, phone: userData?.phone } }, { session, returnDocument: "after", runValidators: true });
+        const user = await user_schema_1.default.findByIdAndUpdate(userId, { $set: { name: userData?.name, phone: userData?.phone } }, { session, returnDocument: "after", runValidators: true });
         if (!user) {
             throw new appError_2.AppError("User not found", 404);
         }

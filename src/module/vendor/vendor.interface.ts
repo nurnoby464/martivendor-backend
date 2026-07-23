@@ -8,7 +8,7 @@ export interface IVendorNote {
 }
 
 export interface IVendor {
-  company_id   : mongoose.Types.ObjectId;
+  sellerId   : mongoose.Types.ObjectId;
   vendor_code  : string;             // ← NEW: auto-generated e.g. "VND-00001"
 
   name         : string;

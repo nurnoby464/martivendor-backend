@@ -1,4 +1,4 @@
-import { UserRole } from "../module/super_admin/super_admin.interface";
+import { UserRole } from "../module/user/user.interface";
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "./appError";
 export const guard = (...allowedRoles: UserRole[]) => {

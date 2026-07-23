@@ -38,18 +38,18 @@ const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const OrderServices = __importStar(require("./order.service"));
 exports.createOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.company?._id;
-    if (!companyId) {
+    const sellerId = req.company?._id;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Created Order place failed", 400);
     }
     const result = await OrderServices.createOrder({
-        companyId,
+        sellerId,
         input: req.body,
     });
     return ApiResponse_1.ApiResponse.created(res, result, "Order created successfully");
 });
 exports.getAllOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.company?._id;
+    const sellerId = req.company?._id;
     const limit = req.validatedQuery.limit;
     const page = req.validatedQuery.page;
     const sortBy = req.validatedQuery.sortBy;
@@ -58,7 +58,7 @@ exports.getAllOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const orderStatus = req.validatedQuery.orderStatus;
     const paymentStatus = req.validatedQuery.paymentStatus;
     const customerId = req.validatedQuery.customerId;
-    if (!companyId) {
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Created Order place failed", 400);
     }
     const query = {
@@ -71,17 +71,17 @@ exports.getAllOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         paymentStatus,
         customerId,
     };
-    const { orders, total, orderStatusCounts } = await OrderServices.getAllOrder(companyId, query);
+    const { orders, total, orderStatusCounts } = await OrderServices.getAllOrder(sellerId, query);
     return ApiResponse_1.ApiResponse.paginated(res, "Order fetched successfully", orders, total, page, limit, orderStatusCounts);
 });
 exports.getMyOrders = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const customerId = req.user.profileId;
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Company not found", 404);
     }
     const { page, limit, order_status, search } = req.validatedQuery;
-    const { orders, total, statusCounts } = await OrderServices.getMyOrders(customerId, companyId, req.validatedQuery);
+    const { orders, total, statusCounts } = await OrderServices.getMyOrders(customerId, sellerId, req.validatedQuery);
     return ApiResponse_1.ApiResponse.paginated(res, "My Orders fetched successfully", orders, total, page, limit);
 });
 //# sourceMappingURL=order.controller.js.map

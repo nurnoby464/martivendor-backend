@@ -7,11 +7,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
-const super_admin_route_1 = require("./module/super_admin/super_admin.route");
+const user_route_1 = require("./module/user/user.route");
 const ErrorHandler_1 = require("./middlewares/ErrorHandler");
 const auth_route_1 = require("./module/auth/auth.route");
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
-const company_route_1 = require("./module/company/company.route");
+const seller_route_1 = require("./module/seller/seller.route");
 const vendor_route_1 = require("./module/vendor/vendor.route");
 const category_route_1 = require("./module/category/category.route");
 const product_route_1 = require("./module/product/product.route");
@@ -83,8 +83,8 @@ app.use((0, cookie_parser_1.default)());
 app.use("/api/v1/public", public_route_1.PublicRoutes);
 // Routes
 app.use("/api/v1/auth", auth_route_1.AuthRoutes);
-app.use("/api/v1/super-admin", super_admin_route_1.SuperAdminRoute);
-app.use("/api/v1/company", company_route_1.CompanyRouter);
+app.use("/api/v1/users", user_route_1.UsersRoute);
+app.use("/api/v1/company", seller_route_1.CompanyRouter);
 app.use("/api/v1/vendor", vendor_route_1.VendorRoutes);
 app.use("/api/v1/category", category_route_1.CategoryRoutes);
 app.use("/api/v1/product", product_route_1.ProductRoutes);
@@ -98,7 +98,7 @@ app.use('/api/v1/invoices', invoice_route_1.InvoiceRouter);
 app.use('/api/v1/banners', banner_route_1.BannerRouter);
 // Health check
 app.get("/", (req, res) => {
-    res.json({ success: true, message: "Welcome to Multi vendor SAAS" });
+    res.json({ success: true, message: "Welcome to Multi vendor e-commerce" });
 });
 app.get("/api/health", (req, res) => {
     res.json({ success: true, message: "Server is running" });

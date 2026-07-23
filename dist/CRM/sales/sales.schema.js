@@ -34,9 +34,9 @@ const customerSnapshotsSchema = new mongoose_1.Schema({
     },
 });
 const saleSchema = new mongoose_1.Schema({
-    companyId: {
+    sellerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Company",
+        ref: "Seller",
         required: true,
     },
     saleCode: {
@@ -91,9 +91,9 @@ const saleSchema = new mongoose_1.Schema({
         default: "staff",
     },
 }, { timestamps: true });
-saleSchema.index({ companyId: 1, saleDate: -1 });
-saleSchema.index({ companyId: 1, paymentStatus: 1 });
-saleSchema.index({ companyId: 1, status: 1 });
+saleSchema.index({ sellerId: 1, saleDate: -1 });
+saleSchema.index({ sellerId: 1, paymentStatus: 1 });
+saleSchema.index({ sellerId: 1, status: 1 });
 const Sale = (0, mongoose_1.model)("Sale", saleSchema);
 exports.default = Sale;
 //# sourceMappingURL=sales.schema.js.map

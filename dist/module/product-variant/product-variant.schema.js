@@ -27,7 +27,7 @@ const AttributeSchema = new mongoose_1.Schema({
 // ── Variant schema ────────────────────────────────────────────────────────────
 const ProductVariantSchema = new mongoose_1.Schema({
     product_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Product", required: true },
-    company_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Seller", required: true },
     attributes: {
         type: [AttributeSchema],
         required: true,
@@ -77,8 +77,8 @@ ProductVariantSchema.pre("save", async function () {
 });
 // ── Indexes ───────────────────────────────────────────────────────────────────
 ProductVariantSchema.index({ product_id: 1, is_active: 1 });
-ProductVariantSchema.index({ company_id: 1, stock: 1 });
-ProductVariantSchema.index({ company_id: 1, sku: 1 }, { unique: true });
+ProductVariantSchema.index({ sellerId: 1, stock: 1 });
+ProductVariantSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
 ProductVariantSchema.index({
     product_id: 1,
     "attributes.key": 1,

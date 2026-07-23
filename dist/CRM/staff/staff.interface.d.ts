@@ -1,7 +1,7 @@
 import { Document, Types } from "mongoose";
 export interface IStaff {
     userId: Types.ObjectId;
-    companyId: Types.ObjectId;
+    sellerId: Types.ObjectId;
     name: string;
     phone: string;
     email?: string | null;

@@ -6,7 +6,7 @@ export interface IVendorNote {
     createdAt: Date;
 }
 export interface IVendor {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     vendor_code: string;
     name: string;
     phone: string;

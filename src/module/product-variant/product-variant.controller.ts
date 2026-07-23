@@ -10,12 +10,12 @@ import {
 
 export const createVariant = asyncHandler(
   async (req: Request, res: Response) => {
-    const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+    const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
     const variant = await ProductVariantServices.createVariant(
       {
         ...(req.body as CreateVariantInput),
         product_id: req.params.id as string,
-        company_id,
+        sellerId,
       },
       req,
     );
@@ -27,17 +27,17 @@ export const createVariant = asyncHandler(
 export const getVariants = asyncHandler(async (req: Request, res: Response) => {
   const variants = await ProductVariantServices.getVariants({
     product_id: req.params.id as string,
-    company_id: req.user.company_id!,
+    sellerId: req.user.sellerId!,
   });
 
   return ApiResponse.success(res, variants);
 });
 export const getVariantById = asyncHandler(
   async (req: Request, res: Response) => {
-    const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+    const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
     const variant = await ProductVariantServices.getVariantById(
       req.params.variantId as string,
-      company_id,
+      sellerId,
     );
 
     ApiResponse.success(res, variant, "Variant fetched successfully");
@@ -46,10 +46,10 @@ export const getVariantById = asyncHandler(
 
 export const updateVariant = asyncHandler(
   async (req: Request, res: Response) => {
-    const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+    const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
     const variant = await ProductVariantServices.updateVariant(
       req.params.variantId as string,
-      company_id,
+      sellerId,
       req.body as UpdateVariantInput,
       req,
     );
@@ -62,7 +62,7 @@ export const deleteVariant = asyncHandler(
     const variant = await ProductVariantServices.deleteVariant({
       id: req.params.variantId as string,
       product_id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       req,
     });
     return ApiResponse.success(res, null, "Variant deactivated successfully");

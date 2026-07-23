@@ -37,7 +37,7 @@ const invoiceSchema = new Schema<IInvoiceDocument>(
   {
     invoiceNumber: { type: String, required: true },
     order: { type: Schema.Types.ObjectId, ref: "Order", required: true },
-    company: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
     // company: { type: companySnapshotSchema, required: true },
     customer: { type: Schema.Types.ObjectId, ref: "Customer", required: true },
 

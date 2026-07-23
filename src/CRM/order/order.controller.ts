@@ -6,19 +6,19 @@ import { Request, Response } from "express";
 import { IGetMyOrdersQuery } from "./order.interface";
 
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const companyId = req.company?._id;
-  if (!companyId) {
+  const sellerId = req.company?._id;
+  if (!sellerId) {
     return ApiResponse.error(res, "Created Order place failed", 400);
   }
   const result = await OrderServices.createOrder({
-    companyId,
+    sellerId,
     input: req.body,
   });
   return ApiResponse.created(res, result, "Order created successfully");
 });
 
 export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
-  const companyId = req.company?._id;
+  const sellerId = req.company?._id;
   const limit = req.validatedQuery.limit as number;
   const page = req.validatedQuery.page as number;
   const sortBy = req.validatedQuery.sortBy as "name" | "createdAt" | "stock";
@@ -38,7 +38,7 @@ export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
     | undefined;
   const customerId = req.validatedQuery.customerId as string;
 
-  if (!companyId) {
+  if (!sellerId) {
     return ApiResponse.error(res, "Created Order place failed", 400);
   }
   const query = {
@@ -52,7 +52,7 @@ export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
     customerId,
   };
   const { orders, total, orderStatusCounts } = await OrderServices.getAllOrder(
-    companyId,
+    sellerId,
     query,
   );
   return ApiResponse.paginated(
@@ -69,8 +69,8 @@ export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
 export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
   const customerId = req.user.profileId as Types.ObjectId;
  
-  const companyId = req.user.company_id as Types.ObjectId;
-  if (!companyId) {
+  const sellerId = req.user.sellerId as Types.ObjectId;
+  if (!sellerId) {
     return ApiResponse.error(res, "Company not found", 404);
   }
   const { page, limit, order_status, search } = req.validatedQuery as {
@@ -81,7 +81,7 @@ export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
   };
   const { orders, total, statusCounts } = await OrderServices.getMyOrders(
     customerId,
-    companyId,
+    sellerId,
     req.validatedQuery as unknown as IGetMyOrdersQuery,
   );
   return ApiResponse.paginated(

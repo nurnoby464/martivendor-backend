@@ -155,7 +155,7 @@ exports.userQuerySchema = zod_1.default.object({
         .string()
         .optional()
         .transform((v) => (v === "asc" ? 1 : -1)),
-    company_id: objectIdSchema.optional(), // super_admin can filter by company
+    sellerId: objectIdSchema.optional(), // super_admin can filter by company
 });
 // ─── Params schema ────────────────────────────────────────
 exports.userParamsSchema = zod_1.default.object({

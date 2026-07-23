@@ -11,10 +11,10 @@ import { CreatePurchaseInput, ListPurchaseQuery } from "./purchase.validation";
 // ─── Create ───────────────────────────────────────────────
 export const createPurchase = asyncHandler(
   async (req: Request, res: Response) => {
-    const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+    const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
     const createdBy = new mongoose.Types.ObjectId(req.user._id!);
     const purchase = await PurchaseService.createPurchase(
-      { ...(req.body as CreatePurchaseInput), company_id, createdBy },
+      { ...(req.body as CreatePurchaseInput), sellerId, createdBy },
       req,
     );
 
@@ -25,7 +25,7 @@ export const createPurchase = asyncHandler(
 // ─── Get all ──────────────────────────────────────────────
 export const getPurchases = asyncHandler(
   async (req: Request, res: Response) => {
-    const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+    const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
 
     const query = req.validatedQuery as {
       page: number;
@@ -38,7 +38,7 @@ export const getPurchases = asyncHandler(
     };
 
     const { purchases, total } = await PurchaseService.getPurchases(
-      company_id,
+      sellerId,
       req.validatedQuery as ListPurchaseQuery,
     );
 
@@ -58,7 +58,7 @@ export const getPurchaseById = asyncHandler(
   async (req: Request, res: Response) => {
     const purchase = await PurchaseService.getPurchaseById({
       id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
     });
 
     return ApiResponse.success(res, purchase);
@@ -66,10 +66,10 @@ export const getPurchaseById = asyncHandler(
 );
 export const updatePayment = asyncHandler(
   async (req: Request, res: Response) => {
-    const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+    const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
     const updatedPurchase = await PurchaseService.updatePayment(
       req.params.id as string,
-      company_id,
+      sellerId,
       req.body,
       req,
     );
@@ -82,17 +82,17 @@ export const updatePayment = asyncHandler(
 );
 
 export const remove = asyncHandler(async (req: Request, res: Response) => {
-  const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+  const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
   await PurchaseService.deletePurchase(
     req.params.id as string,
-    company_id,
+    sellerId,
     req,
   );
   return ApiResponse.success(res, null, "Purchase deleted successfully");
 });
 
 export const updateStock = asyncHandler(async (req: Request, res: Response) => {
-  // const company_id = new mongoose.Types.ObjectId(req.user.company_id!);
+  // const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
   const result = await PurchaseService.updateStock(req);
   return ApiResponse.success(res, result, "Purchase deleted successfully");
 });

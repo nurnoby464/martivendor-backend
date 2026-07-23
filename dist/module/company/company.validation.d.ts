@@ -76,7 +76,7 @@ export declare const userQuerySchema: z.ZodObject<{
         createdAt: "createdAt";
     }>>>;
     sortOrder: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<1 | -1, string | undefined>>;
-    company_id: z.ZodOptional<z.ZodString>;
+    sellerId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const userParamsSchema: z.ZodObject<{
     id: z.ZodString;

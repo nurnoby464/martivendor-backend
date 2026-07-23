@@ -10,7 +10,7 @@ import { Request } from "express";
 // ─── Create vendor ────────────────────────────────────────
 const createVendor = async (
   payload: {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     name: string;
     phone: string;
     email?: string | null;
@@ -19,17 +19,17 @@ const createVendor = async (
   },
   req: Request,
 ) => {
-  const { company_id, createdBy, ...rest } = payload;
+  const { sellerId, createdBy, ...rest } = payload;
   // check duplicate phone within same company
   const existing = await Vendor.findOne({
-    company_id: payload.company_id,
+    sellerId: payload.sellerId,
     phone: payload.phone,
   });
   if (existing)
     throw new AppError("A vendor with this phone already exists", 409);
 
   const vendor = await Vendor.create(
-    sanitizeData({ ...rest, company_id, createdBy }),
+    sanitizeData({ ...rest, sellerId, createdBy }),
   );
   auditLog({
     req,
@@ -48,7 +48,7 @@ const createVendor = async (
 
 // ─── Get all vendors (paginated) ──────────────────────────
 const getVendors = async (payload: {
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   page: number;
   limit: number;
   search?: string;
@@ -56,10 +56,10 @@ const getVendors = async (payload: {
   sort_by: string;
   sort_order: string;
 }) => {
-  const { company_id, page, limit, search, is_active, sort_by, sort_order } =
+  const { sellerId, page, limit, search, is_active, sort_by, sort_order } =
     payload;
 
-  const filter: Record<string, unknown> = { company_id };
+  const filter: Record<string, unknown> = { sellerId };
 
   if (is_active !== undefined) filter.is_active = is_active;
 
@@ -91,11 +91,11 @@ const getVendors = async (payload: {
 // ─── Get single vendor ────────────────────────────────────
 const getVendorById = async (payload: {
   id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
 }) => {
   const vendor = await Vendor.findOne({
     _id: payload.id,
-    company_id: payload.company_id,
+    sellerId: payload.sellerId,
   })
     .populate("notes.createdBy", "name email")
     .lean();
@@ -108,7 +108,7 @@ const getVendorById = async (payload: {
 const updateVendor = async (payload: {
   id: string;
 
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   data: {
     name?: string;
     phone?: string;
@@ -118,9 +118,9 @@ const updateVendor = async (payload: {
   };
   req: Request;
 }) => {
-  const { id, company_id, data } = payload;
+  const { id, sellerId, data } = payload;
 
-  const vendor = await Vendor.findOne({ _id: id, company_id });
+  const vendor = await Vendor.findOne({ _id: id, sellerId });
   if (!vendor) throw new AppError("Vendor not found", 404);
   const before: Record<string, unknown> = {
     name: vendor.name,
@@ -133,7 +133,7 @@ const updateVendor = async (payload: {
   // if phone is changing — check duplicate
   if (data.phone && data.phone !== vendor.phone) {
     const duplicate = await Vendor.findOne({
-      company_id,
+      sellerId,
       phone: data.phone,
       _id: { $ne: id },
     });
@@ -166,12 +166,12 @@ const updateVendor = async (payload: {
 // ─── Delete vendor (soft delete) ─────────────────────────
 const deleteVendor = async (payload: {
   id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   req: Request;
 }) => {
   const vendor = await Vendor.findOne({
     _id: payload.id,
-    company_id: payload.company_id,
+    sellerId: payload.sellerId,
   });
   if (!vendor) throw new AppError("Vendor not found", 404);
 
@@ -209,13 +209,13 @@ const deleteVendor = async (payload: {
 // ─── Add note ─────────────────────────────────────────────
 const addVendorNote = async (payload: {
   id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   text: string;
   createdBy: mongoose.Types.ObjectId;
 }) => {
-  const { id, company_id, text, createdBy } = payload;
+  const { id, sellerId, text, createdBy } = payload;
 
-  const vendor = await Vendor.findOne({ _id: id, company_id });
+  const vendor = await Vendor.findOne({ _id: id, sellerId });
   if (!vendor) throw new AppError("Vendor not found", 404);
   const _id = new mongoose.Types.ObjectId();
   vendor.notes.push({ _id, text, createdBy, createdAt: new Date() });
@@ -228,11 +228,11 @@ const addVendorNote = async (payload: {
 const deleteVendorNote = async (payload: {
   id: string;
   noteId: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
 }) => {
-  const { id, noteId, company_id } = payload;
+  const { id, noteId, sellerId } = payload;
 
-  const vendor = await Vendor.findOne({ _id: id, company_id });
+  const vendor = await Vendor.findOne({ _id: id, sellerId });
   if (!vendor) throw new AppError("Vendor not found", 404);
 
   const noteExists = vendor.notes.some((n) => n._id?.toString() === noteId);

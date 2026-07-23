@@ -1,6 +1,6 @@
 import mongoose, { Document } from "mongoose";
 export interface ICategory {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     name: string;
     slug: string;
     parent_id: mongoose.Types.ObjectId | null;

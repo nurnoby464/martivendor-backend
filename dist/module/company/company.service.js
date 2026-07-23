@@ -58,7 +58,7 @@ const targetFinder = async (userId, req, action) => {
         _id: new mongoose_1.default.Types.ObjectId(userId),
     };
     if (req.user.role === "admin") {
-        filter.company_id = req.user.company_id;
+        filter.sellerId = req.user.sellerId;
     }
     const target = await super_admin_schema_1.default.findOne(filter).lean();
     if (!target) {
@@ -108,12 +108,12 @@ const createCompanyUser = async (payload, req) => {
         companyIdToUse = company._id;
     }
     else {
-        if (!req.user.company_id)
+        if (!req.user.sellerId)
             throw new appError_1.AppError("Company not found", 404);
         const existing = await super_admin_schema_1.default.findOne({ email }).select("_id").lean();
         if (existing)
             throw new appError_1.AppError("Email already registered", 409);
-        companyIdToUse = new mongoose_1.default.Types.ObjectId(req.user.company_id.toString());
+        companyIdToUse = new mongoose_1.default.Types.ObjectId(req.user.sellerId.toString());
     }
     const user = await super_admin_schema_1.default.create({
         name,
@@ -121,7 +121,7 @@ const createCompanyUser = async (payload, req) => {
         password,
         role,
         createdBy: req.user._id,
-        company_id: companyIdToUse,
+        sellerId: companyIdToUse,
     });
     (0, auditLogger_1.auditLog)({
         req,
@@ -132,25 +132,25 @@ const createCompanyUser = async (payload, req) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            company_id: user.company_id,
+            sellerId: user.sellerId,
             is_active: user.is_active,
         },
     });
     return user.toJSON();
 };
 const getAllUsers = async (query, req) => {
-    const { page, limit, search, role, is_active, sortBy, sortOrder, company_id, } = query;
+    const { page, limit, search, role, is_active, sortBy, sortOrder, sellerId, } = query;
     const skip = (page - 1) * limit;
     const filter = {};
     if (req.user.role === "admin") {
-        filter.company_id = req.user.company_id;
+        filter.sellerId = req.user.sellerId;
         filter.role = {
             $in: ["account", "site_management", "inventory", "sales", "report"],
         };
     }
     else {
-        if (company_id)
-            filter.company_id = new mongoose_1.default.Types.ObjectId(company_id);
+        if (sellerId)
+            filter.sellerId = new mongoose_1.default.Types.ObjectId(sellerId);
     }
     if (role)
         filter.role = role;
@@ -166,7 +166,7 @@ const getAllUsers = async (query, req) => {
         super_admin_schema_1.default.countDocuments(filter),
         super_admin_schema_1.default.find(filter)
             .select("-password -reset_token -reset_token_exp")
-            .populate("company_id", "company_name company_email status")
+            .populate("sellerId", "company_name company_email status")
             .populate("createdBy", "name email")
             .skip(skip)
             .limit(limit)
@@ -186,11 +186,11 @@ const getUserById = async (userId, req) => {
     };
     // admin can only see users in their own company
     if (req.user.role === "admin") {
-        filter.company_id = req.user.company_id;
+        filter.sellerId = req.user.sellerId;
     }
     const user = await super_admin_schema_1.default.findOne(filter)
         .select("-password -reset_token -reset_token_exp")
-        .populate("company_id", "company_name company_email status")
+        .populate("sellerId", "company_name company_email status")
         .populate("createdBy", "name email")
         .lean();
     if (!user)
@@ -246,7 +246,7 @@ const deleteUser = async (userId, req) => {
         name: target.name,
         email: target.email,
         role: target.role,
-        company_id: target.company_id,
+        sellerId: target.sellerId,
         is_active: target.is_active,
     };
     // ── delete user + their sessions in parallel ──────────

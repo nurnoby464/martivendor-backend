@@ -43,7 +43,7 @@ const ProductService = __importStar(require("./product.service"));
 exports.getProducts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const query = req.validatedQuery;
     const { products, total } = await ProductService.getProducts({
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         ...query,
     });
     return ApiResponse_1.ApiResponse.paginated(res, "Product", products, total, query.page, query.limit);
@@ -51,14 +51,14 @@ exports.getProducts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 exports.getProductById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const result = await ProductService.getProductById({
         id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
     });
     return ApiResponse_1.ApiResponse.success(res, result);
 });
 exports.updateProduct = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const product = await ProductService.updateProduct({
         id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         data: req.body,
         req,
     });
@@ -67,7 +67,7 @@ exports.updateProduct = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 exports.deleteProduct = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const product = await ProductService.deleteProduct({
         id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         req,
     });
     return ApiResponse_1.ApiResponse.success(res, null, "Product deactivated successfully");

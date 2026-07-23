@@ -6,10 +6,10 @@ exports.VendorCounter = void 0;
 const mongoose_1 = require("mongoose");
 // ── Counter for vendor_code sequence per company ──────────────────────────────
 const VendorCounterSchema = new mongoose_1.Schema({
-    company_id: { type: mongoose_1.Schema.Types.ObjectId, required: true },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, required: true },
     seq: { type: Number, default: 0 },
 }, { collection: "vendor_counters" });
-VendorCounterSchema.index({ company_id: 1 }, { unique: true });
+VendorCounterSchema.index({ sellerId: 1 }, { unique: true });
 exports.VendorCounter = (0, mongoose_1.model)("VendorCounter", VendorCounterSchema);
 // ── Note sub-schema ───────────────────────────────────────────────────────────
 const VendorNoteSchema = new mongoose_1.Schema({
@@ -19,10 +19,10 @@ const VendorNoteSchema = new mongoose_1.Schema({
 }, { _id: true });
 // ── Vendor schema ─────────────────────────────────────────────────────────────
 const VendorSchema = new mongoose_1.Schema({
-    company_id: {
+    sellerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Company",
-        required: [true, "company_id is required"],
+        ref: "Seller",
+        required: [true, "sellerId is required"],
         index: true,
     },
     vendor_code: {
@@ -53,15 +53,15 @@ const VendorSchema = new mongoose_1.Schema({
 VendorSchema.pre("save", async function () {
     if (!this.isNew)
         return;
-    const counter = await exports.VendorCounter.findOneAndUpdate({ company_id: this.company_id }, { $inc: { seq: 1 } }, { upsert: true, new: true });
+    const counter = await exports.VendorCounter.findOneAndUpdate({ sellerId: this.sellerId }, { $inc: { seq: 1 } }, { upsert: true, new: true });
     this.vendor_code = `VND-${String(counter.seq).padStart(5, "0")}`;
     // e.g. VND-00001, VND-00002 ...
 });
 // ── Indexes ───────────────────────────────────────────────────────────────────
-VendorSchema.index({ company_id: 1, vendor_code: 1 }, { unique: true });
-VendorSchema.index({ company_id: 1, is_active: 1 });
-VendorSchema.index({ company_id: 1, name: 1 });
-VendorSchema.index({ company_id: 1, due: -1 });
+VendorSchema.index({ sellerId: 1, vendor_code: 1 }, { unique: true });
+VendorSchema.index({ sellerId: 1, is_active: 1 });
+VendorSchema.index({ sellerId: 1, name: 1 });
+VendorSchema.index({ sellerId: 1, due: -1 });
 const Vendor = (0, mongoose_1.model)("Vendor", VendorSchema);
 exports.default = Vendor;
 //# sourceMappingURL=vendor.schema.js.map

@@ -34,7 +34,7 @@ export declare const AUDIT_ACTIONS: {
     readonly PURCHASE_PAYMENT_UPDATED: "PURCHASE_PAYMENT_UPDATED";
 };
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
-export type AuditTargetModel = "User" | "Company" | "Session" | "Vendor" | "Category" | "Product" | "ProductVariant" | "Purchase" | null;
+export type AuditTargetModel = "User" | "Seller" | "Session" | "Vendor" | "Category" | "Product" | "ProductVariant" | "Purchase" | null;
 export interface IPerformedBy {
     userId: mongoose.Types.ObjectId;
     name: string;

@@ -8,9 +8,9 @@ const staffSchema = new mongoose_1.Schema({
         ref: "User",
         required: true,
     },
-    companyId: {
+    sellerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Company",
+        ref: "Seller",
         required: true,
     },
     // ─── Basic Info ───────────────────────────────────────

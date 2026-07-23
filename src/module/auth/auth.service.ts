@@ -7,11 +7,11 @@ import { jwtConfig } from "./../../config/jwt.config";
 import { Request } from "express";
 import { AppError } from "../../middlewares/appError";
 import { ITokenPayload, JwtHelper } from "../../utils/jwtHelper";
-import User from "../super_admin/super_admin.schema";
+import User from "../user/user.schema";
 import { Secret } from "jsonwebtoken";
 import Session from "./auth.schema";
 import { enforceSessionLimit } from "../../utils/sessionHelper";
-import { RegisterCustomerInput } from "../super_admin/super_admin.validation";
+import { RegisterCustomerInput } from "../user/user.validation";
 import { makeLoginResponse, makeToken } from "../../utils/helper";
 import { IUpdateProfileRequest } from "./auth.validation";
 import Staff from "../../CRM/staff/staff.schema";
@@ -92,7 +92,7 @@ const login = async (payload: ILogin, req: Request) => {
   //   // email: existing.email,
   //   // name: existing.name,
   //   role: existing.role,
-  //   company_id: existing.company_id ?? null,
+  //   sellerId: existing.sellerId ?? null,
   //   sessionId: session._id.toString(),
   //   passwordChangedAt: existing.passwordChangedAt?.getTime() ?? null
   // };
@@ -214,14 +214,14 @@ const updatePassword = async (payload: IUpdatePassword) => {
 };
 
 const registerCustomer = async (
-  company_id: Types.ObjectId,
+  sellerId: Types.ObjectId,
   input: RegisterCustomerInput,
 ) => {
   const { name, phone, email, password } = input;
 
   // 1. check duplicate phone under same company
   const existing = await User.findOne({
-    company_id,
+    sellerId,
     email,
     role: "customer",
   });
@@ -231,13 +231,13 @@ const registerCustomer = async (
 
   // 3. create user — NO customer CRM doc yet
   const user = await User.create({
-    company_id,
+    sellerId,
     name,
     email,
     password,
     role: "customer",
     profileType: "Customer",
-    is_active: true,
+    isActive: true,
   });
 
   // 4. strip password before returning

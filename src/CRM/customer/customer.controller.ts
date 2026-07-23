@@ -8,7 +8,7 @@ import { GetCustomerQuery } from "./customer.validation";
 
 export const getCustomerList = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = new Types.ObjectId(req.user.company_id!);
+    const companyId = new Types.ObjectId(req.user.sellerId!);
 
     if (!companyId) {
       throw new AppError("Company not found", 404);

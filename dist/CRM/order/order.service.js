@@ -46,8 +46,8 @@ const healper_1 = require("../../utils/healper");
 const order_schema_1 = __importDefault(require("./order.schema"));
 const useSkip_1 = require("../../utils/useSkip");
 const invoice_schema_1 = __importDefault(require("../invoice/invoice.schema"));
-const super_admin_schema_1 = __importDefault(require("../../module/super_admin/super_admin.schema"));
-const resolveCustomer = async (companyId, name, phone, email, shipping_address, session, userId) => {
+const user_schema_1 = __importDefault(require("../../module/user/user.schema"));
+const resolveCustomer = async (sellerId, name, phone, email, shipping_address, session, userId) => {
     //check shipping address is same as customer address
     const isSamePerson = shipping_address?.phone === phone && shipping_address.name === name;
     const newAddress = isSamePerson
@@ -62,7 +62,7 @@ const resolveCustomer = async (companyId, name, phone, email, shipping_address, 
     // console.log(userId)
     // check is exist customer
     const existing = await customer_schema_1.default.findOne({
-        companyId,
+        sellerId,
         $or: [...(userId ? [{ userId }] : []), { phone }],
     }).session(session);
     if (existing) {
@@ -86,7 +86,7 @@ const resolveCustomer = async (companyId, name, phone, email, shipping_address, 
             }),
         }, { runValidators: true, session });
         if (userId && !existing.userId) {
-            await super_admin_schema_1.default.updateOne({
+            await user_schema_1.default.updateOne({
                 _id: userId,
                 profileId: null,
             }, {
@@ -98,7 +98,7 @@ const resolveCustomer = async (companyId, name, phone, email, shipping_address, 
     // create new customer
     const [customer] = await customer_schema_1.default.create([
         {
-            companyId,
+            sellerId,
             name,
             email,
             phone,
@@ -111,8 +111,8 @@ const resolveCustomer = async (companyId, name, phone, email, shipping_address, 
     }
     if (userId) {
         await Promise.all([
-            super_admin_schema_1.default.updateOne({ _id: userId, profileId: null }, { $set: { profileId: customer._id, profileType: "Customer" } }, { session }),
-            super_admin_schema_1.default.updateOne({
+            user_schema_1.default.updateOne({ _id: userId, profileId: null }, { $set: { profileId: customer._id, profileType: "Customer" } }, { session }),
+            user_schema_1.default.updateOne({
                 _id: userId,
                 $or: [{ phone: { $exists: false } }, { phone: null }, { phone: "" }],
             }, { $set: { phone } }, { session }),
@@ -120,7 +120,7 @@ const resolveCustomer = async (companyId, name, phone, email, shipping_address, 
     }
     return customer._id;
 };
-const createOrder = async ({ companyId, input, }) => {
+const createOrder = async ({ sellerId, input, }) => {
     const { name, phone, userId, email, items, shipping_address, discount_amount, tax_amount, shipping_charge, paid_amount, payment_method, note, } = input;
     const session = await mongoose_1.default.startSession();
     try {
@@ -128,7 +128,7 @@ const createOrder = async ({ companyId, input, }) => {
         // 1. load all variant
         const variantIds = items.map((i) => new mongoose_1.Types.ObjectId(i.variant_id));
         const variants = await product_variant_schema_1.default.find({
-            company_id: companyId,
+            sellerId: sellerId,
             is_active: true,
             _id: { $in: variantIds },
         }).session(session);
@@ -139,7 +139,7 @@ const createOrder = async ({ companyId, input, }) => {
         // 2. load all products
         const productIds = variants.map((v) => v.product_id);
         const product = await product_schema_1.default.find({
-            company_id: companyId,
+            sellerId: sellerId,
             is_active: true,
             _id: { $in: productIds },
         }).session(session);
@@ -208,7 +208,7 @@ const createOrder = async ({ companyId, input, }) => {
                         : "partial";
         }
         // 5. resolve customer
-        const customerId = await resolveCustomer(companyId, name, phone, email, shipping_address, session, userId ? new mongoose_1.Types.ObjectId(userId) : undefined);
+        const customerId = await resolveCustomer(sellerId, name, phone, email, shipping_address, session, userId ? new mongoose_1.Types.ObjectId(userId) : undefined);
         // 6. update customer info
         await customer_schema_1.default.updateOne({ _id: customerId }, [
             {
@@ -250,11 +250,11 @@ const createOrder = async ({ companyId, input, }) => {
             });
         }
         //8 generate order
-        const orderNumber = await (0, healper_1.generateOderNumber)(companyId);
+        const orderNumber = await (0, healper_1.generateOderNumber)(sellerId);
         //9 create order
         const [order] = await order_schema_1.default.create([
             {
-                company_id: companyId,
+                sellerId: sellerId,
                 order_number: orderNumber,
                 customer: customerId,
                 items: orderItem,
@@ -282,7 +282,7 @@ const createOrder = async ({ companyId, input, }) => {
             {
                 invoiceNumber,
                 order: order._id,
-                company: companyId,
+                sellerId: sellerId,
                 customer: order.customer,
                 items: order.items,
                 subtotal: order.subtotal,
@@ -313,13 +313,13 @@ const createOrder = async ({ companyId, input, }) => {
     }
 };
 exports.createOrder = createOrder;
-const getAllOrder = async (companyId, query) => {
+const getAllOrder = async (sellerId, query) => {
     const { search, sortBy, sortOrder, page, limit, orderStatus, paymentStatus, customerId, } = query;
-    if (!companyId || !mongoose_1.Types.ObjectId.isValid(companyId)) {
+    if (!sellerId || !mongoose_1.Types.ObjectId.isValid(sellerId)) {
         throw new appError_1.AppError("Invalid company", 400);
     }
     const filter = {
-        company_id: companyId,
+        sellerId: sellerId,
     };
     if (search?.trim()) {
         filter.$or = [{}];
@@ -340,7 +340,7 @@ const getAllOrder = async (companyId, query) => {
             .lean(),
         order_schema_1.default.countDocuments(filter),
         order_schema_1.default.aggregate([
-            { $match: { company_id: companyId } },
+            { $match: { sellerId: sellerId } },
             {
                 $facet: {
                     orderStatusStats: [
@@ -363,12 +363,12 @@ exports.getAllOrder = getAllOrder;
 // Returns paginated list of orders for the authenticated customer.
 // Each order includes a lightweight item list (no population needed —
 // items are embedded snapshots).
-const getMyOrders = async (customerId, companyId, query) => {
+const getMyOrders = async (customerId, sellerId, query) => {
     const { page = 1, limit = 10, order_status, search } = query;
     const skip = (page - 1) * limit;
     // ── Base match ──────────────────────────────────────────────────────────────
     const match = {
-        company_id: new mongoose_1.Types.ObjectId(companyId),
+        sellerId: new mongoose_1.Types.ObjectId(sellerId),
         customer: new mongoose_1.Types.ObjectId(customerId),
     };
     console.log(match);
@@ -455,13 +455,13 @@ exports.getMyOrders = getMyOrders;
 // ─── getMyOrderById ───────────────────────────────────────────────────────────
 // Returns a single order with full detail.
 // Ownership check: order.customer must match the requesting customerId.
-const getMyOrderById = async (orderId, customerId, companyId) => {
+const getMyOrderById = async (orderId, customerId, sellerId) => {
     if (!mongoose_1.Types.ObjectId.isValid(orderId)) {
         throw new appError_1.AppError("Invalid order ID", 400);
     }
     const order = await order_schema_1.default.findOne({
         _id: new mongoose_1.Types.ObjectId(orderId),
-        company_id: companyId,
+        sellerId: sellerId,
         customer: customerId, // ← ownership guard: other customers can't see this
     }).lean();
     if (!order) {

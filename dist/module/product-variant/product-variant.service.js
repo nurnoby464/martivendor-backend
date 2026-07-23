@@ -46,11 +46,11 @@ const sanitizeData_1 = require("../../utils/sanitizeData");
 const useSkip_1 = require("../../utils/useSkip");
 const appError_1 = require("../../middlewares/appError");
 const createVariant = async (payload, req) => {
-    const { product_id, company_id, ...rest } = payload;
+    const { product_id, sellerId, ...rest } = payload;
     // product must exist, belong to company, and have has_variants = true
     const product = await product_schema_1.default.findOne({
         _id: product_id,
-        company_id,
+        sellerId,
         is_active: true,
     }).lean();
     if (!product)
@@ -59,7 +59,7 @@ const createVariant = async (payload, req) => {
         throw new appError_1.AppError("This product does not support variants. Enable has_variants first.", 400);
     }
     // unique sku
-    //   await assertUniqVariantSku(sku, company_id);
+    //   await assertUniqVariantSku(sku, sellerId);
     // Block duplicate attribute combination for this product
     const duplicate = await product_variant_schema_1.default.findOne({
         product_id,
@@ -73,7 +73,7 @@ const createVariant = async (payload, req) => {
     const variant = await product_variant_schema_1.default.create((0, sanitizeData_1.sanitizeData)({
         ...rest,
         product_id: new mongoose_1.default.Types.ObjectId(product_id),
-        company_id,
+        sellerId,
     }));
     (0, auditLogger_1.auditLog)({
         req,
@@ -91,7 +91,7 @@ exports.createVariant = createVariant;
 const getVariants = async (payload) => {
     const product = await product_schema_1.default.findOne({
         _id: payload.product_id,
-        company_id: payload.company_id,
+        sellerId: payload.sellerId,
     }).lean();
     if (!product)
         throw new appError_1.AppError("Product not found", 404);
@@ -103,10 +103,10 @@ const getVariants = async (payload) => {
     return variants;
 };
 exports.getVariants = getVariants;
-const getVariantById = async (variantId, company_id) => {
+const getVariantById = async (variantId, sellerId) => {
     const variant = await product_variant_schema_1.default.findOne({
         _id: variantId,
-        company_id,
+        sellerId,
     }).lean();
     if (!variant)
         throw new appError_1.AppError("Variant not found", 404);
@@ -114,17 +114,17 @@ const getVariantById = async (variantId, company_id) => {
 };
 exports.getVariantById = getVariantById;
 // ─── Update variant ───────────────────────────────────────
-const updateVariant = async (variantId, company_id, payload, req) => {
+const updateVariant = async (variantId, sellerId, payload, req) => {
     const variant = await product_variant_schema_1.default.findOne({
         _id: variantId,
-        company_id,
+        sellerId,
     });
     if (!variant)
         throw new appError_1.AppError("Variant not found", 404);
     const before = {
         product_id: variant.product_id,
     };
-    const updated = await product_variant_schema_1.default.findOneAndUpdate({ _id: variantId, company_id }, { $set: (0, sanitizeData_1.sanitizeData)(payload) }, { new: true, runValidators: true }).lean();
+    const updated = await product_variant_schema_1.default.findOneAndUpdate({ _id: variantId, sellerId }, { $set: (0, sanitizeData_1.sanitizeData)(payload) }, { new: true, runValidators: true }).lean();
     if (!updated)
         throw new appError_1.AppError("Variant not found", 404);
     (0, auditLogger_1.auditLog)({
@@ -142,11 +142,11 @@ const updateVariant = async (variantId, company_id, payload, req) => {
 exports.updateVariant = updateVariant;
 // ─── Delete variant ───────────────────────────────────────
 const deleteVariant = async (payload) => {
-    const { id, product_id, company_id, req } = payload;
+    const { id, product_id, sellerId, req } = payload;
     const variant = await product_variant_schema_1.default.findOne({
         _id: id,
         product_id,
-        company_id,
+        sellerId,
     });
     if (!variant)
         throw new appError_1.AppError("Variant not found", 404);
@@ -166,12 +166,12 @@ const getAllProductWithVariant = async (payload) => {
     const query = req.validatedQuery;
     const { page, limit, search, stock, sortBy, sortOrder } = query;
     const lowStockNumber = 3;
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         throw new appError_1.AppError("Company is required", 400);
     }
     const filter = {
-        company_id: new mongoose_1.Types.ObjectId(companyId),
+        sellerId: new mongoose_1.Types.ObjectId(sellerId),
     };
     if (search) {
         const keywords = search.trim().split(/\s+/);
@@ -199,7 +199,7 @@ const getAllProductWithVariant = async (payload) => {
         }
     }
     const [result] = await product_variant_schema_1.default.aggregate([
-        { $match: { company_id: new mongoose_1.Types.ObjectId(companyId) } },
+        { $match: { sellerId: new mongoose_1.Types.ObjectId(sellerId) } },
         {
             $facet: {
                 stats: [
@@ -402,7 +402,7 @@ const getAllProductWithVariant = async (payload) => {
                         $project: {
                             _id: 1,
                             product_id: 1,
-                            company_id: 1,
+                            sellerId: 1,
                             category_id: 1, // ← add
                             categoryName: 1, // ← add
                             categorySlug: 1, // ← add
@@ -446,14 +446,14 @@ const getAllProductWithVariant = async (payload) => {
 exports.getAllProductWithVariant = getAllProductWithVariant;
 const editProductVariant = async (req) => {
     const input = req.body;
-    const companyId = req.user.company_id;
+    const sellerId = req.user.sellerId;
     const userId = req.user._id;
-    if (!companyId) {
-        throw new appError_1.AppError("CompanyId not found", 400);
+    if (!sellerId) {
+        throw new appError_1.AppError("sellerId not found", 400);
     }
     const { variantId, sellingPrice, newImage, previousImage, alertStock } = input;
     const existing = await product_variant_schema_1.default.findOne({
-        company_id: companyId,
+        sellerId: sellerId,
         _id: new mongoose_1.Types.ObjectId(variantId),
     });
     if (!existing) {
@@ -463,7 +463,7 @@ const editProductVariant = async (req) => {
     try {
         session.startTransaction();
         const updateVariant = await product_variant_schema_1.default.findOneAndUpdate({
-            company_id: companyId,
+            sellerId: sellerId,
             _id: existing._id,
         }, {
             $set: {
@@ -475,7 +475,7 @@ const editProductVariant = async (req) => {
         if (!updateVariant) {
             throw new appError_1.AppError("Failed to edit product variant");
         }
-        const editProduct = await product_schema_1.default.findOneAndUpdate({ company_id: companyId, _id: existing.product_id }, [
+        const editProduct = await product_schema_1.default.findOneAndUpdate({ sellerId: sellerId, _id: existing.product_id }, [
             {
                 $set: {
                     ...(newImage && {

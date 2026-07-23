@@ -17,11 +17,11 @@ const generateSlug = (name: string): string => {
 
 const assertUniqSlug = async (
   slug: string,
-  company_id: mongoose.Types.ObjectId,
+  sellerId: mongoose.Types.ObjectId,
   excludeId?: string,
 ) => {
   console.log(slug);
-  const filter: Record<string, unknown> = { company_id, slug };
+  const filter: Record<string, unknown> = { sellerId, slug };
   if (excludeId) filter._id = { $ne: excludeId };
   const exists = await Category.findOne(filter).lean();
   if (exists) throw new AppError(`Category "${slug}" already exists`, 409);
@@ -31,19 +31,19 @@ const assertUniqSlug = async (
 // category.service.ts - Update createCategory
 
 export const createCategory = async (payload: {
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   name: string;
   parent_id?: string | null;
   image?: string | null;
   createdBy: mongoose.Types.ObjectId;
   req: Request;
 }) => {
-  const { company_id, name, parent_id, image, createdBy } = payload;
+  const { sellerId, name, parent_id, image, createdBy } = payload;
 
   const slug = generateSlug(name);
-  // await assertUniqSlug(slug, company_id);
+  // await assertUniqSlug(slug, sellerId);
 
-  const filter: Record<string, unknown> = { company_id, slug, parent_id };
+  const filter: Record<string, unknown> = { sellerId, slug, parent_id };
   const exists = await Category.findOne(filter).lean();
   if (exists) throw new AppError(`Category "${slug}" already exists`, 409);
   let path: mongoose.Types.ObjectId[] = [];
@@ -52,7 +52,7 @@ export const createCategory = async (payload: {
   if (parent_id) {
     const parent = await Category.findOne({
       _id: parent_id,
-      company_id,
+      sellerId,
     }).lean();
     if (!parent) throw new AppError("Parent category not found", 404);
     if (!parent.is_active)
@@ -64,7 +64,7 @@ export const createCategory = async (payload: {
   }
 
   const category = await Category.create({
-    company_id,
+    sellerId,
     name,
     slug,
     parent_id: parent_id ?? null,
@@ -79,13 +79,13 @@ export const createCategory = async (payload: {
 
 // ─── Get Category Tree (Nested Structure) ─────────────────
 // export const getCategoryTree = async (payload: {
-//   company_id: mongoose.Types.ObjectId;
+//   sellerId: mongoose.Types.ObjectId;
 //   id?: string;
 // }) => {
-//   const { company_id, id } = payload;
+//   const { sellerId, id } = payload;
 
 //   const allCategories = await Category.find({
-//     company_id,
+//     sellerId,
 //     is_active: true,
 //   }).sort({ depth: 1, name: 1 }).lean();
 //   console.log(allCategories)
@@ -126,7 +126,7 @@ type LeanCategory = {
   parent_id: mongoose.Types.ObjectId | null;
   path: string;
   is_active: boolean;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   image: string | null;
 };
 
@@ -139,16 +139,16 @@ type CategoryFlatItem = {
 };
 
 // export const getCategoryTree = async (payload: {
-//   company_id: mongoose.Types.ObjectId;
+//   sellerId: mongoose.Types.ObjectId;
 //   search?: string;
 // }): Promise<CategoryFlatItem[]> => {
-//   const { company_id, search } = payload;
+//   const { sellerId, search } = payload;
 
 //   let categories: LeanCategory[];
 
 //   if (search) {
 //     const matched = await Category.findOne({
-//       company_id,
+//       sellerId,
 //       is_active: true,
 //       name: { $regex: search.trim(), $options: "i" },
 //     }).lean<LeanCategory>();
@@ -156,12 +156,12 @@ type CategoryFlatItem = {
 //     if (!matched) return [];
 
 //     categories = await Category.find({
-//       company_id,
+//       sellerId,
 //       is_active: true,
 //       $or: [{ _id: matched._id }, { path: matched._id.toHexString() }],
 //     }).lean<LeanCategory[]>();
 //   } else {
-//     categories = await Category.find({ company_id, is_active: true })
+//     categories = await Category.find({ sellerId, is_active: true })
 //       .sort({ path: 1, name: 1 })
 //       .lean<LeanCategory[]>();
 //   }
@@ -195,15 +195,15 @@ type CategoryFlatItem = {
 // };
 
 export const getCategoryTree = async (payload: {
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   query?: string;
   skip: number;
   limit: number;
 }) => {
-  const { company_id, query, skip, limit } = payload;
+  const { sellerId, query, skip, limit } = payload;
 
   const baseFilter: any = {
-    company_id,
+    sellerId,
     is_active: true,
   };
 
@@ -264,7 +264,7 @@ export const getCategoryTree = async (payload: {
 
   // hasChildren check
   const childDocs = await Category.find({
-    company_id,
+    sellerId,
     is_active: true,
     parent_id: { $in: matched.map((c) => c._id) },
   })
@@ -309,7 +309,7 @@ export const getCategoryTree = async (payload: {
 
 // ─── Get All Categories (Flat List with Pagination) ───────
 export const getCategories = async (payload: {
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   page: number;
   limit: number;
   search?: string;
@@ -317,10 +317,10 @@ export const getCategories = async (payload: {
   depth?: number;
   is_active?: boolean;
 }) => {
-  const { company_id, page, limit, search, parent_id, depth, is_active } =
+  const { sellerId, page, limit, search, parent_id, depth, is_active } =
     payload;
 
-  const filter: Record<string, unknown> = { company_id };
+  const filter: Record<string, unknown> = { sellerId };
 
   if (is_active !== undefined) filter.is_active = is_active;
   if (depth !== undefined) filter.depth = depth;
@@ -346,11 +346,11 @@ export const getCategories = async (payload: {
 // ─── Get Single Category ──────────────────────────────────
 export const getCategoryById = async (payload: {
   id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
 }) => {
   const category = await Category.findOne({
     _id: payload.id,
-    company_id: payload.company_id,
+    sellerId: payload.sellerId,
   })
     .populate("parent_id", "name slug depth")
     .lean();
@@ -362,7 +362,7 @@ export const getCategoryById = async (payload: {
 // ─── Update Category ──────────────────────────────────────
 export const updateCategory = async (payload: {
   id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   req: Request;
   data: {
     name?: string;
@@ -370,9 +370,9 @@ export const updateCategory = async (payload: {
     is_active?: boolean;
   };
 }) => {
-  const { id, company_id, data } = payload;
+  const { id, sellerId, data } = payload;
 
-  const category = await Category.findOne({ _id: id, company_id });
+  const category = await Category.findOne({ _id: id, sellerId });
   if (!category) throw new AppError("Category not found", 404);
 
   const before: Record<string, unknown> = {
@@ -383,7 +383,7 @@ export const updateCategory = async (payload: {
   // if name changes — regenerate slug and check uniqueness
   if (data.name && data.name !== category.name) {
     const newSlug = generateSlug(data.name);
-    await assertUniqSlug(newSlug, company_id, id);
+    await assertUniqSlug(newSlug, sellerId, id);
     category.slug = newSlug;
     category.name = data.name;
   }
@@ -411,16 +411,16 @@ export const updateCategory = async (payload: {
 // ─── Delete Category (Soft Delete) ────────────────────────
 export const deleteCategory = async (payload: {
   id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   req: Request;
 }) => {
-  const { id, company_id } = payload;
+  const { id, sellerId } = payload;
 
-  const category = await Category.findOne({ _id: id, company_id });
+  const category = await Category.findOne({ _id: id, sellerId });
   if (!category) throw new AppError("Category not found", 404);
 
   // Check for children
-  const hasChildren = await Category.exists({ company_id, parent_id: id });
+  const hasChildren = await Category.exists({ sellerId, parent_id: id });
   if (hasChildren) {
     throw new AppError(
       "Cannot delete a category that has subcategories. Delete children first.",
@@ -465,15 +465,15 @@ type CategorySearchItem = {
 };
 
 export const searchCategories = async (payload: {
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   search?: string;
   skip: number;
   limit: number;
 }): Promise<{ categories: CategorySearchItem[]; total: number }> => {
-  const { company_id, search, skip, limit } = payload;
+  const { sellerId, search, skip, limit } = payload;
 
   const baseFilter: Record<string, unknown> = {
-    company_id,
+    sellerId,
     is_active: true,
   };
 
@@ -491,7 +491,7 @@ export const searchCategories = async (payload: {
 
     // 2. fetch root + all descendants
     const descendantFilter: Record<string, unknown> = {
-      company_id,
+      sellerId,
       is_active: true,
       $or: [{ _id: root._id }, { path: root._id }],
     };
@@ -535,7 +535,7 @@ export const searchCategories = async (payload: {
 
   // check hasChildren for all matched in ONE query
   const childDocs = await Category.find({
-    company_id,
+    sellerId,
     is_active: true,
     parent_id: { $in: matched.map((c) => c._id) },
   })

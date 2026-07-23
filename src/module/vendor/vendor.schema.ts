@@ -8,12 +8,12 @@ import { IVendorDocument } from "./vendor.interface";
 // ── Counter for vendor_code sequence per company ──────────────────────────────
 const VendorCounterSchema = new Schema(
   {
-    company_id: { type: Schema.Types.ObjectId, required: true },
+    sellerId: { type: Schema.Types.ObjectId, required: true },
     seq: { type: Number, default: 0 },
   },
   { collection: "vendor_counters" },
 );
-VendorCounterSchema.index({ company_id: 1 }, { unique: true });
+VendorCounterSchema.index({ sellerId: 1 }, { unique: true });
 export const VendorCounter = model("VendorCounter", VendorCounterSchema);
 
 // ── Note sub-schema ───────────────────────────────────────────────────────────
@@ -29,10 +29,10 @@ const VendorNoteSchema = new Schema(
 // ── Vendor schema ─────────────────────────────────────────────────────────────
 const VendorSchema = new Schema<IVendorDocument>(
   {
-    company_id: {
+    sellerId: {
       type: Schema.Types.ObjectId,
-      ref: "Company",
-      required: [true, "company_id is required"],
+      ref: "Seller",
+      required: [true, "sellerId is required"],
       index: true,
     },
 
@@ -72,7 +72,7 @@ VendorSchema.pre("save", async function () {
   if (!this.isNew) return;
 
   const counter = await VendorCounter.findOneAndUpdate(
-    { company_id: this.company_id },
+    { sellerId: this.sellerId },
     { $inc: { seq: 1 } },
     { upsert: true, new: true },
   );
@@ -82,10 +82,10 @@ VendorSchema.pre("save", async function () {
 });
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
-VendorSchema.index({ company_id: 1, vendor_code: 1 }, { unique: true });
-VendorSchema.index({ company_id: 1, is_active: 1 });
-VendorSchema.index({ company_id: 1, name: 1 });
-VendorSchema.index({ company_id: 1, due: -1 });
+VendorSchema.index({ sellerId: 1, vendor_code: 1 }, { unique: true });
+VendorSchema.index({ sellerId: 1, is_active: 1 });
+VendorSchema.index({ sellerId: 1, name: 1 });
+VendorSchema.index({ sellerId: 1, due: -1 });
 
 const Vendor = model<IVendorDocument>("Vendor", VendorSchema);
 export default Vendor;

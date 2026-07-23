@@ -3,7 +3,7 @@ import { Document, Types } from "mongoose";
 
 export interface IStaff {
   userId: Types.ObjectId;
-  companyId: Types.ObjectId;
+  sellerId: Types.ObjectId;
 
   // Basic Info
   name: string;

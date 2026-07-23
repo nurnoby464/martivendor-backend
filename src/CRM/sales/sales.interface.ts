@@ -36,7 +36,7 @@ export interface ICustomerSnapshot {
 }
 
 export interface ISale {
-  companyId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   saleCode: string;
 
   customer: ICustomerSnapshot | null;

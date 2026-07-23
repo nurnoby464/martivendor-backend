@@ -5,7 +5,7 @@ const mongoose_1 = require("mongoose");
 const audit_interface_1 = require("./audit.interface");
 const TARGET_MODELS = [
     "User",
-    "Company",
+    "Seller",
     "Session",
     "Vendor",
     "Category",
@@ -22,16 +22,16 @@ const PerformedBySchema = new mongoose_1.Schema({
     sessionId: { type: String, required: true },
     ip: { type: String, default: null },
     userAgent: { type: String, default: null },
-    company_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", default: null },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Seller", default: null },
 }, { _id: false });
 const ChangesSchema = new mongoose_1.Schema({
     before: { type: mongoose_1.Schema.Types.Mixed, default: null },
     after: { type: mongoose_1.Schema.Types.Mixed, default: null },
 }, { _id: false });
 const AuditSchema = new mongoose_1.Schema({
-    company_id: {
+    sellerId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Company",
+        ref: "Seller",
         default: null,
     },
     performedBy: { type: PerformedBySchema, required: true },
@@ -64,7 +64,7 @@ const AuditSchema = new mongoose_1.Schema({
     versionKey: false,
 });
 // ─── Indexes ──────────────────────────────────────────────
-AuditSchema.index({ company_id: 1, createdAt: -1 });
+AuditSchema.index({ sellerId: 1, createdAt: -1 });
 AuditSchema.index({ "performedBy.userId": 1, createdAt: -1 });
 AuditSchema.index({ "performedBy.sessionId": 1 });
 AuditSchema.index({ action: 1, createdAt: -1 });

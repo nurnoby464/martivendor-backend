@@ -4,7 +4,7 @@ import { AUDIT_ACTIONS, AuditTargetModel, IAuditDocument } from "./audit.interfa
 
 const TARGET_MODELS: AuditTargetModel[] = [
   "User",
-  "Company",
+  "Seller",
   "Session",
   "Vendor",
   "Category",
@@ -23,7 +23,7 @@ const PerformedBySchema = new Schema(
     sessionId : { type: String, required: true },
     ip        : { type: String, default: null },
     userAgent : { type: String, default: null },
-    company_id: { type: Schema.Types.ObjectId, ref: "Company", default: null },
+    sellerId: { type: Schema.Types.ObjectId, ref: "Seller", default: null },
   },
   { _id: false },
 );
@@ -38,9 +38,9 @@ const ChangesSchema = new Schema(
 
 const AuditSchema = new Schema<IAuditDocument>(
   {
-    company_id: {
+    sellerId: {
       type   : Schema.Types.ObjectId,
-      ref    : "Company",
+      ref    : "Seller",
       default: null,
     },
 
@@ -83,7 +83,7 @@ const AuditSchema = new Schema<IAuditDocument>(
 );
 
 // ─── Indexes ──────────────────────────────────────────────
-AuditSchema.index({ company_id              : 1, createdAt: -1 });
+AuditSchema.index({ sellerId              : 1, createdAt: -1 });
 AuditSchema.index({ "performedBy.userId"    : 1, createdAt: -1 });
 AuditSchema.index({ "performedBy.sessionId" : 1 });
 AuditSchema.index({ action                  : 1, createdAt: -1 });

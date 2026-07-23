@@ -1,7 +1,7 @@
 import Customer from "../CRM/customer/customer.schema";
 import Staff from "../CRM/staff/staff.schema";
 import { ISessionDocument } from "../module/auth/auth.interface";
-import { IUserDocument } from "../module/super_admin/super_admin.interface";
+import { IUserDocument } from "../module/user/user.interface";
 import { ITokenPayload } from "./jwtHelper";
 type IMakeToken = {
   existing: IUserDocument;
@@ -17,7 +17,7 @@ export const makeToken = (payload: IMakeToken) => {
     role: existing.role,
     profileId:existing.profileId ?? null,
     profileType:existing.profileType ?? null,
-    company_id: existing.company_id ?? null,
+    sellerId: existing.sellerId ?? null,
     sessionId: session._id.toString(),
     passwordChangedAt: existing.passwordChangedAt?.getTime() ?? null,
   };
@@ -46,9 +46,9 @@ export const makeLoginResponse = async (payload: IMakeLoginResponse) => {
   const base = {
     _id: user._id,
     role: user.role,
-    company_id: user.company_id ?? null,
-    is_active: user.is_active,
-    email_verified: user.email_verified,
+    sellerId: user.sellerId ?? null,
+    isActive: user.isActive,
+    emailVerified: user.emailVerified,
     profileId: profile?._id ?? null,
     profileType: user.profileType ?? null,
     name: profile?.name ?? user.name,
@@ -59,7 +59,7 @@ export const makeLoginResponse = async (payload: IMakeLoginResponse) => {
 
   // ─── super_admin ──────────────────────────────────────
   if (user.role === "super_admin") {
-    return { ...base, company_id: null, profileId: null, profileType: null };
+    return { ...base, sellerId: null, profileId: null, profileType: null };
   }
 
   // ─── customer ─────────────────────────────────────────

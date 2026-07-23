@@ -9,7 +9,7 @@ export const createCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const category = await CategoryService.createCategory({
       ...req.body, // Contains name, parent_id, image (URL)
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       createdBy: req.user._id,
       req,
     });
@@ -24,9 +24,9 @@ export const getCategoryTree = asyncHandler(
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-console.log("companyID",req.user.company_id)
+console.log("sellerId",req.user.sellerId)
     const { categories, total } = await CategoryService.searchCategories({
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       ...(search && { search }),
       skip,
       limit,
@@ -55,7 +55,7 @@ export const getCategories = asyncHandler(
 
     const query = { page, limit, search, parent_id, depth, is_active };
     const { categories, total } = await CategoryService.getCategories({
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       page,
       parent_id,
       depth,
@@ -79,7 +79,7 @@ export const getCategoryById = asyncHandler(
   async (req: Request, res: Response) => {
     const category = await CategoryService.getCategoryById({
       id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
     });
     return ApiResponse.success(res, category);
   },
@@ -90,7 +90,7 @@ export const updateCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const category = await CategoryService.updateCategory({
       id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       data: req.body, // Contains name, image (URL), is_active
       req,
     });
@@ -103,7 +103,7 @@ export const deleteCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const category = await CategoryService.deleteCategory({
       id: req.params.id as string,
-      company_id: req.user.company_id!,
+      sellerId: req.user.sellerId!,
       req,
     });
     return ApiResponse.success(res, null, "Category deactivated successfully");

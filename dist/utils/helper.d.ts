@@ -1,5 +1,5 @@
 import { ISessionDocument } from "../module/auth/auth.interface";
-import { IUserDocument } from "../module/super_admin/super_admin.interface";
+import { IUserDocument } from "../module/user/user.interface";
 import { ITokenPayload } from "./jwtHelper";
 type IMakeToken = {
     existing: IUserDocument;
@@ -10,13 +10,13 @@ type IMakeLoginResponse = {
     user: IUserDocument;
 };
 export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise<{
-    company_id: null;
+    sellerId: null;
     profileId: null;
     profileType: null;
     _id: import("mongoose").Types.ObjectId;
-    role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-    is_active: boolean;
-    email_verified: boolean;
+    role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+    isActive: boolean;
+    emailVerified: boolean;
     name: any;
     email: any;
     phone: any;
@@ -28,10 +28,10 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     gender: any;
     addresses: any;
     _id: import("mongoose").Types.ObjectId;
-    role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-    company_id: import("mongoose").Types.ObjectId | null;
-    is_active: boolean;
-    email_verified: boolean;
+    role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+    sellerId: import("mongoose").Types.ObjectId | null;
+    isActive: boolean;
+    emailVerified: boolean;
     profileId: any;
     name: any;
     email: any;
@@ -45,10 +45,10 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     joining_date: any;
     address: any;
     _id: import("mongoose").Types.ObjectId;
-    role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-    company_id: import("mongoose").Types.ObjectId | null;
-    is_active: boolean;
-    email_verified: boolean;
+    role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+    sellerId: import("mongoose").Types.ObjectId | null;
+    isActive: boolean;
+    emailVerified: boolean;
     profileId: any;
     name: any;
     email: any;

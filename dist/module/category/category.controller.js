@@ -41,7 +41,7 @@ const CategoryService = __importStar(require("./category.service"));
 exports.createCategory = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const category = await CategoryService.createCategory({
         ...req.body, // Contains name, parent_id, image (URL)
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         createdBy: req.user._id,
         req,
     });
@@ -53,9 +53,9 @@ exports.getCategoryTree = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-    console.log("companyID", req.user.company_id);
+    console.log("sellerId", req.user.sellerId);
     const { categories, total } = await CategoryService.searchCategories({
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         ...(search && { search }),
         skip,
         limit,
@@ -72,7 +72,7 @@ exports.getCategories = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const is_active = req.validatedQuery.is_active;
     const query = { page, limit, search, parent_id, depth, is_active };
     const { categories, total } = await CategoryService.getCategories({
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         page,
         parent_id,
         depth,
@@ -86,7 +86,7 @@ exports.getCategories = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 exports.getCategoryById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const category = await CategoryService.getCategoryById({
         id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
     });
     return ApiResponse_1.ApiResponse.success(res, category);
 });
@@ -94,7 +94,7 @@ exports.getCategoryById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 exports.updateCategory = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const category = await CategoryService.updateCategory({
         id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         data: req.body, // Contains name, image (URL), is_active
         req,
     });
@@ -104,7 +104,7 @@ exports.updateCategory = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 exports.deleteCategory = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const category = await CategoryService.deleteCategory({
         id: req.params.id,
-        company_id: req.user.company_id,
+        sellerId: req.user.sellerId,
         req,
     });
     return ApiResponse_1.ApiResponse.success(res, null, "Category deactivated successfully");

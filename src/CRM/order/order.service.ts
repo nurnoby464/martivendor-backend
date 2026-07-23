@@ -19,10 +19,10 @@ import Order from "./order.schema";
 import { useSkip } from "../../utils/useSkip";
 import { TGetOrderListQuery, TShippingAddress } from "./order.validation";
 import Invoice from "../invoice/invoice.schema";
-import User from "../../module/super_admin/super_admin.schema";
+import User from "../../module/user/user.schema";
 
 const resolveCustomer = async (
-  companyId: Types.ObjectId,
+  sellerId: Types.ObjectId,
   name: string,
   phone: string,
   email: string | null,
@@ -45,7 +45,7 @@ const resolveCustomer = async (
   // console.log(userId)
   // check is exist customer
   const existing = await Customer.findOne({
-    companyId,
+    sellerId,
     $or: [...(userId ? [{ userId }] : []), { phone }],
   }).session(session);
 
@@ -95,7 +95,7 @@ const resolveCustomer = async (
   const [customer] = await Customer.create(
     [
       {
-        companyId,
+        sellerId,
         name,
         email,
         phone,
@@ -128,7 +128,7 @@ const resolveCustomer = async (
   return customer._id;
 };
 export const createOrder = async ({
-  companyId,
+  sellerId,
   input,
 }: ICreateOrderPayload) => {
   const {
@@ -152,7 +152,7 @@ export const createOrder = async ({
     // 1. load all variant
     const variantIds = items.map((i) => new Types.ObjectId(i.variant_id));
     const variants = await ProductVariant.find({
-      company_id: companyId,
+      sellerId: sellerId,
       is_active: true,
       _id: { $in: variantIds },
     }).session(session);
@@ -165,7 +165,7 @@ export const createOrder = async ({
     // 2. load all products
     const productIds = variants.map((v) => v.product_id);
     const product = await Product.find({
-      company_id: companyId,
+      sellerId: sellerId,
       is_active: true,
       _id: { $in: productIds },
     }).session(session);
@@ -248,7 +248,7 @@ export const createOrder = async ({
     }
     // 5. resolve customer
     const customerId = await resolveCustomer(
-      companyId,
+      sellerId,
       name,
       phone,
       email,
@@ -307,12 +307,12 @@ export const createOrder = async ({
       );
     }
     //8 generate order
-    const orderNumber = await generateOderNumber(companyId);
+    const orderNumber = await generateOderNumber(sellerId);
     //9 create order
     const [order] = await Order.create(
       [
         {
-          company_id: companyId,
+          sellerId: sellerId,
           order_number: orderNumber,
           customer: customerId,
           items: orderItem,
@@ -343,7 +343,7 @@ export const createOrder = async ({
         {
           invoiceNumber,
           order: order._id,
-          company: companyId,
+          sellerId: sellerId,
           customer: order.customer,
           items: order.items,
           subtotal: order.subtotal,
@@ -375,7 +375,7 @@ export const createOrder = async ({
 };
 
 export const getAllOrder = async (
-  companyId: Types.ObjectId,
+  sellerId: Types.ObjectId,
   query: TGetOrderListQuery,
 ) => {
   const {
@@ -389,11 +389,11 @@ export const getAllOrder = async (
     customerId,
   } = query;
 
-  if (!companyId || !Types.ObjectId.isValid(companyId)) {
+  if (!sellerId || !Types.ObjectId.isValid(sellerId)) {
     throw new AppError("Invalid company", 400);
   }
   const filter: Record<string, unknown> = {
-    company_id: companyId,
+    sellerId: sellerId,
   };
   if (search?.trim()) {
     filter.$or = [{}];
@@ -414,7 +414,7 @@ export const getAllOrder = async (
       .lean(),
     Order.countDocuments(filter),
     Order.aggregate([
-      { $match: { company_id: companyId } },
+      { $match: { sellerId: sellerId } },
       {
         $facet: {
           orderStatusStats: [
@@ -445,7 +445,7 @@ export const getAllOrder = async (
 
 export const getMyOrders = async (
   customerId: Types.ObjectId,
-  companyId: Types.ObjectId,
+  sellerId: Types.ObjectId,
   query: IGetMyOrdersQuery,
 ) => {
   const { page = 1, limit = 10, order_status, search } = query;
@@ -454,7 +454,7 @@ export const getMyOrders = async (
 
   // ── Base match ──────────────────────────────────────────────────────────────
   const match: Record<string, unknown> = {
-    company_id: new Types.ObjectId(companyId),
+    sellerId: new Types.ObjectId(sellerId),
     customer: new Types.ObjectId(customerId),
   };
 console.log(match)
@@ -550,7 +550,7 @@ console.log(match)
 export const getMyOrderById = async (
   orderId: string,
   customerId: Types.ObjectId,
-  companyId: Types.ObjectId,
+  sellerId: Types.ObjectId,
 ) => {
   if (!Types.ObjectId.isValid(orderId)) {
     throw new AppError("Invalid order ID", 400);
@@ -558,7 +558,7 @@ export const getMyOrderById = async (
 
   const order = await Order.findOne({
     _id: new Types.ObjectId(orderId),
-    company_id: companyId,
+    sellerId: sellerId,
     customer: customerId, // ← ownership guard: other customers can't see this
   }).lean();
 

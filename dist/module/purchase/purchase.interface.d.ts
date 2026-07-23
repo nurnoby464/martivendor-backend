@@ -12,7 +12,7 @@ export interface IPurchaseItem {
     total: number;
 }
 export interface IPurchase {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     vendor_id: mongoose.Types.ObjectId;
     items: IPurchaseItem[];
     product_ids: mongoose.Types.ObjectId[];

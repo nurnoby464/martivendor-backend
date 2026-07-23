@@ -3,9 +3,9 @@ import { ICustomerDocument } from "./customer.interface";
 
 const customerSchema = new Schema<ICustomerDocument>(
   {
-    companyId: {
+    sellerId: {
       type: Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "Seller",
       required: true,
     },
     userId: {
@@ -55,13 +55,13 @@ const customerSchema = new Schema<ICustomerDocument>(
   },
 );
 
-customerSchema.index({ companyId: 1, phone: 1 }, { unique: true });
+customerSchema.index({ sellerId: 1, phone: 1 }, { unique: true });
 customerSchema.index(
-  { companyId: 1, email: 1 },
+  { sellerId: 1, email: 1 },
   { unique: true, sparse: true },
 );
-customerSchema.index({ companyId: 1, due: -1 }); // desending order due report
-customerSchema.index({ companyId: 1, lastPurchasedAt: -1 }); // recent customers
+customerSchema.index({ sellerId: 1, due: -1 }); // desending order due report
+customerSchema.index({ sellerId: 1, lastPurchasedAt: -1 }); // recent customers
 
 const Customer = model<ICustomerDocument>("Customer", customerSchema);
 export default Customer;

@@ -40,17 +40,17 @@ const ApiResponse_1 = require("../../../utils/ApiResponse");
 const appError_1 = require("../../../middlewares/appError");
 // Create new banner
 exports.createBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Failed to create Banner");
     }
-    const banner = await BannerService.createBanner(companyId, req.body);
+    const banner = await BannerService.createBanner(sellerId, req.body);
     return ApiResponse_1.ApiResponse.created(res, banner, "Banner created successfully");
 });
 // Get all banners (admin)
 const getAllBanners = async (req, res) => {
-    const companyId = req.company?._id;
-    if (!companyId) {
+    const sellerId = req.company?._id;
+    if (!sellerId) {
         return res.status(400).json({
             success: false,
             message: "Failed to fetch banners",
@@ -75,7 +75,7 @@ const getAllBanners = async (req, res) => {
         if (sortOrder !== undefined) {
             params.sortOrder = sortOrder;
         }
-        const result = await BannerService.getAllBanners(companyId, params);
+        const result = await BannerService.getAllBanners(sellerId, params);
         return res.status(200).json(result);
     }
     catch (error) {
@@ -88,21 +88,21 @@ const getAllBanners = async (req, res) => {
 exports.getAllBanners = getAllBanners;
 // Get active banners for frontend
 exports.getActiveBanners = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.company?._id;
-    if (!companyId) {
+    const sellerId = req.company?._id;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Company id not found");
     }
-    const banners = await BannerService.getActiveBanners(companyId);
+    const banners = await BannerService.getActiveBanners(sellerId);
     return ApiResponse_1.ApiResponse.success(res, { banners, count: banners.length }, "Active banners fetched successfully");
 });
 // Get single banner
 exports.getBannerById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Failed to fetch banner");
     }
     const { id } = req.params;
-    const banner = await BannerService.getBannerById(id, companyId);
+    const banner = await BannerService.getBannerById(id, sellerId);
     if (!banner) {
         throw new appError_1.AppError("Banner not found", 404);
     }
@@ -110,12 +110,12 @@ exports.getBannerById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 // Update banner
 exports.updateBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Failed to update banner");
     }
     const { id } = req.params;
-    const banner = await BannerService.updateBanner(id, companyId, req.body);
+    const banner = await BannerService.updateBanner(id, sellerId, req.body);
     if (!banner) {
         throw new appError_1.AppError("Banner not found", 404);
     }
@@ -123,12 +123,12 @@ exports.updateBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 // Delete banner
 exports.deleteBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Failed to delete banner");
     }
     const { id } = req.params;
-    const banner = await BannerService.deleteBanner(id, companyId);
+    const banner = await BannerService.deleteBanner(id, sellerId);
     if (!banner) {
         throw new appError_1.AppError("Banner not found", 404);
     }
@@ -137,12 +137,12 @@ exports.deleteBanner = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 // Toggle banner status
 exports.toggleBannerStatus = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Failed to toggle banner status");
     }
     const { id } = req.params;
-    const banner = await BannerService.toggleBannerStatus(id, companyId);
+    const banner = await BannerService.toggleBannerStatus(id, sellerId);
     if (!banner) {
         throw new appError_1.AppError("Banner not found", 404);
     }
@@ -150,22 +150,22 @@ exports.toggleBannerStatus = (0, asyncHandler_1.asyncHandler)(async (req, res) =
 });
 // Bulk update banner orders
 exports.bulkUpdateOrders = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Failed to update banner orders");
     }
     const { banners } = req.body;
-    await BannerService.bulkUpdateOrders(companyId, banners);
+    await BannerService.bulkUpdateOrders(sellerId, banners);
     return ApiResponse_1.ApiResponse.success(res, null, "Banner orders updated successfully");
 });
 // Delete multiple banners
 exports.deleteMultipleBanners = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const companyId = req.user.company_id;
-    if (!companyId) {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Failed to delete banners");
     }
     const { ids } = req.body;
-    const deletedCount = await BannerService.deleteMultipleBanners(companyId, ids);
+    const deletedCount = await BannerService.deleteMultipleBanners(sellerId, ids);
     return ApiResponse_1.ApiResponse.success(res, { deletedCount }, `${deletedCount} banner(s) deleted successfully`);
 });
 //# sourceMappingURL=banner.controller.js.map

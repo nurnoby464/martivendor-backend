@@ -71,7 +71,7 @@ export interface IAudit {
   status      : "success" | "failed";
 
   // target — what was acted upon
-  targetModel : "User" | "Company" | "Session" | null;
+  targetModel : "User" | "Seller" | "Session" | null;
   targetId    : mongoose.Types.ObjectId | null;
 
   // optional detail
@@ -128,7 +128,7 @@ const AuditSchema = new Schema<IAuditDocument>(
 
     targetModel : {
       type    : String,
-      enum    : ["User", "Company", "Session", null],
+      enum    : ["User", "Seller", "Session", null],
       default : null,
     },
 
@@ -177,7 +177,7 @@ interface IAuditParams {
   req         : Request;
   action      : AuditAction;
   status?     : "success" | "failed";
-  targetModel?: "User" | "Company" | "Session";
+  targetModel?: "User" | "Seller" | "Session";
   targetId?   : mongoose.Types.ObjectId;
   before?     : Record<string, unknown> | null;  // state before change
   after?      : Record<string, unknown> | null;  // state after change
@@ -237,12 +237,12 @@ export const auditLog = (params: IAuditParams): void => {
 // USAGE EXAMPLES
 // ─────────────────────────────────────────────────────────
 
-// ── 1. Company created ────────────────────────────────────
+// ── 1. Seller created ────────────────────────────────────
 /*
 auditLog({
   req,
   action      : AUDIT_ACTIONS.COMPANY_CREATED,
-  targetModel : "Company",
+  targetModel : "Seller",
   targetId    : newCompany._id,
   after: {
     company_name  : newCompany.company_name,
@@ -315,9 +315,9 @@ await Audit.create({
     "ip"        : "192.168.1.1",
     "userAgent" : "Chrome/Windows"
   },
-  "action"      : "COMPANY_CREATED",
+  "action"      : "Seller_CREATED",
   "status"      : "success",
-  "targetModel" : "Company",
+  "targetModel" : "Seller",
   "targetId"    : "69c8b5d0564bc833b7938b3a",
   "changes": {
     "before" : null,

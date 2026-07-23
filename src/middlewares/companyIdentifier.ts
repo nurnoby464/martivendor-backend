@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import Company from "../module/company/company.schema";
+import Company from "../module/seller/seller.schema";
 import { AppError } from "./appError";
 import mongoose from "mongoose";
 
@@ -28,9 +28,9 @@ export const companyIdentifier = async (
     }
   }
 
-  if (!company && req.params.company_id) {
+  if (!company && req.params.sellerId) {
     const company = await Company.findOne({
-      _id: req.params.company_id,
+      _id: req.params.sellerId,
       status: "active",
     })
       .select("_id company_name logo subdomain domain status")

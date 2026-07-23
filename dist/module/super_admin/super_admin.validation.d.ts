@@ -13,7 +13,7 @@ export declare const createUserSchema: z.ZodObject<{
         admin: "admin";
         super_admin: "super_admin";
     }>;
-    company_id: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    sellerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     is_active: z.ZodOptional<z.ZodBoolean>;
     createdBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;

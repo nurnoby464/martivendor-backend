@@ -47,13 +47,13 @@ const customer_schema_1 = __importDefault(require("../customer/customer.schema")
 const healper_1 = require("../../utils/healper");
 // ─── Helpers ──────────────────────────────────────────────
 const getAttribute = (attributes, key) => attributes.find((a) => a.key === key)?.value ?? "";
-const resolveCustomer = async (companyId, netAmount, effectivePaid, session, customerName, customerPhone, customerId) => {
+const resolveCustomer = async (sellerId, netAmount, effectivePaid, session, customerName, customerPhone, customerId) => {
     let existing = null;
     if (customerId || customerPhone) {
         existing = await customer_schema_1.default.findOne({
-            companyId,
+            sellerId,
             $or: [
-                ...(companyId ? [{ _id: new mongoose_1.Types.ObjectId(companyId) }] : []),
+                ...(sellerId ? [{ _id: new mongoose_1.Types.ObjectId(sellerId) }] : []),
                 ...(customerPhone ? [{ phone: customerPhone }] : []),
             ],
         }).session(session);
@@ -102,7 +102,7 @@ const resolveCustomer = async (companyId, netAmount, effectivePaid, session, cus
     }
     const [customer] = await customer_schema_1.default.create([
         {
-            companyId,
+            sellerId,
             name: customerName,
             phone: customerPhone,
             totalPurchased,
@@ -118,7 +118,7 @@ const resolveCustomer = async (companyId, netAmount, effectivePaid, session, cus
 };
 // ─── Main Service ─────────────────────────────────────────
 const createSale = async (payload) => {
-    const { companyId, createdBy, input, createdByType } = payload;
+    const { sellerId, createdBy, input, createdByType } = payload;
     const { customerName, customerPhone, customerEmail, customerId: customer_id, items, paymentMethod, paidAmount, note, } = input;
     // 1. block online payments
     if (paymentMethod === "card" || paymentMethod === "mobile_banking") {
@@ -127,12 +127,12 @@ const createSale = async (payload) => {
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
-        const companyObjectId = new mongoose_1.Types.ObjectId(companyId);
+        const companyObjectId = new mongoose_1.Types.ObjectId(sellerId);
         // 2. load all products in one query
         const productIds = items.map((i) => new mongoose_1.Types.ObjectId(i.productId));
         const products = await product_schema_1.default.find({
             _id: { $in: productIds },
-            company_id: companyObjectId,
+            sellerId: companyObjectId,
             is_active: true,
         }).session(session);
         // check all products found
@@ -146,7 +146,7 @@ const createSale = async (payload) => {
         const variantIds = items.map((i) => new mongoose_1.Types.ObjectId(i.variantId));
         const variants = await product_variant_schema_1.default.find({
             _id: { $in: variantIds },
-            company_id: companyObjectId,
+            sellerId: companyObjectId,
             is_active: true,
         }).session(session);
         if (variants.length !== items.length) {
@@ -217,15 +217,15 @@ const createSale = async (payload) => {
         for (const item of calculatedItems) {
             await product_variant_schema_1.default.updateOne({
                 _id: item.variantId,
-                company_id: companyObjectId,
+                sellerId: companyObjectId,
             }, { $inc: { stock: -item.quantity } }, { session });
         }
         // 9. generate sale code
-        const saleCode = await (0, generateSaleCode_1.generateSaleCode)(companyId);
+        const saleCode = await (0, generateSaleCode_1.generateSaleCode)(sellerId);
         // 10. create sale
         const [sale] = await sales_schema_1.default.create([
             {
-                companyId: companyObjectId,
+                sellerId: companyObjectId,
                 saleCode,
                 ...(customerName &&
                     customerPhone && {

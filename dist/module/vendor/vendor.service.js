@@ -13,15 +13,15 @@ const auditLogger_1 = require("../../utils/auditLogger");
 const audit_interface_1 = require("../audit/audit.interface");
 // ─── Create vendor ────────────────────────────────────────
 const createVendor = async (payload, req) => {
-    const { company_id, createdBy, ...rest } = payload;
+    const { sellerId, createdBy, ...rest } = payload;
     // check duplicate phone within same company
     const existing = await vendor_schema_1.default.findOne({
-        company_id: payload.company_id,
+        sellerId: payload.sellerId,
         phone: payload.phone,
     });
     if (existing)
         throw new appError_1.AppError("A vendor with this phone already exists", 409);
-    const vendor = await vendor_schema_1.default.create((0, sanitizeData_1.sanitizeData)({ ...rest, company_id, createdBy }));
+    const vendor = await vendor_schema_1.default.create((0, sanitizeData_1.sanitizeData)({ ...rest, sellerId, createdBy }));
     (0, auditLogger_1.auditLog)({
         req,
         action: audit_interface_1.AUDIT_ACTIONS.VENDOR_CREATED,
@@ -38,8 +38,8 @@ const createVendor = async (payload, req) => {
 };
 // ─── Get all vendors (paginated) ──────────────────────────
 const getVendors = async (payload) => {
-    const { company_id, page, limit, search, is_active, sort_by, sort_order } = payload;
-    const filter = { company_id };
+    const { sellerId, page, limit, search, is_active, sort_by, sort_order } = payload;
+    const filter = { sellerId };
     if (is_active !== undefined)
         filter.is_active = is_active;
     if (search) {
@@ -66,7 +66,7 @@ const getVendors = async (payload) => {
 const getVendorById = async (payload) => {
     const vendor = await vendor_schema_1.default.findOne({
         _id: payload.id,
-        company_id: payload.company_id,
+        sellerId: payload.sellerId,
     })
         .populate("notes.createdBy", "name email")
         .lean();
@@ -76,8 +76,8 @@ const getVendorById = async (payload) => {
 };
 // ─── Update vendor ────────────────────────────────────────
 const updateVendor = async (payload) => {
-    const { id, company_id, data } = payload;
-    const vendor = await vendor_schema_1.default.findOne({ _id: id, company_id });
+    const { id, sellerId, data } = payload;
+    const vendor = await vendor_schema_1.default.findOne({ _id: id, sellerId });
     if (!vendor)
         throw new appError_1.AppError("Vendor not found", 404);
     const before = {
@@ -90,7 +90,7 @@ const updateVendor = async (payload) => {
     // if phone is changing — check duplicate
     if (data.phone && data.phone !== vendor.phone) {
         const duplicate = await vendor_schema_1.default.findOne({
-            company_id,
+            sellerId,
             phone: data.phone,
             _id: { $ne: id },
         });
@@ -120,7 +120,7 @@ const updateVendor = async (payload) => {
 const deleteVendor = async (payload) => {
     const vendor = await vendor_schema_1.default.findOne({
         _id: payload.id,
-        company_id: payload.company_id,
+        sellerId: payload.sellerId,
     });
     if (!vendor)
         throw new appError_1.AppError("Vendor not found", 404);
@@ -149,8 +149,8 @@ const deleteVendor = async (payload) => {
 };
 // ─── Add note ─────────────────────────────────────────────
 const addVendorNote = async (payload) => {
-    const { id, company_id, text, createdBy } = payload;
-    const vendor = await vendor_schema_1.default.findOne({ _id: id, company_id });
+    const { id, sellerId, text, createdBy } = payload;
+    const vendor = await vendor_schema_1.default.findOne({ _id: id, sellerId });
     if (!vendor)
         throw new appError_1.AppError("Vendor not found", 404);
     const _id = new mongoose_1.default.Types.ObjectId();
@@ -160,8 +160,8 @@ const addVendorNote = async (payload) => {
 };
 // ─── Delete note ──────────────────────────────────────────
 const deleteVendorNote = async (payload) => {
-    const { id, noteId, company_id } = payload;
-    const vendor = await vendor_schema_1.default.findOne({ _id: id, company_id });
+    const { id, noteId, sellerId } = payload;
+    const vendor = await vendor_schema_1.default.findOne({ _id: id, sellerId });
     if (!vendor)
         throw new appError_1.AppError("Vendor not found", 404);
     const noteExists = vendor.notes.some((n) => n._id?.toString() === noteId);

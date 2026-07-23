@@ -9,9 +9,9 @@ const staffSchema = new Schema<IStaffDocument>(
       ref: "User",
       required: true,
     },
-    companyId: {
+    sellerId: {
       type: Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "Seller",
       required: true,
     },
 

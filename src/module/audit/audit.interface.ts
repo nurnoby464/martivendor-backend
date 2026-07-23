@@ -58,7 +58,7 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
 export type AuditTargetModel =
   | "User"
-  | "Company"
+  | "Seller"
   | "Session"
   | "Vendor"
   | "Category"
@@ -75,7 +75,7 @@ export interface IPerformedBy {
   sessionId : string;
   ip        : string | null;
   userAgent : string | null;
-  company_id: mongoose.Types.ObjectId | null;
+  sellerId: mongoose.Types.ObjectId | null;
 }
 
 export interface IChanges {
@@ -84,7 +84,7 @@ export interface IChanges {
 }
 
 export interface IAudit {
-  company_id  : mongoose.Types.ObjectId | null;
+  sellerId  : mongoose.Types.ObjectId | null;
   performedBy : IPerformedBy;
   action      : AuditAction;
   status      : "success" | "failed";

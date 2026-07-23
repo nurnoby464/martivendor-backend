@@ -6,7 +6,7 @@ import { Request, Response } from "express";
 import { create } from "node:domain";
 
 export const createSale = asyncHandler(async (req: Request, res: Response) => {
-  const companyId = new mongoose.Types.ObjectId(req.user.company_id!);
+  const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);
   const createdBy = new mongoose.Types.ObjectId(req.user._id);
   const createdByType =
     req.user.role !== "customer" && req.user.role !== "super_admin"
@@ -15,7 +15,7 @@ export const createSale = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await SaleServices.createSale({
     input: req.body,
-    companyId,
+    sellerId,
     createdBy,
     createdByType,
   });

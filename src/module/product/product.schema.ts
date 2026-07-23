@@ -4,12 +4,12 @@ import { IProduct } from "./product.interface";
 // ── Counter for SKU sequence per company ──────────────────────────────────────
 const ProductCounterSchema = new Schema(
   {
-    company_id: { type: Schema.Types.ObjectId, required: true },
+    sellerId: { type: Schema.Types.ObjectId, required: true },
     seq: { type: Number, default: 0 },
   },
   { collection: "product_counters" },
 );
-ProductCounterSchema.index({ company_id: 1 }, { unique: true });
+ProductCounterSchema.index({ sellerId: 1 }, { unique: true });
 export const ProductCounter = model("ProductCounter", ProductCounterSchema);
 
 // ── Helper: build SKU from category name + product name ───────────────────────
@@ -27,7 +27,7 @@ function buildProductSku(name: string, seq: number): string {
 // ── Product schema ────────────────────────────────────────────────────────────
 const ProductSchema = new Schema<IProduct>(
   {
-    company_id: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
     category_id: {
       type: Schema.Types.ObjectId,
       ref: "Category",
@@ -82,7 +82,7 @@ ProductSchema.pre("save", async function () {
   // Auto SKU only on new documents without a manually provided SKU
   if (this.isNew && !this.sku) {
     const counter = await ProductCounter.findOneAndUpdate(
-      { company_id: this.company_id },
+      { sellerId: this.sellerId },
       { $inc: { seq: 1 } },
       { upsert: true, new: true },
     );
@@ -98,12 +98,12 @@ ProductSchema.pre("save", async function () {
 });
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
-ProductSchema.index({ company_id: 1, is_active: 1 });
-ProductSchema.index({ company_id: 1, category_id: 1 });
-// ProductSchema.index({ company_id: 1, vendor_id: 1 });
-ProductSchema.index({ company_id: 1, stock: 1 });
-ProductSchema.index({ company_id: 1, sku: 1 }, { unique: true });
-ProductSchema.index({ company_id: 1, slug: 1 }, { unique: true });
+ProductSchema.index({ sellerId: 1, is_active: 1 });
+ProductSchema.index({ sellerId: 1, category_id: 1 });
+// ProductSchema.index({ sellerId: 1, vendor_id: 1 });
+ProductSchema.index({ sellerId: 1, stock: 1 });
+ProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
+ProductSchema.index({ sellerId: 1, slug: 1 }, { unique: true });
 
 const Product = model<IProduct>("Product", ProductSchema);
 export default Product;

@@ -8,7 +8,7 @@ export interface IUser {
     password: string;
     passwordChangedAt?: Date | null;
     role: UserRole;
-    company_id: mongoose.Types.ObjectId | null;
+    sellerId: mongoose.Types.ObjectId | null;
     is_active: boolean;
     email_verified: boolean;
     createdBy: mongoose.Types.ObjectId | null;

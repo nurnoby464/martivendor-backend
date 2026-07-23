@@ -32,7 +32,7 @@ export interface IShippingAddress {
 }
 
 export interface IOrder {
-  company_id: Types.ObjectId;
+  sellerId: Types.ObjectId;
   order_number: string; // e.g. "ORD-0001"
   customer: Types.ObjectId;
 
@@ -58,7 +58,7 @@ export interface IOrder {
 export interface IOrderDocument extends IOrder, Document {}
 
 export interface ICreateOrderPayload {
-  companyId: Types.ObjectId;
+  sellerId: Types.ObjectId;
   input: TCreateOrderInput;
 }
 

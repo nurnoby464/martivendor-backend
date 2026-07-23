@@ -3,14 +3,14 @@ import express, { Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import { SuperAdminRoute } from "./module/super_admin/super_admin.route";
+import { UsersRoute } from "./module/user/user.route";
 import {
   globalErrorHandler,
   notFoundHandler,
 } from "./middlewares/ErrorHandler";
 import { AuthRoutes } from "./module/auth/auth.route";
 import cookieParser from "cookie-parser";
-import { CompanyRouter } from "./module/company/company.route";
+import { CompanyRouter } from "./module/seller/seller.route";
 import { VendorRoutes } from "./module/vendor/vendor.route";
 import { CategoryRoutes } from "./module/category/category.route";
 import { ProductRoutes } from "./module/product/product.route";
@@ -92,7 +92,7 @@ app.use("/api/v1/public", PublicRoutes);
 
 // Routes
 app.use("/api/v1/auth", AuthRoutes);
-app.use("/api/v1/super-admin", SuperAdminRoute);
+app.use("/api/v1/users", UsersRoute);
 app.use("/api/v1/company", CompanyRouter);
 app.use("/api/v1/vendor", VendorRoutes);
 app.use("/api/v1/category", CategoryRoutes);
@@ -109,7 +109,7 @@ app.use('/api/v1/banners', BannerRouter);
 
 // Health check
 app.get("/", (req, res) => {
-  res.json({ success: true, message: "Welcome to Multi vendor SAAS" });
+  res.json({ success: true, message: "Welcome to Multi vendor e-commerce" });
 });
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "Server is running" });

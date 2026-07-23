@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { Request } from "express";
 export declare const getProducts: (payload: {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     page: number;
     limit: number;
     search?: string;
@@ -22,7 +22,7 @@ export declare const getProducts: (payload: {
 }>;
 export declare const getProductById: (payload: {
     id: string;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
 }) => Promise<{
     product: import("./product.interface").IProduct & {
         _id: mongoose.Types.ObjectId;
@@ -33,7 +33,7 @@ export declare const getProductById: (payload: {
 }>;
 export declare const updateProduct: (payload: {
     id: string;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     req: Request;
     data: {
         category_id?: string;
@@ -56,7 +56,7 @@ export declare const updateProduct: (payload: {
 }>;
 export declare const deleteProduct: (payload: {
     id: string;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     req: Request;
 }) => Promise<mongoose.Document<unknown, {}, import("./product.interface").IProduct, {}, mongoose.DefaultSchemaOptions> & import("./product.interface").IProduct & {
     _id: mongoose.Types.ObjectId;

@@ -27,7 +27,7 @@ const invoiceItemSchema = new mongoose_1.Schema({
 const invoiceSchema = new mongoose_1.Schema({
     invoiceNumber: { type: String, required: true },
     order: { type: mongoose_1.Schema.Types.ObjectId, ref: "Order", required: true },
-    company: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Seller", required: true },
     // company: { type: companySnapshotSchema, required: true },
     customer: { type: mongoose_1.Schema.Types.ObjectId, ref: "Customer", required: true },
     items: { type: [invoiceItemSchema], required: true },

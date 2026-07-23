@@ -15,7 +15,7 @@ exports.createUserSchema = zod_1.z.object({
         "sales",
         "report",
     ]),
-    company_id: zod_1.z
+    sellerId: zod_1.z
         .string()
         .regex(/^[0-9a-fA-F]{24}$/, "Invalid company id")
         .optional()

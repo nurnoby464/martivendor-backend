@@ -68,15 +68,15 @@ const updatePassword = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const registerCustomer = async (req: Request, res: Response) => {
-  const company_id = new Types.ObjectId(req.company?._id); // set by resolveCompany middleware
-  const user = await AuthServices.registerCustomer(company_id, req.body);
+  const sellerId = new Types.ObjectId(req.company?._id); // set by resolveCompany middleware
+  const user = await AuthServices.registerCustomer(sellerId, req.body);
   return ApiResponse.created(res, user, "Registration Successfully");
 };
 
 export const updateProfile = async (req: Request, res: Response) => {
-  const company_id = req.user.company_id;
-  if (!company_id) throw new AppError("Company ID not found in user data", 400);
-  const user = await AuthServices.updateProfile(company_id,req.user._id, req.body);
+  const sellerId = req.user.sellerId;
+  if (!sellerId) throw new AppError("Company ID not found in user data", 400);
+  const user = await AuthServices.updateProfile(sellerId,req.user._id, req.body);
   return ApiResponse.created(res, user, "Profile update Successfully");
 };
 

@@ -25,7 +25,7 @@ type CalculatedItem = {
 };
 
 interface ICreateSalePayload {
-  companyId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId | null;
   input: CreateSaleInput;
   createdByType: "staff" | "system";
@@ -39,7 +39,7 @@ const getAttribute = (
 ): string => attributes.find((a) => a.key === key)?.value ?? "";
 
 const resolveCustomer = async (
-  companyId: Types.ObjectId,
+  sellerId: Types.ObjectId,
   netAmount: number,
   effectivePaid: number,
   session: mongoose.ClientSession,
@@ -51,9 +51,9 @@ const resolveCustomer = async (
 
   if (customerId || customerPhone) {
     existing = await Customer.findOne({
-      companyId,
+      sellerId,
       $or: [
-        ...(companyId ? [{ _id: new Types.ObjectId(companyId) }] : []),
+        ...(sellerId ? [{ _id: new Types.ObjectId(sellerId) }] : []),
         ...(customerPhone ? [{ phone: customerPhone }] : []),
       ],
     }).session(session);
@@ -104,7 +104,7 @@ const resolveCustomer = async (
   const [customer] = await Customer.create(
     [
       {
-        companyId,
+        sellerId,
         name: customerName,
         phone: customerPhone,
         totalPurchased,
@@ -123,7 +123,7 @@ const resolveCustomer = async (
 // ─── Main Service ─────────────────────────────────────────
 
 export const createSale = async (payload: ICreateSalePayload) => {
-  const { companyId, createdBy, input,createdByType } = payload;
+  const { sellerId, createdBy, input,createdByType } = payload;
   const {
     customerName,
     customerPhone,
@@ -148,14 +148,14 @@ export const createSale = async (payload: ICreateSalePayload) => {
   try {
     session.startTransaction();
 
-    const companyObjectId = new Types.ObjectId(companyId);
+    const companyObjectId = new Types.ObjectId(sellerId);
 
     // 2. load all products in one query
     const productIds = items.map((i) => new Types.ObjectId(i.productId));
 
     const products = await Product.find({
       _id: { $in: productIds },
-      company_id: companyObjectId,
+      sellerId: companyObjectId,
       is_active: true,
     }).session(session);
 
@@ -173,7 +173,7 @@ export const createSale = async (payload: ICreateSalePayload) => {
 
     const variants = await ProductVariant.find({
       _id: { $in: variantIds },
-      company_id: companyObjectId,
+      sellerId: companyObjectId,
       is_active: true,
     }).session(session);
 
@@ -281,7 +281,7 @@ export const createSale = async (payload: ICreateSalePayload) => {
       await ProductVariant.updateOne(
         {
           _id: item.variantId,
-          company_id: companyObjectId,
+          sellerId: companyObjectId,
         },
         { $inc: { stock: -item.quantity } },
         { session },
@@ -289,13 +289,13 @@ export const createSale = async (payload: ICreateSalePayload) => {
     }
 
     // 9. generate sale code
-    const saleCode = await generateSaleCode(companyId);
+    const saleCode = await generateSaleCode(sellerId);
 
     // 10. create sale
     const [sale] = await Sale.create(
       [
         {
-          companyId: companyObjectId,
+          sellerId: companyObjectId,
           saleCode,
           ...(customerName &&
             customerPhone && {

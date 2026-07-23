@@ -19,7 +19,7 @@ const purchaseItemSchema = new mongoose_1.Schema({
     total: { type: Number, required: true },
 }, { _id: false });
 const PurchaseSchema = new mongoose_1.Schema({
-    company_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Seller", required: true },
     vendor_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Vendor", required: true },
     // ── Summary only ──────────────────────────────────────
     items: { type: [purchaseItemSchema], required: true },
@@ -53,9 +53,9 @@ PurchaseSchema.pre("save", function () {
     }
 });
 // ── Indexes ───────────────────────────────────────────────────────────────────
-PurchaseSchema.index({ company_id: 1, createdAt: -1 });
-PurchaseSchema.index({ company_id: 1, vendor_id: 1, createdAt: -1 });
-PurchaseSchema.index({ company_id: 1, status: 1 });
+PurchaseSchema.index({ sellerId: 1, createdAt: -1 });
+PurchaseSchema.index({ sellerId: 1, vendor_id: 1, createdAt: -1 });
+PurchaseSchema.index({ sellerId: 1, status: 1 });
 PurchaseSchema.index({ vendor_id: 1, status: 1 });
 const Purchase = (0, mongoose_1.model)("Purchase", PurchaseSchema);
 exports.default = Purchase;

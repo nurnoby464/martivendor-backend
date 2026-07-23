@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { Request } from "express";
 export declare const VendorService: {
     createVendor: (payload: {
-        company_id: mongoose.Types.ObjectId;
+        sellerId: mongoose.Types.ObjectId;
         name: string;
         phone: string;
         email?: string | null;
@@ -16,7 +16,7 @@ export declare const VendorService: {
         id: string;
     }>;
     getVendors: (payload: {
-        company_id: mongoose.Types.ObjectId;
+        sellerId: mongoose.Types.ObjectId;
         page: number;
         limit: number;
         search?: string;
@@ -33,7 +33,7 @@ export declare const VendorService: {
     }>;
     getVendorById: (payload: {
         id: string;
-        company_id: mongoose.Types.ObjectId;
+        sellerId: mongoose.Types.ObjectId;
     }) => Promise<import("./vendor.interface").IVendorDocument & Required<{
         _id: mongoose.Types.ObjectId;
     }> & {
@@ -41,7 +41,7 @@ export declare const VendorService: {
     }>;
     updateVendor: (payload: {
         id: string;
-        company_id: mongoose.Types.ObjectId;
+        sellerId: mongoose.Types.ObjectId;
         data: {
             name?: string;
             phone?: string;
@@ -59,7 +59,7 @@ export declare const VendorService: {
     }>;
     deleteVendor: (payload: {
         id: string;
-        company_id: mongoose.Types.ObjectId;
+        sellerId: mongoose.Types.ObjectId;
         req: Request;
     }) => Promise<mongoose.Document<unknown, {}, import("./vendor.interface").IVendorDocument, {}, mongoose.DefaultSchemaOptions> & import("./vendor.interface").IVendorDocument & Required<{
         _id: mongoose.Types.ObjectId;
@@ -70,14 +70,14 @@ export declare const VendorService: {
     }>;
     addVendorNote: (payload: {
         id: string;
-        company_id: mongoose.Types.ObjectId;
+        sellerId: mongoose.Types.ObjectId;
         text: string;
         createdBy: mongoose.Types.ObjectId;
     }) => Promise<import("./vendor.interface").IVendorNote | undefined>;
     deleteVendorNote: (payload: {
         id: string;
         noteId: string;
-        company_id: mongoose.Types.ObjectId;
+        sellerId: mongoose.Types.ObjectId;
     }) => Promise<void>;
 };
 //# sourceMappingURL=vendor.service.d.ts.map

@@ -4,10 +4,10 @@ exports.ProductCounter = void 0;
 const mongoose_1 = require("mongoose");
 // ── Counter for SKU sequence per company ──────────────────────────────────────
 const ProductCounterSchema = new mongoose_1.Schema({
-    company_id: { type: mongoose_1.Schema.Types.ObjectId, required: true },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, required: true },
     seq: { type: Number, default: 0 },
 }, { collection: "product_counters" });
-ProductCounterSchema.index({ company_id: 1 }, { unique: true });
+ProductCounterSchema.index({ sellerId: 1 }, { unique: true });
 exports.ProductCounter = (0, mongoose_1.model)("ProductCounter", ProductCounterSchema);
 // ── Helper: build SKU from category name + product name ───────────────────────
 function buildProductSku(name, seq) {
@@ -21,7 +21,7 @@ function buildProductSku(name, seq) {
 }
 // ── Product schema ────────────────────────────────────────────────────────────
 const ProductSchema = new mongoose_1.Schema({
-    company_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Seller", required: true },
     category_id: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Category",
@@ -66,7 +66,7 @@ const ProductSchema = new mongoose_1.Schema({
 ProductSchema.pre("save", async function () {
     // Auto SKU only on new documents without a manually provided SKU
     if (this.isNew && !this.sku) {
-        const counter = await exports.ProductCounter.findOneAndUpdate({ company_id: this.company_id }, { $inc: { seq: 1 } }, { upsert: true, new: true });
+        const counter = await exports.ProductCounter.findOneAndUpdate({ sellerId: this.sellerId }, { $inc: { seq: 1 } }, { upsert: true, new: true });
         this.sku = buildProductSku(this.name, counter.seq);
     }
     // Always recalculate profit
@@ -77,12 +77,12 @@ ProductSchema.pre("save", async function () {
             : 0;
 });
 // ── Indexes ───────────────────────────────────────────────────────────────────
-ProductSchema.index({ company_id: 1, is_active: 1 });
-ProductSchema.index({ company_id: 1, category_id: 1 });
-// ProductSchema.index({ company_id: 1, vendor_id: 1 });
-ProductSchema.index({ company_id: 1, stock: 1 });
-ProductSchema.index({ company_id: 1, sku: 1 }, { unique: true });
-ProductSchema.index({ company_id: 1, slug: 1 }, { unique: true });
+ProductSchema.index({ sellerId: 1, is_active: 1 });
+ProductSchema.index({ sellerId: 1, category_id: 1 });
+// ProductSchema.index({ sellerId: 1, vendor_id: 1 });
+ProductSchema.index({ sellerId: 1, stock: 1 });
+ProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
+ProductSchema.index({ sellerId: 1, slug: 1 }, { unique: true });
 const Product = (0, mongoose_1.model)("Product", ProductSchema);
 exports.default = Product;
 //# sourceMappingURL=product.schema.js.map

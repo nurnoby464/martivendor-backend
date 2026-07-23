@@ -1,7 +1,7 @@
 import jwt, { Secret } from "jsonwebtoken";
 import mongoose, { ObjectId } from "mongoose";
 import type { StringValue } from "ms";
-import { UserRole } from "../module/super_admin/super_admin.interface";
+import { ProfileType, UserRole } from "../module/user/user.interface";
 
 export interface ITokenPayload {
   _id: mongoose.Types.ObjectId;
@@ -9,8 +9,8 @@ export interface ITokenPayload {
   name: string;
   role: UserRole;
   profileId: mongoose.Types.ObjectId | null;
-  profileType: "Customer" | "Staff" | null;
-  company_id: mongoose.Types.ObjectId | null;
+  profileType: ProfileType | null;
+  sellerId: mongoose.Types.ObjectId | null;
   sessionId: string;
   passwordChangedAt: number | null;
   iat?: number;

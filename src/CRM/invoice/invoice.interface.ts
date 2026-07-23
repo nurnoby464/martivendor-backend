@@ -21,7 +21,7 @@ export interface IInvoiceItem {
 export interface IInvoice {
   invoiceNumber: string;
   order: Types.ObjectId;
-  company: Types.ObjectId;
+  sellerId: Types.ObjectId;
   // company: ICompanySnapshot; // snapshot
   customer: Types.ObjectId;
 

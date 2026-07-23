@@ -1,6 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { Request } from "express";
-import { RegisterCustomerInput } from "../super_admin/super_admin.validation";
+import { RegisterCustomerInput } from "../user/user.validation";
 import { IUpdateProfileRequest } from "./auth.validation";
 interface ILogin {
     email: string;
@@ -14,13 +14,13 @@ interface IUpdatePassword {
 }
 export declare const getMe: (userId: string, sessionId: string) => Promise<{
     user: {
-        company_id: null;
+        sellerId: null;
         profileId: null;
         profileType: null;
         _id: Types.ObjectId;
-        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-        is_active: boolean;
-        email_verified: boolean;
+        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+        isActive: boolean;
+        emailVerified: boolean;
         name: any;
         email: any;
         phone: any;
@@ -32,10 +32,10 @@ export declare const getMe: (userId: string, sessionId: string) => Promise<{
         gender: any;
         addresses: any;
         _id: Types.ObjectId;
-        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-        company_id: Types.ObjectId | null;
-        is_active: boolean;
-        email_verified: boolean;
+        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+        sellerId: Types.ObjectId | null;
+        isActive: boolean;
+        emailVerified: boolean;
         profileId: any;
         name: any;
         email: any;
@@ -49,10 +49,10 @@ export declare const getMe: (userId: string, sessionId: string) => Promise<{
         joining_date: any;
         address: any;
         _id: Types.ObjectId;
-        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-        company_id: Types.ObjectId | null;
-        is_active: boolean;
-        email_verified: boolean;
+        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+        sellerId: Types.ObjectId | null;
+        isActive: boolean;
+        emailVerified: boolean;
         profileId: any;
         name: any;
         email: any;
@@ -65,13 +65,13 @@ export declare const getMe: (userId: string, sessionId: string) => Promise<{
 export declare const AuthServices: {
     login: (payload: ILogin, req: Request) => Promise<{
         user: {
-            company_id: null;
+            sellerId: null;
             profileId: null;
             profileType: null;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-            is_active: boolean;
-            email_verified: boolean;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            isActive: boolean;
+            emailVerified: boolean;
             name: any;
             email: any;
             phone: any;
@@ -83,10 +83,10 @@ export declare const AuthServices: {
             gender: any;
             addresses: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-            company_id: Types.ObjectId | null;
-            is_active: boolean;
-            email_verified: boolean;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            sellerId: Types.ObjectId | null;
+            isActive: boolean;
+            emailVerified: boolean;
             profileId: any;
             name: any;
             email: any;
@@ -100,10 +100,10 @@ export declare const AuthServices: {
             joining_date: any;
             address: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-            company_id: Types.ObjectId | null;
-            is_active: boolean;
-            email_verified: boolean;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            sellerId: Types.ObjectId | null;
+            isActive: boolean;
+            emailVerified: boolean;
             profileId: any;
             name: any;
             email: any;
@@ -121,23 +121,23 @@ export declare const AuthServices: {
     updatePassword: (payload: IUpdatePassword) => Promise<{
         message: string;
     }>;
-    registerCustomer: (company_id: Types.ObjectId, input: RegisterCustomerInput) => Promise<{
+    registerCustomer: (sellerId: Types.ObjectId, input: RegisterCustomerInput) => Promise<{
         comparePassword(candidatePassword: string): Promise<boolean>;
         clearSessions(): Promise<void>;
         name: string;
         email: string;
         phone: string | null;
         passwordChangedAt?: Date | null;
-        role: import("../super_admin/super_admin.interface").UserRole;
-        company_id: mongoose.Types.ObjectId | null;
-        is_active: boolean;
-        email_verified: boolean;
+        role: import("../user/user.interface").UserRole;
+        sellerId: mongoose.Types.ObjectId | null;
+        isActive: boolean;
+        emailVerified: boolean;
         createdBy: mongoose.Types.ObjectId | null;
-        last_login: Date | null;
-        reset_token: string | null;
-        reset_token_exp: Date | null;
-        profileId: mongoose.Types.ObjectId | null;
-        profileType: "Staff" | "Customer" | null;
+        lastLogin: Date | null;
+        resetToken: string | null;
+        resetTokenExp: Date | null;
+        profileId: mongoose.Types.ObjectId;
+        profileType: import("../user/user.interface").ProfileType;
         createdAt: Date;
         updatedAt: Date;
         _id: Types.ObjectId;
@@ -154,13 +154,13 @@ export declare const AuthServices: {
     }>;
     getMe: (userId: string, sessionId: string) => Promise<{
         user: {
-            company_id: null;
+            sellerId: null;
             profileId: null;
             profileType: null;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-            is_active: boolean;
-            email_verified: boolean;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            isActive: boolean;
+            emailVerified: boolean;
             name: any;
             email: any;
             phone: any;
@@ -172,10 +172,10 @@ export declare const AuthServices: {
             gender: any;
             addresses: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-            company_id: Types.ObjectId | null;
-            is_active: boolean;
-            email_verified: boolean;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            sellerId: Types.ObjectId | null;
+            isActive: boolean;
+            emailVerified: boolean;
             profileId: any;
             name: any;
             email: any;
@@ -189,10 +189,10 @@ export declare const AuthServices: {
             joining_date: any;
             address: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "customer";
-            company_id: Types.ObjectId | null;
-            is_active: boolean;
-            email_verified: boolean;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            sellerId: Types.ObjectId | null;
+            isActive: boolean;
+            emailVerified: boolean;
             profileId: any;
             name: any;
             email: any;

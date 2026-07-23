@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { Document } from "mongoose";
 export interface IProduct {
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
     category_id: mongoose.Types.ObjectId;
     vendor_id: mongoose.Types.ObjectId;
     name: string;

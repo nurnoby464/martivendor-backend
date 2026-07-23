@@ -10,7 +10,7 @@ import {
   authenticate,
   verifySession,
 } from "../../middlewares/AuthenticateHelper";
-import { registerCustomerSchema } from "../super_admin/super_admin.validation";
+import { registerCustomerSchema } from "../user/user.validation";
 import { companyIdentifier } from "../../middlewares/companyIdentifier";
 import { UpdateProfileSchema } from "./auth.validation";
 const router = express.Router();

@@ -29,8 +29,8 @@ const createUser = async (input, createdBy) => {
         email: input.email,
         password: input.password,
         role: input.role,
-        company_id: input.company_id
-            ? new mongoose_1.default.Types.ObjectId(input.company_id)
+        sellerId: input.sellerId
+            ? new mongoose_1.default.Types.ObjectId(input.sellerId)
             : null,
         createdBy,
     });
@@ -51,9 +51,9 @@ const listUsers = async (rawQuery) => {
     const limit = Math.min(100, parseInt(rawQuery.limit ?? "10", 10));
     const skip = (page - 1) * limit;
     const filter = {};
-    if (rawQuery.company_id) {
-        assertValidObjectId(rawQuery.company_id, "company_id");
-        filter.company_id = new mongoose_1.default.Types.ObjectId(rawQuery.company_id);
+    if (rawQuery.sellerId) {
+        assertValidObjectId(rawQuery.sellerId, "sellerId");
+        filter.sellerId = new mongoose_1.default.Types.ObjectId(rawQuery.sellerId);
     }
     if (rawQuery.role)
         filter.role = rawQuery.role;
@@ -83,7 +83,7 @@ const deleteUser = async (id, requestor) => {
     }
     // Admin scope check — admin can only delete users in their company
     if (requestor.role === "admin" &&
-        !target.company_id?.equals(requestor.company_id)) {
+        !target.sellerId?.equals(requestor.sellerId)) {
         throw new appError_1.AppError("You can only delete users within your company", 403);
     }
     await target.deleteOne();
@@ -102,7 +102,7 @@ const toggleUserStatus = async (id, requestor) => {
         throw new appError_1.AppError("super_admin status cannot be changed", 403);
     }
     if (requestor.role === "admin" &&
-        !target.company_id?.equals(requestor.company_id)) {
+        !target.sellerId?.equals(requestor.sellerId)) {
         throw new appError_1.AppError("You can only manage users within your company", 403);
     }
     target.is_active = !target.is_active;
@@ -160,7 +160,7 @@ const createCompany = async (payload, req) => {
                     email: company_email,
                     password: password,
                     role: "admin",
-                    company_id: companyId, // ← set directly
+                    sellerId: companyId, // ← set directly
                     createdBy: req.user._id,
                 },
             ], { session }),
@@ -241,7 +241,7 @@ const getCompanyById = async (companyId, req) => {
     };
     // admin can only see their own company
     if (req.user.role === "admin") {
-        filter._id = req.user.company_id;
+        filter._id = req.user.sellerId;
     }
     const company = await company_schema_1.default.findOne(filter)
         .populate("admin_id", "name email role")
@@ -313,13 +313,13 @@ const deleteCompany = async (companyId, req) => {
     try {
         session.startTransaction();
         // ── find all users in this company ──────────────────
-        const companyUsers = await super_admin_schema_1.default.find({ company_id: company._id }, { _id: 1 }).lean();
+        const companyUsers = await super_admin_schema_1.default.find({ sellerId: company._id }, { _id: 1 }).lean();
         const userIds = companyUsers.map((u) => u._id);
         // ── delete everything in parallel ───────────────────
         await Promise.all([
             company_schema_1.default.findByIdAndDelete(companyId, { session }),
             // delete all users of this company
-            super_admin_schema_1.default.deleteMany({ company_id: company._id }, { session }),
+            super_admin_schema_1.default.deleteMany({ sellerId: company._id }, { session }),
             // delete all sessions of those users
             auth_schema_1.default.deleteMany({ userId: { $in: userIds } }, { session }),
         ]);

@@ -24,16 +24,16 @@ interface IGetProductVariant {
 export const createVariant = async (
   payload: CreateVariantInput & {
     product_id: string;
-    company_id: mongoose.Types.ObjectId;
+    sellerId: mongoose.Types.ObjectId;
   },
   req: Request,
 ) => {
-  const { product_id, company_id, ...rest } = payload;
+  const { product_id, sellerId, ...rest } = payload;
 
   // product must exist, belong to company, and have has_variants = true
   const product = await Product.findOne({
     _id: product_id,
-    company_id,
+    sellerId,
     is_active: true,
   }).lean();
   if (!product) throw new AppError("Product not found", 404);
@@ -45,7 +45,7 @@ export const createVariant = async (
   }
 
   // unique sku
-  //   await assertUniqVariantSku(sku, company_id);
+  //   await assertUniqVariantSku(sku, sellerId);
 
   // Block duplicate attribute combination for this product
   const duplicate = await ProductVariant.findOne({
@@ -65,7 +65,7 @@ export const createVariant = async (
     sanitizeData({
       ...rest,
       product_id: new mongoose.Types.ObjectId(product_id),
-      company_id,
+      sellerId,
     }),
   );
 
@@ -85,11 +85,11 @@ export const createVariant = async (
 // ─── Get variants of a product ────────────────────────────
 export const getVariants = async (payload: {
   product_id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
 }) => {
   const product = await Product.findOne({
     _id: payload.product_id,
-    company_id: payload.company_id,
+    sellerId: payload.sellerId,
   }).lean();
   if (!product) throw new AppError("Product not found", 404);
 
@@ -103,11 +103,11 @@ export const getVariants = async (payload: {
 };
 export const getVariantById = async (
   variantId: string,
-  company_id: mongoose.Types.ObjectId,
+  sellerId: mongoose.Types.ObjectId,
 ) => {
   const variant = await ProductVariant.findOne({
     _id: variantId,
-    company_id,
+    sellerId,
   }).lean();
   if (!variant) throw new AppError("Variant not found", 404);
   return variant;
@@ -116,13 +116,13 @@ export const getVariantById = async (
 // ─── Update variant ───────────────────────────────────────
 export const updateVariant = async (
   variantId: string,
-  company_id: mongoose.Types.ObjectId,
+  sellerId: mongoose.Types.ObjectId,
   payload: UpdateVariantInput,
   req: Request,
 ) => {
   const variant = await ProductVariant.findOne({
     _id: variantId,
-    company_id,
+    sellerId,
   });
   if (!variant) throw new AppError("Variant not found", 404);
 
@@ -131,7 +131,7 @@ export const updateVariant = async (
   };
 
   const updated = await ProductVariant.findOneAndUpdate(
-    { _id: variantId, company_id },
+    { _id: variantId, sellerId },
     { $set: sanitizeData(payload) },
     { new: true, runValidators: true },
   ).lean();
@@ -154,15 +154,15 @@ export const updateVariant = async (
 export const deleteVariant = async (payload: {
   id: string;
   product_id: string;
-  company_id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   req: Request;
 }) => {
-  const { id, product_id, company_id, req } = payload;
+  const { id, product_id, sellerId, req } = payload;
 
   const variant = await ProductVariant.findOne({
     _id: id,
     product_id,
-    company_id,
+    sellerId,
   });
   if (!variant) throw new AppError("Variant not found", 404);
 
@@ -190,12 +190,12 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
   };
   const { page, limit, search, stock, sortBy, sortOrder } = query;
   const lowStockNumber = 3;
-  const companyId = req.user.company_id;
-  if (!companyId) {
+  const sellerId = req.user.sellerId;
+  if (!sellerId) {
     throw new AppError("Company is required", 400);
   }
   const filter: Record<string, unknown> = {
-    company_id: new Types.ObjectId(companyId),
+    sellerId: new Types.ObjectId(sellerId),
   };
   if (search) {
     const keywords = search.trim().split(/\s+/);
@@ -223,7 +223,7 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
     }
   }
   const [result] = await ProductVariant.aggregate([
-    { $match: { company_id: new Types.ObjectId(companyId) } },
+    { $match: { sellerId: new Types.ObjectId(sellerId) } },
     {
       $facet: {
         stats: [
@@ -426,7 +426,7 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
             $project: {
               _id: 1,
               product_id: 1,
-              company_id: 1,
+              sellerId: 1,
               category_id: 1, // ← add
               categoryName: 1, // ← add
               categorySlug: 1, // ← add
@@ -471,16 +471,16 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
 
 export const editProductVariant = async (req: Request) => {
   const input = req.body;
-  const companyId = req.user.company_id;
+  const sellerId = req.user.sellerId;
   const userId = req.user._id;
-  if (!companyId) {
-    throw new AppError("CompanyId not found", 400);
+  if (!sellerId) {
+    throw new AppError("sellerId not found", 400);
   }
   const { variantId, sellingPrice, newImage, previousImage, alertStock } =
     input as EditProductVariantInput;
 
   const existing = await ProductVariant.findOne({
-    company_id: companyId,
+    sellerId: sellerId,
     _id: new Types.ObjectId(variantId),
   });
   if (!existing) {
@@ -491,7 +491,7 @@ export const editProductVariant = async (req: Request) => {
     session.startTransaction();
     const updateVariant = await ProductVariant.findOneAndUpdate(
       {
-        company_id: companyId,
+        sellerId: sellerId,
         _id: existing._id,
       },
       {
@@ -508,7 +508,7 @@ export const editProductVariant = async (req: Request) => {
     }
 
     const editProduct = await Product.findOneAndUpdate(
-      { company_id: companyId, _id: existing.product_id },
+      { sellerId: sellerId, _id: existing.product_id },
       [
         {
           $set: {

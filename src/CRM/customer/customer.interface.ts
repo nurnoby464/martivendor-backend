@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose";
 
 export interface ICustomer {
-  companyId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
 
   name: string;

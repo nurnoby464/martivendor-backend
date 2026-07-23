@@ -35,7 +35,7 @@ const AttributeSchema = new Schema(
 const ProductVariantSchema = new Schema<IProductVariantDocument>(
   {
     product_id: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-    company_id: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    sellerId: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
 
     attributes: {
       type: [AttributeSchema],
@@ -97,8 +97,8 @@ ProductVariantSchema.pre("save", async function () {
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
 ProductVariantSchema.index({ product_id: 1, is_active: 1 });
-ProductVariantSchema.index({ company_id: 1, stock: 1 });
-ProductVariantSchema.index({ company_id: 1, sku: 1 }, { unique: true });
+ProductVariantSchema.index({ sellerId: 1, stock: 1 });
+ProductVariantSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
 ProductVariantSchema.index({
   product_id: 1,
   "attributes.key": 1,
