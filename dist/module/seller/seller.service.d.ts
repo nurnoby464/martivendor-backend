@@ -1,5 +1,4 @@
 import mongoose, { Types } from "mongoose";
-import { ISellerDocument } from "./seller.interface";
 import { CompanyUserInput, UpdateCompanyInput, UpdateSocialMediaInput, UpdateUserInput, UserQueryInput } from "./seller.validation";
 import { Request } from "express";
 import { TCreateNavItem, TDeleteNavItem, TUpdateNavItem } from "./seller.header.validation";
@@ -30,19 +29,19 @@ export declare const CompanyServices: {
         __v: number;
     }>;
     deleteUser: (userId: string, req: Request) => Promise<void>;
-    getMyCompany: (id: Types.ObjectId) => Promise<(mongoose.Document<unknown, {}, ISellerDocument, {}, mongoose.DefaultSchemaOptions> & ISellerDocument & Required<{
+    getMyCompany: (id: Types.ObjectId) => Promise<(mongoose.Document<unknown, {}, import("./seller.interface").ISeller, {}, mongoose.DefaultSchemaOptions> & import("./seller.interface").ISeller & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;
     } & {
         id: string;
     }) | null>;
-    updateMyCompany: (companyId: Types.ObjectId, data: UpdateCompanyInput) => Promise<(ISellerDocument & Required<{
+    updateMyCompany: (companyId: Types.ObjectId, data: UpdateCompanyInput) => Promise<(import("./seller.interface").ISeller & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;
     }) | null>;
-    updateSocialMedia: (companyId: Types.ObjectId, data: UpdateSocialMediaInput) => Promise<(ISellerDocument & Required<{
+    updateSocialMedia: (companyId: Types.ObjectId, data: UpdateSocialMediaInput) => Promise<(import("./seller.interface").ISeller & Required<{
         _id: Types.ObjectId;
     }> & {
         __v: number;

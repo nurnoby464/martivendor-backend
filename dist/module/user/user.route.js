@@ -45,6 +45,7 @@ const AuthenticateHelper_1 = require("../../middlewares/AuthenticateHelper");
 const guard_1 = require("../../middlewares/guard");
 const seller_validation_1 = require("../seller/seller.validation");
 const router = express_1.default.Router();
+router.post("/super-admin", (0, validate_1.validate)({ body: user_validation_1.superAdminSchema }), UserController.createSuperAdmin);
 router.use(AuthenticateHelper_1.authenticate);
 router.use(AuthenticateHelper_1.verifySession);
 router.post("/company", (0, guard_1.guard)("super_admin"), (0, validate_1.validate)({ body: seller_validation_1.createNewCompanySchema }), UserController.createCompany);

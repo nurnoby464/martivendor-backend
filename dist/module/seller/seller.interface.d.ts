@@ -1,30 +1,54 @@
-import mongoose, { Document } from "mongoose";
-export interface ISeller {
-    company_name: string;
-    company_email: string;
-    phone: string;
-    address: string;
+import { Document, Types } from "mongoose";
+export type SellerStatus = "pending" | "approved" | "rejected" | "suspended";
+export type KycStatus = "not_submitted" | "pending" | "verified" | "rejected";
+export type PayoutMethod = "bank" | "bkash" | "nagad" | "rocket";
+export interface IBankDetails {
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    branchName: string;
+    routingNumber: string | null;
+}
+export interface IMobileBankingDetails {
+    provider: "bkash" | "nagad" | "rocket";
+    accountNumber: string;
+}
+export interface ISeller extends Document {
+    userId: Types.ObjectId;
+    isPlatform: boolean;
+    shopName: string;
+    slug: string;
     logo: string | null;
-    domain: string | null;
-    subdomain: string | null;
-    status: "active" | "inactive" | "suspended";
-    companyNavName: string;
-    social_media?: {
-        facebook?: string;
-        instagram?: string;
-        twitter?: string;
-        youtube?: string;
-        tiktok?: string;
-        linkedin?: string;
-        whatsapp?: string;
-        pinterest?: string;
-        website?: string;
+    banner: string | null;
+    description: string | null;
+    kyc: {
+        nidNumber: string | null;
+        nidFrontImage: string | null;
+        nidBackImage: string | null;
+        tradeLicenseNumber: string | null;
+        tradeLicenseImage: string | null;
+        tinNumber: string | null;
+        status: KycStatus;
+        rejectionReason: string | null;
     };
-    admin_id: mongoose.Types.ObjectId | null;
-    createdBy: mongoose.Types.ObjectId;
+    payout: {
+        preferredMethod: PayoutMethod | null;
+        bank: IBankDetails | null;
+        mobileBanking: IMobileBankingDetails | null;
+    };
+    commissionRate: number;
+    status: SellerStatus;
+    rejectionReason: string | null;
+    approvedBy: Types.ObjectId | null;
+    approvedAt: Date | null;
+    rating: {
+        average: number;
+        count: number;
+    };
+    totalSales: number;
+    totalOrders: number;
+    walletBalance: number;
     createdAt: Date;
     updatedAt: Date;
-}
-export interface ISellerDocument extends ISeller, Document {
 }
 //# sourceMappingURL=seller.interface.d.ts.map

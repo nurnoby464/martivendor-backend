@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkoutSchema = exports.registerCustomerSchema = exports.createUserSchema = void 0;
+exports.superAdminSchema = exports.checkoutSchema = exports.registerCustomerSchema = exports.createUserSchema = void 0;
 const zod_1 = require("zod");
 exports.createUserSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(2, "Name must be at least 2 characters"),
@@ -44,5 +44,12 @@ exports.checkoutSchema = zod_1.z.object({
             .regex(/^01[3-9]\d{8}$/, "Phone number is required for checkout"),
         // ...rest of sale fields
     }),
+});
+exports.superAdminSchema = zod_1.z.object({
+    name: zod_1.z.string().trim().min(2, "Name must be at least 2 characters"),
+    shopName: zod_1.z.string().trim().min(4, "Shop name must be at least 4 characters"),
+    phone: zod_1.z.string().trim().regex(/^01[3-9]\d{8}$/, "Enter a valid Bangladeshi phone number").optional(),
+    email: zod_1.z.string().trim().toLowerCase().pipe(zod_1.z.email("Enter a valid email")),
+    password: zod_1.z.string().min(8, "Password must be at least 8 characters")
 });
 //# sourceMappingURL=user.validation.js.map

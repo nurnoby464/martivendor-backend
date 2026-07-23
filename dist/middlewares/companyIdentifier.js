@@ -4,14 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.companyIdentifier = void 0;
-const seller_schema_1 = __importDefault(require("../module/seller/seller.schema"));
 const appError_1 = require("./appError");
 const mongoose_1 = __importDefault(require("mongoose"));
+const seller_schema_1 = require("../module/seller/seller.schema");
 const companyIdentifier = async (req, res, next) => {
     let company = null;
     const subdomain = req.headers["x-subdomain"];
     if (subdomain) {
-        company = await seller_schema_1.default.findOne({
+        company = await seller_schema_1.Seller.findOne({
             subdomain: subdomain.toLocaleLowerCase().trim(),
             status: "active",
         })
@@ -21,13 +21,13 @@ const companyIdentifier = async (req, res, next) => {
     if (!company) {
         const companyId = req.headers["x-company-id"];
         if (companyId && mongoose_1.default.Types.ObjectId.isValid(companyId)) {
-            company = await seller_schema_1.default.findOne({ _id: companyId, status: "active" })
+            company = await seller_schema_1.Seller.findOne({ _id: companyId, status: "active" })
                 .select("_id company_name logo subdomain domain status")
                 .lean();
         }
     }
     if (!company && req.params.sellerId) {
-        const company = await seller_schema_1.default.findOne({
+        const company = await seller_schema_1.Seller.findOne({
             _id: req.params.sellerId,
             status: "active",
         })
@@ -42,7 +42,7 @@ const companyIdentifier = async (req, res, next) => {
             .replace(/:\d+$/, "") // remove port (localhost:3000 → localhost)
             .toLowerCase();
         if (domain && domain !== "localhost") {
-            company = await seller_schema_1.default.findOne({ domain, status: "active" })
+            company = await seller_schema_1.Seller.findOne({ domain, status: "active" })
                 .select("_id company_name logo subdomain domain status")
                 .lean();
         }

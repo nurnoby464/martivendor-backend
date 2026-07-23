@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import { ParsedQs } from "qs";
 import { IUserDocument } from "./user.interface";
-import { CreateNewCompanyInput, CreateUserInput } from "./user.validation";
+import { CreateNewCompanyInput, CreateSuperAdminInput, CreateUserInput } from "./user.validation";
 import { ITokenPayload } from "../../utils/jwtHelper";
 import { Request } from "express";
-import { ISellerDocument } from "../seller/seller.interface";
 import { CompanyQueryInput, UpdateCompanyInput } from "../seller/seller.validation";
+import { ISeller } from "../seller/seller.interface";
 interface ListQuery extends ParsedQs {
     page?: string;
     limit?: string;
@@ -36,12 +36,9 @@ export declare const toggleUserStatus: (id: string, requestor: ITokenPayload) =>
 }> & {
     __v: number;
 }>;
-export declare const createCompany: (payload: CreateNewCompanyInput, req: Request) => Promise<{
-    company: ISellerDocument;
-    admin: any;
-}>;
+export declare const createCompany: (payload: CreateNewCompanyInput, req: Request) => Promise<void>;
 export declare const getAllCompanies: (query: CompanyQueryInput) => Promise<{
-    companies: (ISellerDocument & Required<{
+    companies: (ISeller & Required<{
         _id: mongoose.Types.ObjectId;
     }> & {
         __v: number;
@@ -55,18 +52,19 @@ export declare const getAllCompanies: (query: CompanyQueryInput) => Promise<{
         hasPrev: boolean;
     };
 }>;
-export declare const getCompanyById: (sellerId: string, req: Request) => Promise<ISellerDocument & Required<{
+export declare const getCompanyById: (sellerId: string, req: Request) => Promise<ISeller & Required<{
     _id: mongoose.Types.ObjectId;
 }> & {
     __v: number;
 }>;
-export declare const updateCompany: (sellerId: string, payload: UpdateCompanyInput, req: Request) => Promise<mongoose.Document<unknown, {}, ISellerDocument, {}, mongoose.DefaultSchemaOptions> & ISellerDocument & Required<{
+export declare const updateCompany: (sellerId: string, payload: UpdateCompanyInput, req: Request) => Promise<void>;
+export declare const deleteCompany: (sellerId: string, req: Request) => Promise<void>;
+export declare const createSuperAdmin: (payload: CreateSuperAdminInput) => Promise<mongoose.Document<unknown, {}, IUserDocument, {}, mongoose.DefaultSchemaOptions> & IUserDocument & Required<{
     _id: mongoose.Types.ObjectId;
 }> & {
     __v: number;
 } & {
     id: string;
 }>;
-export declare const deleteCompany: (sellerId: string, req: Request) => Promise<void>;
 export {};
 //# sourceMappingURL=user.service.d.ts.map

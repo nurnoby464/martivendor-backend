@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import Company from "../module/seller/seller.schema";
 import { AppError } from "./appError";
 import mongoose from "mongoose";
+import { Seller } from "../module/seller/seller.schema";
 
 export const companyIdentifier = async (
   req: Request,
@@ -12,7 +12,7 @@ export const companyIdentifier = async (
   const subdomain = req.headers["x-subdomain"] as string | undefined;
 
   if (subdomain) {
-    company = await Company.findOne({
+    company = await Seller.findOne({
       subdomain: subdomain.toLocaleLowerCase().trim(),
       status: "active",
     })
@@ -22,14 +22,14 @@ export const companyIdentifier = async (
   if (!company) {
     const companyId = req.headers["x-company-id"] as string | undefined;
     if (companyId && mongoose.Types.ObjectId.isValid(companyId)) {
-      company = await Company.findOne({ _id: companyId, status: "active" })
+      company = await Seller.findOne({ _id: companyId, status: "active" })
         .select("_id company_name logo subdomain domain status")
         .lean<any>();
     }
   }
 
   if (!company && req.params.sellerId) {
-    const company = await Company.findOne({
+    const company = await Seller.findOne({
       _id: req.params.sellerId,
       status: "active",
     })
@@ -45,7 +45,7 @@ export const companyIdentifier = async (
       .replace(/:\d+$/, "") // remove port (localhost:3000 → localhost)
       .toLowerCase();
     if (domain && domain !== "localhost") {
-      company = await Company.findOne({ domain, status: "active" })
+      company = await Seller.findOne({ domain, status: "active" })
         .select("_id company_name logo subdomain domain status")
         .lean<any>();
     }

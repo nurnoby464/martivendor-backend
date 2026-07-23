@@ -3,15 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getAllCompanies = exports.createCompany = exports.toggleUserStatus = exports.deleteUser = exports.listUsers = exports.getUserById = exports.createUser = void 0;
+exports.createSuperAdmin = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getAllCompanies = exports.createCompany = exports.toggleUserStatus = exports.deleteUser = exports.listUsers = exports.getUserById = exports.createUser = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const appError_1 = require("../../middlewares/appError");
 const user_schema_1 = __importDefault(require("./user.schema"));
-const seller_schema_1 = __importDefault(require("../seller/seller.schema"));
-const auditLogger_1 = require("../../utils/auditLogger");
-const audit_interface_1 = require("../audit/audit.interface");
-const auth_schema_1 = __importDefault(require("../auth/auth.schema"));
-const sanitizeData_1 = require("../../utils/sanitizeData");
+const seller_schema_1 = require("../seller/seller.schema");
 // ─── Helpers ──────────────────────────────────────────────
 function assertValidObjectId(id, label = "ID") {
     if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
@@ -116,93 +112,104 @@ const toggleUserStatus = async (id, requestor) => {
 exports.toggleUserStatus = toggleUserStatus;
 // create company
 const createCompany = async (payload, req) => {
-    const { company_email, company_name, address, password, phone, status, logo, domain, subdomain, } = payload;
-    // ── 1. duplicate checks in parallel ────────────────────
-    const [existingCompany, existingAdmin] = await Promise.all([
-        seller_schema_1.default.findOne({ company_email: company_email }).lean(), // ← lean() — no mongoose doc overhead
-        user_schema_1.default.findOne({ email: company_email }).lean(),
-    ]);
-    if (existingCompany)
-        throw new appError_1.AppError("Company email already registered", 409);
-    if (existingAdmin)
-        throw new appError_1.AppError("Admin email already registered", 409);
-    // ── 2. pre-generate IDs ─────────────────────────────────
-    // Generate both IDs before transaction starts
-    // This lets us set admin_id on company at creation time
-    // Eliminates the extra findByIdAndUpdate inside transaction
-    const sellerId = new mongoose_1.default.Types.ObjectId();
-    const adminId = new mongoose_1.default.Types.ObjectId();
-    const session = await mongoose_1.default.startSession();
-    let newCompany;
-    let newAdmin;
-    try {
-        session.startTransaction();
-        // ── 3. create BOTH in parallel ──────────────────────────
-        // company and admin have no dependency on each other now
-        // because we pre-generated the IDs
-        const [companies, admins] = await Promise.all([
-            seller_schema_1.default.create([
-                {
-                    _id: sellerId,
-                    company_name: company_name,
-                    company_email: company_email,
-                    companyNavName: company_name,
-                    phone: phone,
-                    address: address,
-                    admin_id: adminId, // ← set directly, no update needed
-                    createdBy: req.user._id,
-                    status: status,
-                    ...(logo && { logo: logo }),
-                    ...(domain && { domain: domain }),
-                    ...(subdomain && { subdomain: subdomain }),
-                },
-            ], { session }),
-            user_schema_1.default.create([
-                {
-                    _id: adminId,
-                    name: company_name,
-                    email: company_email,
-                    password: password,
-                    role: "admin",
-                    sellerId: sellerId, // ← set directly
-                    createdBy: req.user._id,
-                },
-            ], { session }),
-        ]);
-        const createdCompany = companies[0];
-        const createdAdmin = admins[0];
-        if (!createdCompany)
-            throw new appError_1.AppError("Failed to create company", 500);
-        if (!createdAdmin)
-            throw new appError_1.AppError("Failed to create admin", 500);
-        newCompany = createdCompany;
-        newAdmin = createdAdmin;
-        await session.commitTransaction();
-    }
-    catch (err) {
-        await session.abortTransaction();
-        throw err;
-    }
-    finally {
-        await session.endSession();
-    }
-    // ── 4. audit log — fire and forget ─────────────────────
-    (0, auditLogger_1.auditLog)({
-        req,
-        action: audit_interface_1.AUDIT_ACTIONS.COMPANY_CREATED,
-        targetModel: "Seller",
-        targetId: newCompany._id,
-        after: {
-            company_name: newCompany.company_name,
-            company_email: newCompany.company_email,
-            admin_email: newAdmin.email,
-            admin_id: newAdmin._id,
-        },
-    });
-    return {
-        company: newCompany,
-        admin: newAdmin.toJSON(),
-    };
+    // const {
+    //   company_email,
+    //   company_name,
+    //   address,
+    //   password,
+    //   phone,
+    //   status,
+    //   logo,
+    //   domain,
+    //   subdomain,
+    // } = payload;
+    // // ── 1. duplicate checks in parallel ────────────────────
+    // const [existingCompany, existingAdmin] = await Promise.all([
+    //   Seller.findOne({ company_email: company_email }).lean(), // ← lean() — no mongoose doc overhead
+    //   User.findOne({ email: company_email }).lean(),
+    // ]);
+    // if (existingCompany)
+    //   throw new AppError("Company email already registered", 409);
+    // if (existingAdmin) throw new AppError("Admin email already registered", 409);
+    // // ── 2. pre-generate IDs ─────────────────────────────────
+    // // Generate both IDs before transaction starts
+    // // This lets us set admin_id on company at creation time
+    // // Eliminates the extra findByIdAndUpdate inside transaction
+    // const sellerId = new mongoose.Types.ObjectId();
+    // const adminId = new mongoose.Types.ObjectId();
+    // const session = await mongoose.startSession();
+    // let newCompany: ISeller;
+    // let newAdmin: IUserDocument;
+    // try {
+    //   session.startTransaction();
+    //   // ── 3. create BOTH in parallel ──────────────────────────
+    //   // company and admin have no dependency on each other now
+    //   // because we pre-generated the IDs
+    //   const [companies, admins] = await Promise.all([
+    //     Seller.create(
+    //       [
+    //         {
+    //           _id: sellerId,
+    //           company_name: company_name,
+    //           company_email: company_email,
+    //           companyNavName:company_name,
+    //           phone: phone,
+    //           address: address,
+    //           admin_id: adminId, // ← set directly, no update needed
+    //           createdBy: req.user._id,
+    //           status: status,
+    //           ...(logo && { logo: logo }),
+    //           ...(domain && { domain: domain }),
+    //           ...(subdomain && { subdomain: subdomain }),
+    //         },
+    //       ],
+    //       { session },
+    //     ),
+    //     User.create(
+    //       [
+    //         {
+    //           _id: adminId,
+    //           name: company_name,
+    //           email: company_email,
+    //           password: password,
+    //           role: "admin",
+    //           sellerId: sellerId, // ← set directly
+    //           createdBy: req.user._id,
+    //         },
+    //       ],
+    //       { session },
+    //     ),
+    //   ]);
+    //   const createdCompany = companies[0];
+    //   const createdAdmin = admins[0];
+    //   if (!createdCompany) throw new AppError("Failed to create company", 500);
+    //   if (!createdAdmin) throw new AppError("Failed to create admin", 500);
+    //   newCompany = createdCompany;
+    //   newAdmin = createdAdmin;
+    //   await session.commitTransaction();
+    // } catch (err) {
+    //   await session.abortTransaction();
+    //   throw err;
+    // } finally {
+    //   await session.endSession();
+    // }
+    // // ── 4. audit log — fire and forget ─────────────────────
+    // auditLog({
+    //   req,
+    //   action: AUDIT_ACTIONS.COMPANY_CREATED,
+    //   targetModel: "Seller",
+    //   targetId: newCompany._id,
+    //   after: {
+    //     company_name: newCompany.company_name,
+    //     company_email: newCompany.company_email,
+    //     admin_email: newAdmin.email,
+    //     admin_id: newAdmin._id,
+    //   },
+    // });
+    // return {
+    //   company: newCompany,
+    //   admin: newAdmin.toJSON(),
+    // };
 };
 exports.createCompany = createCompany;
 const getAllCompanies = async (query) => {
@@ -220,8 +227,8 @@ const getAllCompanies = async (query) => {
     }
     // ── run count + data in parallel ────────────────────────
     const [total, companies] = await Promise.all([
-        seller_schema_1.default.countDocuments(filter),
-        seller_schema_1.default.find(filter)
+        seller_schema_1.Seller.countDocuments(filter),
+        seller_schema_1.Seller.find(filter)
             .populate("admin_id", "name email") // show admin name + email
             .skip(skip)
             .limit(limit)
@@ -249,7 +256,7 @@ const getCompanyById = async (sellerId, req) => {
     if (req.user.role === "admin") {
         filter._id = req.user.sellerId;
     }
-    const company = await seller_schema_1.default.findOne(filter)
+    const company = await seller_schema_1.Seller.findOne(filter)
         .populate("admin_id", "name email role")
         .populate("createdBy", "name email")
         .lean();
@@ -259,96 +266,148 @@ const getCompanyById = async (sellerId, req) => {
 };
 exports.getCompanyById = getCompanyById;
 const updateCompany = async (sellerId, payload, req) => {
-    const company = await seller_schema_1.default.findById(sellerId);
-    if (!company)
-        throw new appError_1.AppError("Company not found", 404);
-    const [domainTaken, subdomainTaken] = await Promise.all([
-        payload.domain && payload.domain !== company.domain
-            ? seller_schema_1.default.findOne({ domain: payload.domain }).lean()
-            : null,
-        payload.subdomain && payload.subdomain !== company.subdomain
-            ? seller_schema_1.default.findOne({ subdomain: payload.subdomain }).lean()
-            : null,
-    ]);
-    if (domainTaken)
-        throw new appError_1.AppError("Domain already taken", 409);
-    if (subdomainTaken)
-        throw new appError_1.AppError("Subdomain already taken", 409);
-    // ── snapshot before state for audit ────────────────────
-    const before = {
-        company_name: company.company_name,
-        phone: company.phone,
-        address: company.address,
-        status: company.status,
-        domain: company.domain,
-        subdomain: company.subdomain,
-    };
-    // ── build update — only include provided fields ─────────
-    const updateData = (0, sanitizeData_1.sanitizeData)(payload);
-    const updated = await seller_schema_1.default.findByIdAndUpdate(sellerId, { $set: updateData }, { new: true, runValidators: true });
-    if (!updated)
-        throw new appError_1.AppError("Company update failed", 500);
-    // ── audit ───────────────────────────────────────────────
-    (0, auditLogger_1.auditLog)({
-        req,
-        action: audit_interface_1.AUDIT_ACTIONS.COMPANY_UPDATED,
-        targetModel: "Seller",
-        targetId: updated._id,
-        before,
-        after: {
-            company_name: updated.company_name,
-            phone: updated.phone,
-            address: updated.address,
-            status: updated.status,
-            domain: updated.domain,
-            subdomain: updated.subdomain,
-        },
-    });
-    return updated;
+    // const company = await Seller.findById(sellerId);
+    // if (!company) throw new AppError("Company not found", 404);
+    // const [domainTaken, subdomainTaken] = await Promise.all([
+    //   payload.domain && payload.domain !== company.domain
+    //     ? Seller.findOne({ domain: payload.domain }).lean()
+    //     : null,
+    //   payload.subdomain && payload.subdomain !== company.subdomain
+    //     ? Seller.findOne({ subdomain: payload.subdomain }).lean()
+    //     : null,
+    // ]);
+    // if (domainTaken) throw new AppError("Domain already taken", 409);
+    // if (subdomainTaken) throw new AppError("Subdomain already taken", 409);
+    // // ── snapshot before state for audit ────────────────────
+    // const before = {
+    //   company_name: company.company_name,
+    //   phone: company.phone,
+    //   address: company.address,
+    //   status: company.status,
+    //   domain: company.domain,
+    //   subdomain: company.subdomain,
+    // };
+    // // ── build update — only include provided fields ─────────
+    // const updateData = sanitizeData(payload);
+    // const updated = await Seller.findByIdAndUpdate(
+    //   sellerId,
+    //   { $set: updateData },
+    //   { new: true, runValidators: true },
+    // );
+    // if (!updated) throw new AppError("Company update failed", 500);
+    // // ── audit ───────────────────────────────────────────────
+    // auditLog({
+    //   req,
+    //   action: AUDIT_ACTIONS.COMPANY_UPDATED,
+    //   targetModel: "Seller",
+    //   targetId: updated._id,
+    //   before,
+    //   after: {
+    //     company_name: updated.company_name,
+    //     phone: updated.phone,
+    //     address: updated.address,
+    //     status: updated.status,
+    //     domain: updated.domain,
+    //     subdomain: updated.subdomain,
+    //   },
+    // });
+    // return updated;
 };
 exports.updateCompany = updateCompany;
 const deleteCompany = async (sellerId, req) => {
-    const company = await seller_schema_1.default.findById(sellerId);
-    if (!company)
-        throw new appError_1.AppError("Company not found", 404);
-    // snapshot for audit before deletion
-    const snapshot = {
-        company_name: company.company_name,
-        company_email: company.company_email,
-        status: company.status,
-    };
+    // const company = await Seller.findById(sellerId);
+    // if (!company) throw new AppError("Company not found", 404);
+    // // snapshot for audit before deletion
+    // const snapshot = {
+    //   company_name: company.company_name,
+    //   company_email: company.company_email,
+    //   status: company.status,
+    // };
+    // const session = await mongoose.startSession();
+    // try {
+    //   session.startTransaction();
+    //   // ── find all users in this company ──────────────────
+    //   const companyUsers = await User.find(
+    //     { sellerId: company._id },
+    //     { _id: 1 },
+    //   ).lean();
+    //   const userIds = companyUsers.map((u) => u._id);
+    //   // ── delete everything in parallel ───────────────────
+    //   await Promise.all([
+    //     Seller.findByIdAndDelete(sellerId, { session }),
+    //     // delete all users of this company
+    //     User.deleteMany({ sellerId: company._id }, { session }),
+    //     // delete all sessions of those users
+    //     Session.deleteMany({ userId: { $in: userIds } }, { session }),
+    //   ]);
+    //   await session.commitTransaction();
+    // } catch (err) {
+    //   await session.abortTransaction();
+    //   throw err;
+    // } finally {
+    //   await session.endSession();
+    // }
+    // // ── audit ──────────────────────────────────────────────
+    // auditLog({
+    //   req,
+    //   action: AUDIT_ACTIONS.COMPANY_DELETED,
+    //   targetModel: "Seller",
+    //   targetId: company._id,
+    //   before: snapshot,
+    //   after: null,
+    // });
+};
+exports.deleteCompany = deleteCompany;
+const createSuperAdmin = async (payload) => {
+    const { name, phone, email, password, shopName } = payload;
+    const slug = shopName
+        .toLowerCase()
+        .replace(/'/g, "") // Remove apostrophes
+        .replace(/&/g, " ") // Replace & with space
+        .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with -
+        .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+    const [existingUser, existingPlatformSeller, existingSlug] = await Promise.all([
+        user_schema_1.default.findOne({ email }),
+        seller_schema_1.Seller.findOne({ isPlatform: true }),
+        seller_schema_1.Seller.findOne({ slug }),
+    ]);
+    if (existingUser)
+        throw new appError_1.AppError("This user already exists", 409);
+    if (existingPlatformSeller)
+        throw new appError_1.AppError("Super admin already exists", 409);
+    if (existingSlug)
+        throw new appError_1.AppError("Shop name is already taken, choose another", 409);
     const session = await mongoose_1.default.startSession();
+    const id = new mongoose_1.default.Types.ObjectId();
     try {
         session.startTransaction();
-        // ── find all users in this company ──────────────────
-        const companyUsers = await user_schema_1.default.find({ sellerId: company._id }, { _id: 1 }).lean();
-        const userIds = companyUsers.map((u) => u._id);
-        // ── delete everything in parallel ───────────────────
-        await Promise.all([
-            seller_schema_1.default.findByIdAndDelete(sellerId, { session }),
-            // delete all users of this company
-            user_schema_1.default.deleteMany({ sellerId: company._id }, { session }),
-            // delete all sessions of those users
-            auth_schema_1.default.deleteMany({ userId: { $in: userIds } }, { session }),
-        ]);
+        const [newUser] = await user_schema_1.default.create([
+            {
+                name,
+                email,
+                password,
+                ...(phone !== undefined && { phone }),
+                role: "super_admin",
+                sellerId: id,
+                profileId: id,
+                profileType: "Seller",
+            },
+        ], { session });
+        if (!newUser)
+            throw new appError_1.AppError("super admin create failed", 400);
+        const [newSeller] = await seller_schema_1.Seller.create([{ _id: id, userId: newUser._id, isPlatform: true, shopName, slug }], { session });
+        if (!newSeller)
+            throw new appError_1.AppError("seller crated failed", 400);
         await session.commitTransaction();
+        return newUser;
     }
-    catch (err) {
+    catch (error) {
         await session.abortTransaction();
-        throw err;
+        throw error;
     }
     finally {
         await session.endSession();
     }
-    // ── audit ──────────────────────────────────────────────
-    (0, auditLogger_1.auditLog)({
-        req,
-        action: audit_interface_1.AUDIT_ACTIONS.COMPANY_DELETED,
-        targetModel: "Seller",
-        targetId: company._id,
-        before: snapshot,
-        after: null,
-    });
 };
-exports.deleteCompany = deleteCompany;
+exports.createSuperAdmin = createSuperAdmin;
 //# sourceMappingURL=user.service.js.map

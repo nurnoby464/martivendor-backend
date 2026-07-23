@@ -28,7 +28,15 @@ export declare const checkoutSchema: z.ZodObject<{
         phone: z.ZodString;
     }, z.core.$strip>;
 }, z.core.$strip>;
+export declare const superAdminSchema: z.ZodObject<{
+    name: z.ZodString;
+    shopName: z.ZodString;
+    phone: z.ZodOptional<z.ZodString>;
+    email: z.ZodPipe<z.ZodString, z.ZodEmail>;
+    password: z.ZodString;
+}, z.core.$strip>;
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type CreateNewCompanyInput = z.infer<typeof createNewCompanySchema>;
+export type CreateSuperAdminInput = z.infer<typeof superAdminSchema>;
 //# sourceMappingURL=user.validation.d.ts.map

@@ -40,11 +40,11 @@ exports.CompanyServices = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const appError_1 = require("../../middlewares/appError");
 const user_schema_1 = __importDefault(require("../user/user.schema"));
-const seller_schema_1 = __importDefault(require("./seller.schema"));
 const auditLogger_1 = require("../../utils/auditLogger");
 const audit_interface_1 = require("../audit/audit.interface");
 const auth_schema_1 = __importDefault(require("../auth/auth.schema"));
 const seller_header_schema_1 = require("./seller.header.schema");
+const seller_schema_1 = require("./seller.schema");
 const ADMIN_ROLES = [
     "account",
     "site_management",
@@ -95,14 +95,14 @@ const createCompanyUser = async (payload, req) => {
     if (isSuperAdmin) {
         const [existing, company] = await Promise.all([
             user_schema_1.default.findOne({ email }).select("_id").lean(),
-            seller_schema_1.default.findById(companyId).select("_id status").lean(),
+            seller_schema_1.Seller.findById(companyId).select("_id status").lean(),
         ]);
         if (existing)
             throw new appError_1.AppError("Email already registered", 409);
         if (!company) {
             throw new appError_1.AppError("Company not found", 404);
         }
-        if (company.status !== "active") {
+        if (company.status !== "approved") {
             throw new appError_1.AppError("Cannot create user for an inactive company", 400);
         }
         companyIdToUse = company._id;
@@ -265,11 +265,11 @@ const deleteUser = async (userId, req) => {
     });
 };
 const getMyCompany = async (id) => {
-    const result = await seller_schema_1.default.findById(id);
+    const result = await seller_schema_1.Seller.findById(id);
     return result;
 };
 const updateMyCompany = async (companyId, data) => {
-    const company = await seller_schema_1.default.findById(companyId);
+    const company = await seller_schema_1.Seller.findById(companyId);
     if (!company)
         throw new appError_1.AppError("Company not found", 404);
     // build update object — only include fields that were actually sent
@@ -286,11 +286,11 @@ const updateMyCompany = async (companyId, data) => {
     if (data.logo && data.logo.trim() !== "") {
         update.logo = data.logo;
     }
-    const updated = await seller_schema_1.default.findByIdAndUpdate(companyId, { $set: update }, { returnDocument: "after", runValidators: true }).lean();
+    const updated = await seller_schema_1.Seller.findByIdAndUpdate(companyId, { $set: update }, { returnDocument: "after", runValidators: true }).lean();
     return updated;
 };
 const updateSocialMedia = async (companyId, data) => {
-    const company = await seller_schema_1.default.findById(companyId);
+    const company = await seller_schema_1.Seller.findById(companyId);
     if (!company)
         throw new appError_1.AppError("Company not found", 404);
     if (!data.social_media)
@@ -315,7 +315,7 @@ const updateSocialMedia = async (companyId, data) => {
             socialUpdate[`social_media.${field}`] = value === "" ? null : value;
         }
     });
-    const updated = await seller_schema_1.default.findByIdAndUpdate(companyId, { $set: socialUpdate }, { returnDocument: "after", runValidators: true }).lean();
+    const updated = await seller_schema_1.Seller.findByIdAndUpdate(companyId, { $set: socialUpdate }, { returnDocument: "after", runValidators: true }).lean();
     return updated;
 };
 const createHeaderNav = async (companyId, input) => {
