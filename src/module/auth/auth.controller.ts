@@ -20,24 +20,24 @@ const COOKIE_OPTIONS = {
 
 const login = asyncHandler(async (req: Request, res: Response) => {
   const { refreshToken, ...result } = await AuthServices.login(req.body, req);
-  res.cookie("eMultiRefreshToken", refreshToken, COOKIE_OPTIONS);
+  res.cookie("multiVendorRefreshToken", refreshToken, COOKIE_OPTIONS);
   return ApiResponse.success(res, result, "Login successfully");
 });
 
 // ─── Logout ───────────────────────────────────────────────
 const logout = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.eMultiRefreshToken;
+  const refreshToken = req.cookies?.multiVendorRefreshToken;
   await AuthServices.logout(refreshToken);
 
   // clear the cookie
-  res.clearCookie("eMultiRefreshToken", COOKIE_OPTIONS);
+  res.clearCookie("multiVendorRefreshToken", COOKIE_OPTIONS);
 
   return ApiResponse.success(res, null, "Logged out successfully");
 });
 
 // ─── Refresh access token ─────────────────────────────────
 const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.eMultiRefreshToken;
+  const refreshToken = req.cookies?.multiVendorRefreshToken;
   if (!refreshToken) throw new AppError("No refresh token provided", 401);
 
   const result = await AuthServices.refresh(refreshToken);
@@ -51,9 +51,16 @@ const removeSession = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const getMe = asyncHandler(async (req: Request, res: Response) => {
-  const  { refreshToken, ...result } = await AuthServices.getMe(req.user._id.toString(),req.user.sessionId.toString());
-  res.cookie("eMultiRefreshToken", refreshToken, COOKIE_OPTIONS);
-  return ApiResponse.success(res, result,"Load own info");
+  if (!new Types.ObjectId(req.user._id))
+    throw new AppError("Invalid user id", 401);
+  if (!new Types.ObjectId(req.user.sessionId))
+    throw new AppError("Invalid session id", 401);
+  const result = await AuthServices.getMe(
+    req.user._id,
+    new Types.ObjectId(req.user.sessionId),
+  );
+  // res.cookie("multiVendorRefreshToken", refreshToken, COOKIE_OPTIONS);
+  return ApiResponse.success(res, result, "Load own info");
 });
 
 const updatePassword = asyncHandler(async (req: Request, res: Response) => {
@@ -76,7 +83,11 @@ export const registerCustomer = async (req: Request, res: Response) => {
 export const updateProfile = async (req: Request, res: Response) => {
   const sellerId = req.user.sellerId;
   if (!sellerId) throw new AppError("Company ID not found in user data", 400);
-  const user = await AuthServices.updateProfile(sellerId,req.user._id, req.body);
+  const user = await AuthServices.updateProfile(
+    sellerId,
+    req.user._id,
+    req.body,
+  );
   return ApiResponse.created(res, user, "Profile update Successfully");
 };
 

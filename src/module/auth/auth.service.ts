@@ -16,6 +16,7 @@ import { makeLoginResponse, makeToken } from "../../utils/helper";
 import { IUpdateProfileRequest } from "./auth.validation";
 import Staff from "../../CRM/staff/staff.schema";
 import Customer from "../../CRM/customer/customer.schema";
+import { IUser, IUserDocument } from "../user/user.interface";
 
 interface ILogin {
   email: string;
@@ -30,7 +31,7 @@ interface IUpdatePassword {
 const login = async (payload: ILogin, req: Request) => {
   const MAX_SESSIONS = 6;
   const { email, password } = payload;
-  const existing = await User.findOne({ email, is_active: true }).select(
+  const existing = await User.findOne({ email, isActive: true }).select(
     "+password",
   );
   if (!existing) {
@@ -159,7 +160,7 @@ const refresh = async (refreshToken: string) => {
   }
 
   // 3. find user
-  const user = await User.findOne({ _id: session.userId, is_active: true });
+  const user = await User.findOne({ _id: session.userId, isActive: true });
   if (!user) {
     throw new AppError("User no longer exists", 401);
   }
@@ -246,33 +247,29 @@ const registerCustomer = async (
   return safeUser;
 };
 
-export const getMe = async (userId: string, sessionId: string) => {
-  const user = await User.findById(userId).lean();
-  if (!user) throw new AppError("User not found", 404);
-  const session = await Session.findById(sessionId).lean();
-  if (!session) {
-    throw new AppError("session not found", 401);
-  }
-  const data = makeToken({ existing: user, session });
-   
-  const accessToken = await JwtHelper.generateToken({
-    data,
-    secret: jwtConfig.access.secret as Secret,
-    expiresIn: jwtConfig.access.expiresIn,
-  });
-  const refreshToken = await JwtHelper.generateToken({
-    data,
-    secret: jwtConfig.refresh.secret,
-    expiresIn: jwtConfig.refresh.expiresIn,
-  });
+export const getMe = async (
+  userId: Types.ObjectId,
+  sessionId: Types.ObjectId,
+) => {
+  const [existingUser, existingSession] = await Promise.all([
+    User.findById(userId).lean(),
+    Session.findById(sessionId).lean(),
+  ]);
+  if (!existingUser) throw new AppError("User not found", 404);
+  if (!existingSession) throw new AppError("session not found", 401);
 
-  // reuse same helper
-  const response = await makeLoginResponse({ user });
-  return {
-    user: response,
-    accessToken,
-    refreshToken,
-  };
+  const PROFILE_FIELDS =
+    "name email phone role sellerId isActive emailVerified profileId profileType lastLogin createdAt updatedAt";
+  const filter = { _id: userId, isActive: true };
+  const user = await User.findOne(filter)
+    .select(PROFILE_FIELDS)
+    .populate("sellerId")
+    .populate("profileId")
+    .lean();
+  if (!user) {
+    throw new AppError("User not found or inactive", 400);
+  }
+  return user;
 };
 
 const updateProfile = async (
