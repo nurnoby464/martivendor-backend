@@ -37,6 +37,17 @@ export const registerCustomerSchema = z.object({
     .nullable()
     .optional(),
 });
+export const registerSellerSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters"),
+  shopName: z.string().trim().min(2, "Shop name must be at least 2 characters"),
+  email: z.email("Please enter a valid email").toLowerCase().trim(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  phone: z
+    .string()
+    .regex(/^01[3-9]\d{8}$/, "Invalid Bangladeshi phone number")
+    .nullable()
+    .optional(),
+});
 export const checkoutSchema = z.object({
   body: z.object({
     phone: z
@@ -54,6 +65,7 @@ export const superAdminSchema = z.object({
 })
 
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema>;
+export type RegisterSellerInput = z.infer<typeof registerSellerSchema>;
 // ─── Derive the type from the schema ─────────────────────
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type CreateNewCompanyInput = z.infer<typeof createNewCompanySchema>;

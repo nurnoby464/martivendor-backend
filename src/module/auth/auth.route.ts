@@ -1,5 +1,5 @@
 import express from "express";
-import { AuthController } from "./auth.controller";
+import * as AuthController  from "./auth.controller";
 import { validate } from "../../middlewares/validate";
 import {
   loginSchema,
@@ -10,7 +10,7 @@ import {
   authenticate,
   verifySession,
 } from "../../middlewares/AuthenticateHelper";
-import { registerCustomerSchema } from "../user/user.validation";
+import { registerCustomerSchema, registerSellerSchema } from "../user/user.validation";
 import { companyIdentifier } from "../../middlewares/companyIdentifier";
 import { UpdateProfileSchema } from "./auth.validation";
 const router = express.Router();
@@ -22,6 +22,11 @@ router.post(
   validate({ body: registerCustomerSchema }),
   companyIdentifier,
   AuthController.registerCustomer,
+);
+router.post(
+  "/be-seller",
+  validate({ body: registerSellerSchema }),
+  AuthController.registerSeller,
 );
 router.delete(
   "/session/:userId/:sessionId",

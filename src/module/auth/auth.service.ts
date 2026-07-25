@@ -2,7 +2,7 @@ import {
   ISessionPublic,
   SessionLimitError,
 } from "./../../middlewares/appError";
-import mongoose, { ObjectId, Types } from "mongoose";
+import mongoose, { ObjectId, startSession, Types } from "mongoose";
 import { jwtConfig } from "./../../config/jwt.config";
 import { Request } from "express";
 import { AppError } from "../../middlewares/appError";
@@ -11,12 +11,16 @@ import User from "../user/user.schema";
 import { Secret } from "jsonwebtoken";
 import Session from "./auth.schema";
 import { enforceSessionLimit } from "../../utils/sessionHelper";
-import { RegisterCustomerInput } from "../user/user.validation";
+import {
+  RegisterCustomerInput,
+  RegisterSellerInput,
+} from "../user/user.validation";
 import { makeLoginResponse, makeToken } from "../../utils/helper";
 import { IUpdateProfileRequest } from "./auth.validation";
 import Staff from "../../CRM/staff/staff.schema";
 import Customer from "../../CRM/customer/customer.schema";
 import { IUser, IUserDocument } from "../user/user.interface";
+import { Seller } from "../seller/seller.schema";
 
 interface ILogin {
   email: string;
@@ -214,6 +218,94 @@ const updatePassword = async (payload: IUpdatePassword) => {
   };
 };
 
+const registerSeller = async (input: RegisterSellerInput) => {
+  const { name, phone, email, password, shopName } = input;
+  const slug = shopName
+    .toLowerCase()
+    .replace(/'/g, "") // Remove apostrophes
+    .replace(/&/g, " ") // Replace & with space
+    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with -
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+
+  // 1. check duplicate phone under same company
+
+  const [existingUser, existingSeller] = await Promise.all([
+    User.findOne({
+      email,
+      role: "seller",
+    }),
+    Seller.findOne({
+      slug,
+    }),
+  ]);
+  if (existingUser) {
+    throw new AppError("This email already registered", 409);
+  }
+  if (existingSeller) {
+    throw new AppError("Shop name is already taken, choose another", 409);
+  }
+  const id = new Types.ObjectId();
+  const session = await startSession();
+  try {
+    session.startTransaction();
+    const [user] = await User.create(
+      [
+        {
+          name,
+          email,
+          password,
+          ...(phone !== undefined && { phone }),
+          role: "seller",
+          sellerId: id,
+          profileId: id,
+          profileType: "Seller",
+          isActive: true,
+        },
+      ],
+      { session },
+    );
+    if (!user) {
+      throw new AppError("Failed to create user", 500);
+    }
+    console.log(user)
+    const [seller] = await Seller.create(
+      [
+        {
+          _id: id,
+          userId: user._id,
+          isPlatform: false,
+          shopName,
+          slug,
+        },
+      ],
+      { session },
+    );
+    if (!seller) {
+      throw new AppError("Failed to create seller");
+    }
+    console.log(seller)
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw Error;
+  } finally {
+    await session.endSession();
+  }
+  // 3. create user — NO seller CRM doc yet
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role: "seller",
+    profileType: "Seller",
+    isActive: true,
+  });
+
+  // 4. strip password before returning
+  const { password: _, ...safeUser } = user.toObject();
+
+  return safeUser;
+};
 const registerCustomer = async (
   sellerId: Types.ObjectId,
   input: RegisterCustomerInput,
@@ -353,4 +445,5 @@ export const AuthServices = {
   registerCustomer,
   getMe,
   updateProfile,
+  registerSeller,
 };

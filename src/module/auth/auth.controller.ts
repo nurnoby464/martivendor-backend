@@ -18,14 +18,14 @@ const COOKIE_OPTIONS = {
   path: "/",
 };
 
-const login = asyncHandler(async (req: Request, res: Response) => {
+export const login = asyncHandler(async (req: Request, res: Response) => {
   const { refreshToken, ...result } = await AuthServices.login(req.body, req);
   res.cookie("multiVendorRefreshToken", refreshToken, COOKIE_OPTIONS);
   return ApiResponse.success(res, result, "Login successfully");
 });
 
 // ─── Logout ───────────────────────────────────────────────
-const logout = asyncHandler(async (req: Request, res: Response) => {
+export const logout = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.multiVendorRefreshToken;
   await AuthServices.logout(refreshToken);
 
@@ -36,7 +36,7 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // ─── Refresh access token ─────────────────────────────────
-const refresh = asyncHandler(async (req: Request, res: Response) => {
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.multiVendorRefreshToken;
   if (!refreshToken) throw new AppError("No refresh token provided", 401);
 
@@ -44,13 +44,13 @@ const refresh = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.success(res, result, "Token refreshed");
 });
 
-const removeSession = asyncHandler(async (req: Request, res: Response) => {
+export const removeSession = asyncHandler(async (req: Request, res: Response) => {
   const { sessionId, userId } = req.params;
   await AuthServices.removeSession(sessionId as string, userId as string);
   return ApiResponse.success(res, null, "Session removed. You can now log in.");
 });
 
-const getMe = asyncHandler(async (req: Request, res: Response) => {
+export const getMe = asyncHandler(async (req: Request, res: Response) => {
   if (!new Types.ObjectId(req.user._id))
     throw new AppError("Invalid user id", 401);
   if (!new Types.ObjectId(req.user.sessionId))
@@ -63,7 +63,7 @@ const getMe = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.success(res, result, "Load own info");
 });
 
-const updatePassword = asyncHandler(async (req: Request, res: Response) => {
+export const updatePassword = asyncHandler(async (req: Request, res: Response) => {
   const { oldPassword, newPassword } = req.body;
   const result = await AuthServices.updatePassword({
     oldPassword,
@@ -80,6 +80,11 @@ export const registerCustomer = async (req: Request, res: Response) => {
   return ApiResponse.created(res, user, "Registration Successfully");
 };
 
+export const registerSeller = async (req: Request, res: Response) => {
+  const user = await AuthServices.registerSeller(req.body);
+  return ApiResponse.created(res, user, "Seller Registration Successfully");
+};
+
 export const updateProfile = async (req: Request, res: Response) => {
   const sellerId = req.user.sellerId;
   if (!sellerId) throw new AppError("Company ID not found in user data", 400);
@@ -91,13 +96,13 @@ export const updateProfile = async (req: Request, res: Response) => {
   return ApiResponse.created(res, user, "Profile update Successfully");
 };
 
-export const AuthController = {
-  login,
-  logout,
-  refresh,
-  removeSession,
-  updatePassword,
-  registerCustomer,
-  getMe,
-  updateProfile,
-};
+// export const AuthController = {
+//   login,
+//   logout,
+//   refresh,
+//   removeSession,
+//   updatePassword,
+//   registerCustomer,
+//   getMe,
+//   updateProfile,
+// };
