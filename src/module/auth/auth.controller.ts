@@ -44,11 +44,17 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.success(res, result, "Token refreshed");
 });
 
-export const removeSession = asyncHandler(async (req: Request, res: Response) => {
-  const { sessionId, userId } = req.params;
-  await AuthServices.removeSession(sessionId as string, userId as string);
-  return ApiResponse.success(res, null, "Session removed. You can now log in.");
-});
+export const removeSession = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { sessionId, userId } = req.params;
+    await AuthServices.removeSession(sessionId as string, userId as string);
+    return ApiResponse.success(
+      res,
+      null,
+      "Session removed. You can now log in.",
+    );
+  },
+);
 
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
   if (!new Types.ObjectId(req.user._id))
@@ -63,16 +69,18 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.success(res, result, "Load own info");
 });
 
-export const updatePassword = asyncHandler(async (req: Request, res: Response) => {
-  const { oldPassword, newPassword } = req.body;
-  const result = await AuthServices.updatePassword({
-    oldPassword,
-    newPassword,
-    userId: req.user._id.toString(),
-    sessionId: req.user.sessionId,
-  });
-  return ApiResponse.success(res, null, result.message);
-});
+export const updatePassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { oldPassword, newPassword } = req.body;
+    const result = await AuthServices.updatePassword({
+      oldPassword,
+      newPassword,
+      userId: req.user._id.toString(),
+      sessionId: req.user.sessionId,
+    });
+    return ApiResponse.success(res, null, result.message);
+  },
+);
 
 export const registerCustomer = async (req: Request, res: Response) => {
   const sellerId = new Types.ObjectId(req.company?._id); // set by resolveCompany middleware
@@ -94,6 +102,10 @@ export const updateProfile = async (req: Request, res: Response) => {
     req.body,
   );
   return ApiResponse.created(res, user, "Profile update Successfully");
+};
+export const verifySellerOPT = async (req: Request, res: Response) => {
+  const user = await AuthServices.verifySellerOPT(req.body);
+  return ApiResponse.success(res, user, "OPT match Successfully");
 };
 
 // export const AuthController = {

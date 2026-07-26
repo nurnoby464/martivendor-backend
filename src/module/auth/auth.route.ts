@@ -12,7 +12,7 @@ import {
 } from "../../middlewares/AuthenticateHelper";
 import { registerCustomerSchema, registerSellerSchema } from "../user/user.validation";
 import { companyIdentifier } from "../../middlewares/companyIdentifier";
-import { UpdateProfileSchema } from "./auth.validation";
+import { UpdateProfileSchema, validateOTPSchema } from "./auth.validation";
 const router = express.Router();
 // public
 router.post("/login", validate({ body: loginSchema }), AuthController.login);
@@ -27,6 +27,11 @@ router.post(
   "/be-seller",
   validate({ body: registerSellerSchema }),
   AuthController.registerSeller,
+);
+router.post(
+  "/be-seller-otp",
+  validate({ body: validateOTPSchema }),
+  AuthController.verifySellerOPT,
 );
 router.delete(
   "/session/:userId/:sessionId",

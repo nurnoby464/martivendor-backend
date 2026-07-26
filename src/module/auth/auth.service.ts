@@ -15,12 +15,15 @@ import {
   RegisterCustomerInput,
   RegisterSellerInput,
 } from "../user/user.validation";
-import { makeLoginResponse, makeToken } from "../../utils/helper";
-import { IUpdateProfileRequest } from "./auth.validation";
+import { generateOPT, makeLoginResponse, makeToken } from "../../utils/helper";
+import { IUpdateProfileRequest, IValidateOTPInput } from "./auth.validation";
 import Staff from "../../CRM/staff/staff.schema";
 import Customer from "../../CRM/customer/customer.schema";
 import { IUser, IUserDocument } from "../user/user.interface";
 import { Seller } from "../seller/seller.schema";
+import { SellerOtp } from "../seller/seller.opt.schema";
+import { sendEmail } from "../../utils/email.services";
+import { otpTemplate } from "../../templates/otp.template";
 
 interface ILogin {
   email: string;
@@ -103,6 +106,7 @@ const login = async (payload: ILogin, req: Request) => {
   // };
 
   const data = makeToken({ existing, session });
+
   const accessToken = await JwtHelper.generateToken({
     data,
     secret: jwtConfig.access.secret as Secret,
@@ -121,7 +125,9 @@ const login = async (payload: ILogin, req: Request) => {
   if (!result) {
     throw new AppError("Last login not updated");
   }
+
   const user = result.toJSON();
+
   const response = await makeLoginResponse({ user });
   return {
     user: response,
@@ -267,7 +273,6 @@ const registerSeller = async (input: RegisterSellerInput) => {
     if (!user) {
       throw new AppError("Failed to create user", 500);
     }
-    console.log(user)
     const [seller] = await Seller.create(
       [
         {
@@ -283,29 +288,71 @@ const registerSeller = async (input: RegisterSellerInput) => {
     if (!seller) {
       throw new AppError("Failed to create seller");
     }
-    console.log(seller)
+    const result = await SellerOtp.findOneAndUpdate(
+      { sellerId: seller._id },
+      { otp: generateOPT() },
+      { upsert: true, runValidators: true, returnDocument: "after", session },
+    );
+
+    if (!result) throw new AppError("Failed to create OTP", 500);
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Email Verification",
+        html: otpTemplate(name, result.otp),
+      });
+    } catch (error: any) {
+      console.error("Email Error:", {
+        message: error.message,
+        code: error.code,
+        responseCode: error.responseCode,
+        command: error.command,
+        response: error.response,
+      });
+
+      throw new AppError("Failed to send verification email", 500);
+    }
+    // now send OPT to email.  i will finish letter
     await session.commitTransaction();
+    return seller;
   } catch (error) {
     await session.abortTransaction();
-    throw Error;
+    throw error;
   } finally {
     await session.endSession();
   }
-  // 3. create user — NO seller CRM doc yet
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role: "seller",
-    profileType: "Seller",
-    isActive: true,
-  });
-
-  // 4. strip password before returning
-  const { password: _, ...safeUser } = user.toObject();
-
-  return safeUser;
 };
+
+const verifySellerOPT = async (payload: IValidateOTPInput) => {
+  const { email, otp } = payload;
+  const existingUser = await User.findOne({
+    email,
+    isActive: true,
+    role: "seller",
+  })
+    .select("_id")
+    .lean();
+  if (!existingUser) {
+    throw new AppError("User not found with this email", 404);
+  }
+  const existingSeller = await Seller.findOne({
+    userId: existingUser._id,
+    status: { $nin: ["rejected", "suspended"] },
+  })
+    .select("_id")
+    .lean();
+  if (!existingSeller) {
+    throw new AppError("You are not valid seller", 400);
+  }
+
+  const existingOTP = await SellerOtp.findOne({
+    sellerId: existingSeller._id,
+  }).lean();
+  if (!existingOTP) throw new AppError("OTP not found or expired", 400);
+  if (existingOTP.otp !== otp) throw new AppError("Incorrect OTP", 400);
+  return otp;
+};
+
 const registerCustomer = async (
   sellerId: Types.ObjectId,
   input: RegisterCustomerInput,
@@ -446,4 +493,5 @@ export const AuthServices = {
   getMe,
   updateProfile,
   registerSeller,
+  verifySellerOPT,
 };
