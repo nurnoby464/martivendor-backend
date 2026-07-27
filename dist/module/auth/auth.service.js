@@ -47,10 +47,14 @@ const auth_schema_1 = __importDefault(require("./auth.schema"));
 const helper_1 = require("../../utils/helper");
 const staff_schema_1 = __importDefault(require("../../CRM/staff/staff.schema"));
 const customer_schema_1 = __importDefault(require("../../CRM/customer/customer.schema"));
+const seller_schema_1 = require("../seller/seller.schema");
+const seller_opt_schema_1 = require("../seller/seller.opt.schema");
+const email_services_1 = require("../../utils/email.services");
+const otp_template_1 = require("../../templates/otp.template");
 const login = async (payload, req) => {
     const MAX_SESSIONS = 6;
     const { email, password } = payload;
-    const existing = await user_schema_1.default.findOne({ email, is_active: true }).select("+password");
+    const existing = await user_schema_1.default.findOne({ email, isActive: true }).select("+password");
     if (!existing) {
         throw new appError_2.AppError("This email user not found", 400);
     }
@@ -166,7 +170,7 @@ const refresh = async (refreshToken) => {
         throw new appError_2.AppError("Session expired. Please log in again", 401);
     }
     // 3. find user
-    const user = await user_schema_1.default.findOne({ _id: session.userId, is_active: true });
+    const user = await user_schema_1.default.findOne({ _id: session.userId, isActive: true });
     if (!user) {
         throw new appError_2.AppError("User no longer exists", 401);
     }
@@ -216,6 +220,233 @@ const updatePassword = async (payload) => {
         message: "Password updated. All other sessions have been logged out.",
     };
 };
+const registerSeller = async (input) => {
+    const { name, phone, email, password, shopName } = input;
+    const slug = shopName
+        .toLowerCase()
+        .replace(/'/g, "") // Remove apostrophes
+        .replace(/&/g, " ") // Replace & with space
+        .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with -
+        .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+    // 1. check duplicate phone under same company
+    const [existingUser, existingSeller] = await Promise.all([
+        user_schema_1.default.findOne({
+            email,
+            role: "seller",
+        }),
+        seller_schema_1.Seller.findOne({
+            slug,
+        }),
+    ]);
+    if (existingUser) {
+        throw new appError_2.AppError("This email already registered", 409);
+    }
+    if (existingSeller) {
+        throw new appError_2.AppError("Shop name is already taken, choose another", 409);
+    }
+    const id = new mongoose_1.Types.ObjectId();
+    const session = await (0, mongoose_1.startSession)();
+    try {
+        session.startTransaction();
+        const [user] = await user_schema_1.default.create([
+            {
+                name,
+                email,
+                password,
+                ...(phone !== undefined && { phone }),
+                role: "seller",
+                sellerId: id,
+                profileId: id,
+                profileType: "Seller",
+                isActive: true,
+            },
+        ], { session });
+        if (!user) {
+            throw new appError_2.AppError("Failed to create user", 500);
+        }
+        const [seller] = await seller_schema_1.Seller.create([
+            {
+                _id: id,
+                userId: user._id,
+                isPlatform: false,
+                shopName,
+                slug,
+            },
+        ], { session });
+        if (!seller) {
+            throw new appError_2.AppError("Failed to create seller");
+        }
+        const result = await seller_opt_schema_1.Otp.findOneAndUpdate({ userId: seller.userId }, { otp: (0, helper_1.generateOPT)() }, { upsert: true, runValidators: true, returnDocument: "after", session });
+        if (!result)
+            throw new appError_2.AppError("Failed to create OTP", 500);
+        try {
+            await (0, email_services_1.sendEmail)({
+                to: email,
+                subject: "Email Verification",
+                html: (0, otp_template_1.otpTemplate)(name, result.otp),
+            });
+        }
+        catch (error) {
+            console.error("Email Error:", {
+                message: error.message,
+                code: error.code,
+                responseCode: error.responseCode,
+                command: error.command,
+                response: error.response,
+            });
+            throw new appError_2.AppError("Failed to send verification email", 500);
+        }
+        // now send OPT to email.  i will finish letter
+        await session.commitTransaction();
+        return seller;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        throw error;
+    }
+    finally {
+        await session.endSession();
+    }
+};
+const verifySellerOPT = async (payload) => {
+    const { email, otp } = payload;
+    const existingUser = await user_schema_1.default.findOne({
+        email,
+        isActive: true,
+        role: "seller",
+    })
+        .select("_id")
+        .lean();
+    if (!existingUser) {
+        throw new appError_2.AppError("User not found with this email", 404);
+    }
+    const existingSeller = await seller_schema_1.Seller.findOne({
+        userId: existingUser._id,
+        status: { $nin: ["rejected", "suspended"] },
+    })
+        .select("_id userId")
+        .lean();
+    if (!existingSeller) {
+        throw new appError_2.AppError("You are not valid seller", 400);
+    }
+    const existingOTP = await seller_opt_schema_1.Otp.findOne({
+        userId: existingSeller.userId,
+    }).lean();
+    console.log(existingOTP);
+    if (!existingOTP)
+        throw new appError_2.AppError("OTP not found", 404);
+    if (existingOTP.expiresAt < new Date()) {
+        throw new Error("OTP has expired");
+    }
+    if (existingOTP.otp !== otp)
+        throw new appError_2.AppError("Incorrect OTP", 400);
+    const session = await (0, mongoose_1.startSession)();
+    try {
+        session.startTransaction();
+        const updateUser = await user_schema_1.default.findOneAndUpdate({
+            email,
+            role: "seller",
+            isActive: true,
+        }, {
+            $set: {
+                emailVerified: true,
+            },
+        }, {
+            returnDocument: "after",
+            runValidators: true,
+            session,
+        });
+        if (!updateUser) {
+            throw new appError_2.AppError("Email not verified", 500);
+        }
+        const updateSeller = await seller_schema_1.Seller.findOneAndUpdate({ userId: updateUser._id, status: { $nin: ["rejected", "suspended"] } }, { $set: { status: "approved" } }, { returnDocument: "after", runValidators: true, session });
+        if (!updateSeller) {
+            const currentSeller = await seller_schema_1.Seller.findOne({ userId: updateUser._id })
+                .select("status")
+                .session(session)
+                .lean();
+            if (!currentSeller) {
+                throw new appError_2.AppError("Seller not found", 404);
+            }
+            throw new appError_2.AppError(`Seller cannot be approved. Current status: ${currentSeller.status}`, 409);
+        }
+        await session.commitTransaction();
+        return updateSeller;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        throw error;
+    }
+    finally {
+        await session.endSession();
+    }
+};
+const resendOPT = async (payload) => {
+    const { email } = payload;
+    console.log(email);
+    const existingUser = await user_schema_1.default.findOne({
+        email,
+        isActive: true,
+        role: "seller",
+    })
+        .select("_id name email")
+        .lean();
+    if (!existingUser) {
+        throw new appError_2.AppError("User not found with this email", 404);
+    }
+    const existingSeller = await seller_schema_1.Seller.findOne({
+        userId: existingUser._id,
+    })
+        .select("_id userId")
+        .lean();
+    if (!existingSeller) {
+        throw new appError_2.AppError("You are not valid seller", 400);
+    }
+    const existingOTP = await seller_opt_schema_1.Otp.findOne({
+        userId: existingSeller.userId,
+    }).lean();
+    if (existingOTP)
+        throw new appError_2.AppError("OTP already exist", 409);
+    const session = await (0, mongoose_1.startSession)();
+    try {
+        session.startTransaction();
+        const [newOTP] = await seller_opt_schema_1.Otp.create([
+            {
+                userId: existingSeller.userId,
+                otp: (0, helper_1.generateOPT)(),
+                expiresAt: new Date(Date.now() + 2 * 60 * 1000),
+            },
+        ], { session });
+        if (!newOTP)
+            throw new appError_2.AppError("Failed to create OTP", 500);
+        try {
+            await (0, email_services_1.sendEmail)({
+                to: existingUser.email,
+                subject: "Email Verification",
+                html: (0, otp_template_1.otpTemplate)(existingUser.name, newOTP.otp),
+            });
+        }
+        catch (error) {
+            console.error("Email Error:", {
+                message: error.message,
+                code: error.code,
+                responseCode: error.responseCode,
+                command: error.command,
+                response: error.response,
+            });
+            throw new appError_2.AppError("Failed to send verification email", 500);
+        }
+        await session.commitTransaction();
+        return existingSeller;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        throw error;
+    }
+    finally {
+        await session.endSession();
+    }
+};
 const registerCustomer = async (sellerId, input) => {
     const { name, phone, email, password } = input;
     // 1. check duplicate phone under same company
@@ -242,31 +473,25 @@ const registerCustomer = async (sellerId, input) => {
     return safeUser;
 };
 const getMe = async (userId, sessionId) => {
-    const user = await user_schema_1.default.findById(userId).lean();
-    if (!user)
+    const [existingUser, existingSession] = await Promise.all([
+        user_schema_1.default.findById(userId).lean(),
+        auth_schema_1.default.findById(sessionId).lean(),
+    ]);
+    if (!existingUser)
         throw new appError_2.AppError("User not found", 404);
-    const session = await auth_schema_1.default.findById(sessionId).lean();
-    if (!session) {
+    if (!existingSession)
         throw new appError_2.AppError("session not found", 401);
+    const PROFILE_FIELDS = "name email phone role sellerId isActive emailVerified profileId profileType lastLogin createdAt updatedAt";
+    const filter = { _id: userId, isActive: true };
+    const user = await user_schema_1.default.findOne(filter)
+        .select(PROFILE_FIELDS)
+        .populate("sellerId")
+        .populate("profileId")
+        .lean();
+    if (!user) {
+        throw new appError_2.AppError("User not found or inactive", 400);
     }
-    const data = (0, helper_1.makeToken)({ existing: user, session });
-    const accessToken = await jwtHelper_1.JwtHelper.generateToken({
-        data,
-        secret: jwt_config_1.jwtConfig.access.secret,
-        expiresIn: jwt_config_1.jwtConfig.access.expiresIn,
-    });
-    const refreshToken = await jwtHelper_1.JwtHelper.generateToken({
-        data,
-        secret: jwt_config_1.jwtConfig.refresh.secret,
-        expiresIn: jwt_config_1.jwtConfig.refresh.expiresIn,
-    });
-    // reuse same helper
-    const response = await (0, helper_1.makeLoginResponse)({ user });
-    return {
-        user: response,
-        accessToken,
-        refreshToken,
-    };
+    return user;
 };
 exports.getMe = getMe;
 const updateProfile = async (companyId, userId, input) => {
@@ -333,5 +558,8 @@ exports.AuthServices = {
     registerCustomer,
     getMe: exports.getMe,
     updateProfile,
+    registerSeller,
+    verifySellerOPT,
+    resendOPT,
 };
 //# sourceMappingURL=auth.service.js.map

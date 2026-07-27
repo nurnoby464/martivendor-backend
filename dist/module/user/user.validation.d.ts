@@ -23,6 +23,13 @@ export declare const registerCustomerSchema: z.ZodObject<{
     password: z.ZodString;
     phone: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
+export declare const registerSellerSchema: z.ZodObject<{
+    name: z.ZodString;
+    shopName: z.ZodString;
+    email: z.ZodEmail;
+    password: z.ZodString;
+    phone: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+}, z.core.$strip>;
 export declare const checkoutSchema: z.ZodObject<{
     body: z.ZodObject<{
         phone: z.ZodString;
@@ -36,6 +43,7 @@ export declare const superAdminSchema: z.ZodObject<{
     password: z.ZodString;
 }, z.core.$strip>;
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema>;
+export type RegisterSellerInput = z.infer<typeof registerSellerSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type CreateNewCompanyInput = z.infer<typeof createNewCompanySchema>;
 export type CreateSuperAdminInput = z.infer<typeof superAdminSchema>;

@@ -55,6 +55,9 @@ export const validateOTPSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email")),
   otp: z.string().trim(),
 });
+export const resendOTPSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email")),
+});
 
 // Customer Update Schema
 export const CustomerUpdateSchema = z
@@ -100,3 +103,4 @@ export type ICustomerUpdateRequest = z.infer<typeof CustomerUpdateSchema>;
 export type IStaffUpdateRequest = z.infer<typeof StaffUpdateSchema>;
 export type IAddressInput = z.infer<typeof AddressSchema>;
 export type IValidateOTPInput = z.infer<typeof validateOTPSchema>;
+export type IResendOTPInput = z.infer<typeof resendOTPSchema>;

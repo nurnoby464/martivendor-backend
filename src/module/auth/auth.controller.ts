@@ -107,6 +107,10 @@ export const verifySellerOPT = async (req: Request, res: Response) => {
   const user = await AuthServices.verifySellerOPT(req.body);
   return ApiResponse.success(res, user, "OPT match Successfully");
 };
+export const resendOPT = async (req: Request, res: Response) => {
+  const user = await AuthServices.resendOPT(req.body);
+  return ApiResponse.success(res, user, "OPT send Successfully");
+};
 
 // export const AuthController = {
 //   login,

@@ -16,12 +16,16 @@ import {
   RegisterSellerInput,
 } from "../user/user.validation";
 import { generateOPT, makeLoginResponse, makeToken } from "../../utils/helper";
-import { IUpdateProfileRequest, IValidateOTPInput } from "./auth.validation";
+import {
+  IResendOTPInput,
+  IUpdateProfileRequest,
+  IValidateOTPInput,
+} from "./auth.validation";
 import Staff from "../../CRM/staff/staff.schema";
 import Customer from "../../CRM/customer/customer.schema";
 import { IUser, IUserDocument } from "../user/user.interface";
 import { Seller } from "../seller/seller.schema";
-import { SellerOtp } from "../seller/seller.opt.schema";
+import { Otp } from "../seller/seller.opt.schema";
 import { sendEmail } from "../../utils/email.services";
 import { otpTemplate } from "../../templates/otp.template";
 
@@ -288,8 +292,8 @@ const registerSeller = async (input: RegisterSellerInput) => {
     if (!seller) {
       throw new AppError("Failed to create seller");
     }
-    const result = await SellerOtp.findOneAndUpdate(
-      { sellerId: seller._id },
+    const result = await Otp.findOneAndUpdate(
+      { userId: seller.userId },
       { otp: generateOPT() },
       { upsert: true, runValidators: true, returnDocument: "after", session },
     );
@@ -339,20 +343,143 @@ const verifySellerOPT = async (payload: IValidateOTPInput) => {
     userId: existingUser._id,
     status: { $nin: ["rejected", "suspended"] },
   })
-    .select("_id")
+    .select("_id userId")
     .lean();
   if (!existingSeller) {
     throw new AppError("You are not valid seller", 400);
   }
 
-  const existingOTP = await SellerOtp.findOne({
-    sellerId: existingSeller._id,
+  const existingOTP = await Otp.findOne({
+    userId: existingSeller.userId,
   }).lean();
-  if (!existingOTP) throw new AppError("OTP not found or expired", 400);
+  console.log(existingOTP)
+  if (!existingOTP) throw new AppError("OTP not found", 404);
+  if (existingOTP.expiresAt < new Date()) {
+    throw new Error("OTP has expired");
+  }
   if (existingOTP.otp !== otp) throw new AppError("Incorrect OTP", 400);
-  return otp;
+
+  const session = await startSession();
+  try {
+    session.startTransaction();
+    const updateUser = await User.findOneAndUpdate(
+      {
+        email,
+        role: "seller",
+        isActive: true,
+      },
+      {
+        $set: {
+          emailVerified: true,
+        },
+      },
+      {
+        returnDocument: "after",
+        runValidators: true,
+        session,
+      },
+    );
+    if (!updateUser) {
+      throw new AppError("Email not verified", 500);
+    }
+    const updateSeller = await Seller.findOneAndUpdate(
+      { userId: updateUser._id, status: { $nin: ["rejected", "suspended"] } },
+      { $set: { status: "approved" } },
+      { returnDocument: "after", runValidators: true, session },
+    );
+
+    if (!updateSeller) {
+      const currentSeller = await Seller.findOne({ userId: updateUser._id })
+        .select("status")
+        .session(session)
+        .lean();
+
+      if (!currentSeller) {
+        throw new AppError("Seller not found", 404);
+      }
+
+      throw new AppError(
+        `Seller cannot be approved. Current status: ${currentSeller.status}`,
+        409, // conflict — state changed under you, not a server error
+      );
+    }
+    await session.commitTransaction();
+    return updateSeller;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 };
 
+const resendOPT = async (payload: IResendOTPInput) => {
+  const { email } = payload;
+  console.log(email);
+  const existingUser = await User.findOne({
+    email,
+    isActive: true,
+    role: "seller",
+  })
+    .select("_id name email")
+    .lean();
+  if (!existingUser) {
+    throw new AppError("User not found with this email", 404);
+  }
+  const existingSeller = await Seller.findOne({
+    userId: existingUser._id,
+  })
+    .select("_id userId")
+    .lean();
+  if (!existingSeller) {
+    throw new AppError("You are not valid seller", 400);
+  }
+  const existingOTP = await Otp.findOne({
+    userId: existingSeller.userId,
+  }).lean();
+  if (existingOTP) throw new AppError("OTP already exist", 409);
+
+  const session = await startSession();
+
+  try {
+    session.startTransaction();
+    const [newOTP] = await Otp.create(
+      [
+        {
+          userId: existingSeller.userId,
+          otp: generateOPT(),
+          expiresAt: new Date(Date.now() + 2 * 60 * 1000),
+        },
+      ],
+      { session },
+    );
+    if (!newOTP) throw new AppError("Failed to create OTP", 500);
+    try {
+      await sendEmail({
+        to: existingUser.email,
+        subject: "Email Verification",
+        html: otpTemplate(existingUser.name, newOTP.otp),
+      });
+    } catch (error: any) {
+      console.error("Email Error:", {
+        message: error.message,
+        code: error.code,
+        responseCode: error.responseCode,
+        command: error.command,
+        response: error.response,
+      });
+      throw new AppError("Failed to send verification email", 500);
+    }
+
+    await session.commitTransaction();
+    return existingSeller;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
 const registerCustomer = async (
   sellerId: Types.ObjectId,
   input: RegisterCustomerInput,
@@ -494,4 +621,5 @@ export const AuthServices = {
   updateProfile,
   registerSeller,
   verifySellerOPT,
+  resendOPT,
 };

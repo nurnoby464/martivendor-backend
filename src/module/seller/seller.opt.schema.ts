@@ -1,9 +1,9 @@
 import { model, Schema } from "mongoose";
-import { ISellerOtp } from "./seller.otp.interface";
+import { IOtp } from "./seller.otp.interface";
 
-const sellerOtpSchema = new Schema<ISellerOtp>(
+const otpSchema = new Schema<IOtp>(
   {
-    sellerId: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -15,6 +15,10 @@ const sellerOtpSchema = new Schema<ISellerOtp>(
       required: true,
       match: /^\d{6}$/,
     },
+    expiresAt: {
+    type: Date,
+    required: true,
+  },
   },
   {
     timestamps: true,
@@ -23,12 +27,12 @@ const sellerOtpSchema = new Schema<ISellerOtp>(
 );
 
 // Automatically delete the document 1 minute after creation
-sellerOtpSchema.index(
-  { createdAt: 1 },
-  { expireAfterSeconds: 60 }
+otpSchema.index(
+  { expiresAt: 1 },
+  { expireAfterSeconds: 0}
 );
 
-export const SellerOtp = model<ISellerOtp>(
-  "SellerOtp",
-  sellerOtpSchema
+export const Otp = model<IOtp>(
+  "Otp",
+  otpSchema
 );

@@ -3,9 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeLoginResponse = exports.makeToken = void 0;
+exports.generateOPT = exports.makeLoginResponse = exports.profileModelMap = exports.makeToken = void 0;
 const customer_schema_1 = __importDefault(require("../CRM/customer/customer.schema"));
 const staff_schema_1 = __importDefault(require("../CRM/staff/staff.schema"));
+const staff_schema_2 = require("../CRM/sellerStaff/staff.schema");
+const seller_schema_1 = require("../module/seller/seller.schema");
 const makeToken = (payload) => {
     const { existing, session } = payload;
     const data = {
@@ -22,18 +24,19 @@ const makeToken = (payload) => {
     return data;
 };
 exports.makeToken = makeToken;
+exports.profileModelMap = {
+    Seller: seller_schema_1.Seller,
+    Customer: customer_schema_1.default,
+    Staff: staff_schema_1.default,
+    SellerStaff: staff_schema_2.SellerStaff,
+};
 const makeLoginResponse = async (payload) => {
     const { user } = payload;
     // ─── profile: already populated (getMe) or fetch it (login) ──
     let profile = null;
-    if (user.profileId) {
-        // just an ObjectId — fetch from correct model
-        if (user.role === "customer") {
-            profile = await customer_schema_1.default.findById(user.profileId).lean();
-        }
-        else {
-            profile = await staff_schema_1.default.findById(user.profileId).lean();
-        }
+    if (user.profileId && user.profileType) {
+        const ProfileModel = exports.profileModelMap[user.profileType];
+        profile = await ProfileModel.findById(user.profileId).lean();
     }
     // ─── base — shared by all roles ───────────────────────
     const base = {
@@ -50,8 +53,39 @@ const makeLoginResponse = async (payload) => {
         image: profile?.image ?? null,
     };
     // ─── super_admin ──────────────────────────────────────
+    // super_admin's User.profileId/profileType point to the platform Seller doc
+    // (isPlatform: true) — same shape as a regular seller, not nulled out.
     if (user.role === "super_admin") {
-        return { ...base, sellerId: null, profileId: null, profileType: null };
+        return {
+            ...base,
+            profileType: "Seller",
+            shopName: profile?.shopName ?? null,
+            isPlatform: profile?.isPlatform ?? true,
+            commissionRate: profile?.commissionRate ?? 0,
+        };
+    }
+    // ─── seller (vendor) ───────────────────────────────────
+    if (user.role === "seller") {
+        return {
+            ...base,
+            profileType: "Seller",
+            shopName: profile?.shopName ?? null,
+            slug: profile?.slug ?? null,
+            status: profile?.status ?? null,
+            kycStatus: profile?.kyc?.status ?? null,
+            commissionRate: profile?.commissionRate ?? null,
+        };
+    }
+    // ─── seller_staff ──────────────────────────────────────
+    if (user.role === "seller_staff") {
+        return {
+            ...base,
+            profileType: "SellerStaff",
+            department: profile?.department ?? null,
+            designation: profile?.designation ?? null,
+            permissions: profile?.permissions ?? [],
+            status: profile?.status ?? null,
+        };
     }
     // ─── customer ─────────────────────────────────────────
     if (user.role === "customer") {
@@ -64,7 +98,7 @@ const makeLoginResponse = async (payload) => {
             addresses: profile?.addresses ?? [],
         };
     }
-    // ─── staff ────────────────────────────────────────────
+    // ─── platform staff (admin, staff, account, site_management, inventory, sales, report) ──
     return {
         ...base,
         profileType: "Staff",
@@ -76,4 +110,8 @@ const makeLoginResponse = async (payload) => {
     };
 };
 exports.makeLoginResponse = makeLoginResponse;
+const generateOPT = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+};
+exports.generateOPT = generateOPT;
 //# sourceMappingURL=helper.js.map

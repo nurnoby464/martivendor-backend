@@ -1,7 +1,8 @@
 import mongoose, { Types } from "mongoose";
 import { Request } from "express";
-import { RegisterCustomerInput } from "../user/user.validation";
-import { IUpdateProfileRequest } from "./auth.validation";
+import { RegisterCustomerInput, RegisterSellerInput } from "../user/user.validation";
+import { IResendOTPInput, IUpdateProfileRequest, IValidateOTPInput } from "./auth.validation";
+import { IUserDocument } from "../user/user.interface";
 interface ILogin {
     email: string;
     password: string;
@@ -12,66 +13,57 @@ interface IUpdatePassword {
     userId: string;
     sessionId: string;
 }
-export declare const getMe: (userId: string, sessionId: string) => Promise<{
-    user: {
-        sellerId: null;
-        profileId: null;
-        profileType: null;
-        _id: Types.ObjectId;
-        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-        isActive: boolean;
-        emailVerified: boolean;
-        name: any;
-        email: any;
-        phone: any;
-        image: any;
-    } | {
-        profileType: string;
-        is_profile_complete: boolean;
-        dob: any;
-        gender: any;
-        addresses: any;
-        _id: Types.ObjectId;
-        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-        sellerId: Types.ObjectId | null;
-        isActive: boolean;
-        emailVerified: boolean;
-        profileId: any;
-        name: any;
-        email: any;
-        phone: any;
-        image: any;
-    } | {
-        profileType: string;
-        is_profile_complete: boolean;
-        designation: any;
-        department: any;
-        joining_date: any;
-        address: any;
-        _id: Types.ObjectId;
-        role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-        sellerId: Types.ObjectId | null;
-        isActive: boolean;
-        emailVerified: boolean;
-        profileId: any;
-        name: any;
-        email: any;
-        phone: any;
-        image: any;
-    };
-    accessToken: string;
-    refreshToken: string;
+export declare const getMe: (userId: Types.ObjectId, sessionId: Types.ObjectId) => Promise<IUserDocument & Required<{
+    _id: Types.ObjectId;
+}> & {
+    __v: number;
 }>;
 export declare const AuthServices: {
     login: (payload: ILogin, req: Request) => Promise<{
         user: {
-            sellerId: null;
-            profileId: null;
-            profileType: null;
+            profileType: string;
+            shopName: any;
+            isPlatform: any;
+            commissionRate: any;
             _id: Types.ObjectId;
             role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            sellerId: Types.ObjectId | null;
             isActive: boolean;
             emailVerified: boolean;
+            profileId: any;
+            name: any;
+            email: any;
+            phone: any;
+            image: any;
+        } | {
+            profileType: string;
+            shopName: any;
+            slug: any;
+            status: any;
+            kycStatus: any;
+            commissionRate: any;
+            _id: Types.ObjectId;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            sellerId: Types.ObjectId | null;
+            isActive: boolean;
+            emailVerified: boolean;
+            profileId: any;
+            name: any;
+            email: any;
+            phone: any;
+            image: any;
+        } | {
+            profileType: string;
+            department: any;
+            designation: any;
+            permissions: any;
+            status: any;
+            _id: Types.ObjectId;
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            sellerId: Types.ObjectId | null;
+            isActive: boolean;
+            emailVerified: boolean;
+            profileId: any;
             name: any;
             email: any;
             phone: any;
@@ -152,57 +144,31 @@ export declare const AuthServices: {
         schema: mongoose.Schema;
         __v: number;
     }>;
-    getMe: (userId: string, sessionId: string) => Promise<{
-        user: {
-            sellerId: null;
-            profileId: null;
-            profileType: null;
-            _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-            isActive: boolean;
-            emailVerified: boolean;
-            name: any;
-            email: any;
-            phone: any;
-            image: any;
-        } | {
-            profileType: string;
-            is_profile_complete: boolean;
-            dob: any;
-            gender: any;
-            addresses: any;
-            _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-            sellerId: Types.ObjectId | null;
-            isActive: boolean;
-            emailVerified: boolean;
-            profileId: any;
-            name: any;
-            email: any;
-            phone: any;
-            image: any;
-        } | {
-            profileType: string;
-            is_profile_complete: boolean;
-            designation: any;
-            department: any;
-            joining_date: any;
-            address: any;
-            _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-            sellerId: Types.ObjectId | null;
-            isActive: boolean;
-            emailVerified: boolean;
-            profileId: any;
-            name: any;
-            email: any;
-            phone: any;
-            image: any;
-        };
-        accessToken: string;
-        refreshToken: string;
+    getMe: (userId: Types.ObjectId, sessionId: Types.ObjectId) => Promise<IUserDocument & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
     }>;
     updateProfile: (companyId: Types.ObjectId, userId: Types.ObjectId, input: IUpdateProfileRequest) => Promise<void>;
+    registerSeller: (input: RegisterSellerInput) => Promise<mongoose.Document<unknown, {}, import("../seller/seller.interface").ISeller, {}, mongoose.DefaultSchemaOptions> & import("../seller/seller.interface").ISeller & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
+    verifySellerOPT: (payload: IValidateOTPInput) => Promise<mongoose.Document<unknown, {}, import("../seller/seller.interface").ISeller, {}, mongoose.DefaultSchemaOptions> & import("../seller/seller.interface").ISeller & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    }>;
+    resendOPT: (payload: IResendOTPInput) => Promise<import("../seller/seller.interface").ISeller & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }>;
 };
 export {};
 //# sourceMappingURL=auth.service.d.ts.map

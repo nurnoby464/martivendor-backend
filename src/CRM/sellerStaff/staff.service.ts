@@ -4,8 +4,8 @@ import { AppError } from "../../middlewares/appError";
 import Product from "../../module/product/product.schema";
 import ProductVariant from "../../module/product-variant/product-variant.schema";
 import { GetCustomerQuery } from "./staff.validation";
-import Customer from "./staff.schema";
 import { useSkip } from "../../utils/useSkip";
+import Customer from "../customer/customer.schema";
 
 export const getCustomerList = async (
   query: GetCustomerQuery,

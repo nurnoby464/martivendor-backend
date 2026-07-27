@@ -6,6 +6,13 @@ declare const AddressSchema: z.ZodObject<{
     zip: z.ZodOptional<z.ZodString>;
     isDefault: z.ZodDefault<z.ZodBoolean>;
 }, z.core.$strip>;
+export declare const validateOTPSchema: z.ZodObject<{
+    email: z.ZodPipe<z.ZodString, z.ZodEmail>;
+    otp: z.ZodString;
+}, z.core.$strip>;
+export declare const resendOTPSchema: z.ZodObject<{
+    email: z.ZodPipe<z.ZodString, z.ZodEmail>;
+}, z.core.$strip>;
 export declare const CustomerUpdateSchema: z.ZodObject<{
     userData: z.ZodOptional<z.ZodObject<{
         name: z.ZodOptional<z.ZodOptional<z.ZodString>>;
@@ -91,5 +98,7 @@ export type IUpdateProfileRequest = z.infer<typeof UpdateProfileSchema>;
 export type ICustomerUpdateRequest = z.infer<typeof CustomerUpdateSchema>;
 export type IStaffUpdateRequest = z.infer<typeof StaffUpdateSchema>;
 export type IAddressInput = z.infer<typeof AddressSchema>;
+export type IValidateOTPInput = z.infer<typeof validateOTPSchema>;
+export type IResendOTPInput = z.infer<typeof resendOTPSchema>;
 export {};
 //# sourceMappingURL=auth.validation.d.ts.map
