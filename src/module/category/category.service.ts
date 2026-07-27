@@ -36,6 +36,7 @@ export const createCategory = async (payload: {
   parent_id?: string | null;
   image?: string | null;
   createdBy: mongoose.Types.ObjectId;
+  isActive:boolean;
   req: Request;
 }) => {
   const { sellerId, name, parent_id, image, createdBy } = payload;

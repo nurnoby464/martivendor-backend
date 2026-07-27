@@ -20,14 +20,14 @@ router
     validate({ query: categoryQuerySchema }),
     authenticate,
     verifySession,
-    guard("super_admin", "admin", "inventory"),
+    guard("super_admin", "admin", "inventory","seller","staff"),
     CategoryController.getCategories,
   )
   .post(
     validate({ body: createCategorySchema }),
     authenticate,
     verifySession,
-    guard("super_admin", "admin", "inventory"),
+    guard("super_admin", "admin", "inventory","seller","staff"),
     CategoryController.createCategory,
   );
 

@@ -7,6 +7,7 @@ import * as CategoryService from "./category.service";
 // ─── Create Category ──────────────────────────────────────
 export const createCategory = asyncHandler(
   async (req: Request, res: Response) => {
+    console.log("category body",req.body)
     const category = await CategoryService.createCategory({
       ...req.body, // Contains name, parent_id, image (URL)
       sellerId: req.user.sellerId!,
