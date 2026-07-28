@@ -27,7 +27,7 @@ const invoiceItemSchema = new Schema<IInvoiceItem>(
     name: { type: String, required: true },
     sku: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
-    unit_price: { type: Number, required: true },
+    buyingPrice: { type: Number, required: true },
     total_price: { type: Number, required: true },
   },
   { _id: false },

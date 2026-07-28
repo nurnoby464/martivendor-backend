@@ -1,18 +1,20 @@
 import { model, Schema } from "mongoose";
-import { IProduct } from "./product.interface";
+import { IProduct, ProductTag } from "./product.interface";
 
-// ── Counter for SKU sequence per company ──────────────────────────────────────
+// ── Counter for SKU sequence per seller ───────────────────────────────────────
 const ProductCounterSchema = new Schema(
   {
     sellerId: { type: Schema.Types.ObjectId, required: true },
     seq: { type: Number, default: 0 },
   },
-  { collection: "product_counters" },
+  { collection: "product_counters" }
 );
+
 ProductCounterSchema.index({ sellerId: 1 }, { unique: true });
+
 export const ProductCounter = model("ProductCounter", ProductCounterSchema);
 
-// ── Helper: build SKU from category name + product name ───────────────────────
+// ── Helper: build SKU from product name ───────────────────────────────────────
 function buildProductSku(name: string, seq: number): string {
   const clean = (s: string) =>
     s
@@ -20,20 +22,27 @@ function buildProductSku(name: string, seq: number): string {
       .toUpperCase()
       .replace(/[^A-Z0-9]+/g, "-")
       .slice(0, 10);
+
   return `${clean(name)}-${String(seq).padStart(4, "0")}`;
-  // e.g. "COTTON-SHIR-0001"
+  // e.g. COTTON-SHIR-0001
 }
 
 // ── Product schema ────────────────────────────────────────────────────────────
 const ProductSchema = new Schema<IProduct>(
   {
     sellerId: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
-    category_id: {
+
+    categoryId: {
       type: Schema.Types.ObjectId,
       ref: "Category",
       required: true,
     },
-    vendor_id: { type: Schema.Types.ObjectId, ref: "Vendor", required: true },
+
+    // vendorId: {
+    //   type: Schema.Types.ObjectId,
+    //   ref: "Vendor",
+    //   required: true,
+    // },
 
     name: {
       type: String,
@@ -43,67 +52,176 @@ const ProductSchema = new Schema<IProduct>(
       maxlength: [200, "Name cannot exceed 200 characters"],
     },
 
-    slug: { type: String, required: true, trim: true, lowercase: true },
-    description: { type: String, default: null, trim: true },
-    images: { type: [String], default: [] },
+    slug: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+    },
+
+    description: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    specification: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    images: {
+      type: [String],
+      default: [],
+    },
 
     sku: {
       type: String,
       trim: true,
       uppercase: true,
-      // filled by pre-save if not provided by user
+      // Filled by pre-save if not provided
     },
 
-    // pricing
-    buying_price: { type: Number, required: true, min: 0 },
-    selling_price: { type: Number, required: true, min: 0 },
-    profit: { type: Number, default: 0 },
-    profit_margin: { type: Number, default: 0 },
+    // Pricing
+    buyingPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
 
-    // stock (only relevant when has_variants = false)
-    stock: { type: Number, default: 0, min: 0 },
-    low_stock_alert: { type: Number, default: 10 },
+    sellingPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
 
-    has_variants: { type: Boolean, default: false },
-    is_active: { type: Boolean, default: true },
-    taxRate: { type: Number, default: 0 },
-    display_price_min: { type: Number, default: 0 },
-    display_price_max: { type: Number, default: 0 },
-    total_stock: { type: Number, default: 0 },
-    variant_count: { type: Number, default: 0 },
-    has_discount: { type: Boolean, default: false },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+
+    profit: {
+      type: Number,
+      default: 0,
+    },
+
+    profitMargin: {
+      type: Number,
+      default: 0,
+    },
+
+    // Stock (only when hasVariants = false)
+    stock: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    lowStockAlert: {
+      type: Number,
+      default: 10,
+    },
+
+    hasVariants: {
+      type: Boolean,
+      default: false,
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+
+    taxRate: {
+      type: Number,
+      default: 0,
+    },
+
+    displayPriceMin: {
+      type: Number,
+      default: 0,
+    },
+
+    displayPriceMax: {
+      type: Number,
+      default: 0,
+    },
+
+    totalStock: {
+      type: Number,
+      default: 0,
+    },
+
+    variantCount: {
+      type: Number,
+      default: 0,
+    },
+
+    hasDiscount: {
+      type: Boolean,
+      default: false,
+    },
+
+    tags: {
+      type: [String],
+      enum: Object.values(ProductTag),
+      default: [],
+    },
+
+    showOnHomepage: {
+      type: Boolean,
+      default: false,
+    },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-// ── Auto-generate SKU if not provided ────────────────────────────────────────
+// ── Auto-generate SKU & calculate profit ──────────────────────────────────────
 ProductSchema.pre("save", async function () {
   // Auto SKU only on new documents without a manually provided SKU
   if (this.isNew && !this.sku) {
     const counter = await ProductCounter.findOneAndUpdate(
       { sellerId: this.sellerId },
       { $inc: { seq: 1 } },
-      { upsert: true, new: true },
+      { upsert: true, new: true }
     );
+
     this.sku = buildProductSku(this.name, counter.seq);
   }
 
   // Always recalculate profit
-  this.profit = parseFloat((this.selling_price - this.buying_price).toFixed(2));
-  this.profit_margin =
-    this.selling_price > 0
-      ? parseFloat(((this.profit / this.selling_price) * 100).toFixed(2))
+  this.profit = parseFloat(
+    (this.sellingPrice - this.buyingPrice).toFixed(2)
+  );
+
+  this.profitMargin =
+    this.sellingPrice > 0
+      ? parseFloat(((this.profit / this.sellingPrice) * 100).toFixed(2))
       : 0;
+
+  // Keep hasDiscount in sync with the actual discount value rather than
+  // letting callers set it independently and drift out of sync.
+  this.hasDiscount = this.discount > 0;
 });
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
-ProductSchema.index({ sellerId: 1, is_active: 1 });
-ProductSchema.index({ sellerId: 1, category_id: 1 });
-// ProductSchema.index({ sellerId: 1, vendor_id: 1 });
+ProductSchema.index({ sellerId: 1, isActive: 1 });
+ProductSchema.index({ sellerId: 1, categoryId: 1 });
+// ProductSchema.index({ sellerId: 1, vendorId: 1 });
 ProductSchema.index({ sellerId: 1, stock: 1 });
 ProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
 ProductSchema.index({ sellerId: 1, slug: 1 }, { unique: true });
+ProductSchema.index({ sellerId: 1, showOnHomepage: 1 });
 
 const Product = model<IProduct>("Product", ProductSchema);
+
 export default Product;

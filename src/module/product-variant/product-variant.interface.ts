@@ -6,28 +6,30 @@ export interface IAttribute {
 }
 
 export interface IProductVariant {
-  product_id: mongoose.Types.ObjectId;
+  productId: mongoose.Types.ObjectId;
   sellerId: mongoose.Types.ObjectId;
 
   attributes: IAttribute[];
 
-  sku: string; // auto-generated from parent SKU + attributes
-  image: string | null; // ← NEW: colour/variant-specific photo
+  sku: string; // Auto-generated from parent SKU + attributes
+  image: string | null; // Color/variant-specific photo
 
-  buying_price: number;
-  selling_price: number;
-  profit: number; // auto
-  profit_margin: number; // auto
+  buyingPrice: number;
+  sellingPrice: number;
+  profit: number; // Auto
+  profitMargin: number; // Auto
 
   stock: number;
-  low_stock_alert: number;
+  lowStockAlert: number;
 
   discountType: "flat" | "percentage" | null;
   discountValue: number;
 
-  is_active: boolean;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface IProductVariantDocument extends IProductVariant, Document {}
+export interface IProductVariantDocument
+  extends IProductVariant,
+    Document {}

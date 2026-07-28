@@ -1,33 +1,33 @@
 import mongoose, { Document } from "mongoose";
 
 export interface IPurchaseItem {
-  product_id: mongoose.Types.ObjectId;
-  variant_id: mongoose.Types.ObjectId;
-  product_name: string;
+  productId: mongoose.Types.ObjectId;
+  variantId: mongoose.Types.ObjectId;
+  productName: string;
   sku: string;
   color: string | null;
   size: string | null;
   quantity: number;
-  unit_price: number;
-  selling_price: number;
+  unitPrice: number;
+  sellingPrice: number;
   total: number;
 }
 
 export interface IPurchase {
   sellerId: mongoose.Types.ObjectId;
-  vendor_id: mongoose.Types.ObjectId;
+  vendorId: mongoose.Types.ObjectId;
   items: IPurchaseItem[];
-  product_ids: mongoose.Types.ObjectId[];
-  item_count: number;
+  productIds: mongoose.Types.ObjectId[];
+  itemCount: number;
 
-  // financials
-  total_amount: number; // sum of all item totals (buying)
-  paid_amount: number; // how much paid so far
-  due_amount: number; // total_amount - paid_amount (auto)
+  // Financials
+  totalAmount: number; // Sum of all item totals (buying)
+  paidAmount: number; // How much paid so far
+  dueAmount: number; // totalAmount - paidAmount (auto)
 
   status: "pending" | "partial" | "paid";
 
-  purchase_date: Date;
+  purchaseDate: Date;
   note: string | null;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;

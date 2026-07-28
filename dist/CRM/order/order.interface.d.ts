@@ -10,7 +10,7 @@ export interface IOrderItem {
     sku: string;
     image: string | null;
     quantity: number;
-    unit_price: number;
+    buyingPrice: number;
     total_price: number;
 }
 export interface IShippingAddress {

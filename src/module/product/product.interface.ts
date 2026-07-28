@@ -1,34 +1,62 @@
 import mongoose from "mongoose";
 import { Document } from "mongoose";
+export enum ProductTag {
+  NEW_ARRIVAL = "NEW_ARRIVAL",
+  FLASH_SALE = "FLASH_SALE",
+  TOP_DEALS = "TOP_DEALS",
+  BEST_SELLER = "BEST_SELLER",
+  FEATURED = "FEATURED",
+  TRENDING = "TRENDING",
+  POPULAR = "POPULAR",
+  HOT = "HOT",
+  ON_SALE = "ON_SALE",
+  LIMITED_EDITION = "LIMITED_EDITION",
+  EXCLUSIVE = "EXCLUSIVE",
+  PRE_ORDER = "PRE_ORDER",
+  COMING_SOON = "COMING_SOON",
+  LOW_STOCK = "LOW_STOCK",
+  BACK_IN_STOCK = "BACK_IN_STOCK",
+  FREE_SHIPPING = "FREE_SHIPPING",
+  TOP_RATED = "TOP_RATED",
+  RECOMMENDED = "RECOMMENDED",
+  CLEARANCE = "CLEARANCE",
+  DISCOUNT = "DISCOUNT",
+}
 
 export interface IProduct {
   sellerId: mongoose.Types.ObjectId;
-  category_id: mongoose.Types.ObjectId;
-  vendor_id: mongoose.Types.ObjectId;
+  categoryId: mongoose.Types.ObjectId;
+  // vendorId: mongoose.Types.ObjectId;
 
   name: string;
   slug: string;
   description: string | null;
+  specification: string | null;
   images: string[];
-  sku: string; // unique stock keeping unit
+  sku: string; // Unique stock keeping unit
 
-  buying_price: number; // cost from vendor
-  selling_price: number; // price to customer
-  profit: number; // selling_price - buying_price (auto)
-  profit_margin: number; // (profit / selling_price) * 100 (auto)
+  buyingPrice: number; // Cost from vendor
+  sellingPrice: number; // Price to customer
+  discount: number; // Percentage discount, 0-100
+  profit: number; // sellingPrice - buyingPrice (auto)
+  profitMargin: number; // (profit / sellingPrice) * 100 (auto)
 
-  stock: number; // current stock (0 if has_variants)
-  low_stock_alert: number; // alert when stock <= this
+  stock: number; // Current stock (0 if hasVariants)
+  lowStockAlert: number; // Alert when stock <= this
 
-  display_price_min: number;
-  display_price_max: number;
-  total_stock: number;
-  variant_count: number;
-  has_discount: boolean;
+  displayPriceMin: number;
+  displayPriceMax: number;
+  totalStock: number;
+  variantCount: number;
+  hasDiscount: boolean;
 
-  has_variants: boolean; // true → use ProductVariant
+  hasVariants: boolean; // true → use ProductVariant
   taxRate: number;
-  is_active: boolean;
+  isActive: boolean;
+
+  tags: ProductTag[];
+  showOnHomepage: boolean;
+
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;

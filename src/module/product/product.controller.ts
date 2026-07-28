@@ -4,13 +4,38 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { ApiResponse } from "../../utils/ApiResponse";
 import * as ProductService from "./product.service";
 import mongoose from "mongoose";
-import { CreateProductInput } from "./product.validation";
+import { CreateProductInput, createProductSchema } from "./product.validation";
+import { AppError } from "../../middlewares/appError";
 
 // ═══════════════════════════════════════════════════════════
 // PRODUCT
 // ═══════════════════════════════════════════════════════════
 
+export const createProduct = asyncHandler(
+  async (req: Request, res: Response) => {
+    const input = createProductSchema.parse(req.body);
 
+    // Populated by auth middleware — same pattern as your existing `getMe`
+    // endpoint (role-based access, field-level selection).
+    const sellerId = req.user?.sellerId;
+    const userId = req.user?._id;
+
+    if (!sellerId || !userId) {
+      throw new AppError("Only authenticated sellers can create products", 403);
+    }
+
+    const product = await ProductService.createProduct(
+      { sellerId, createdBy: userId },
+      input,
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      data: product,
+    });
+  },
+);
 
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   const query = req.validatedQuery as {
@@ -80,5 +105,3 @@ export const deleteProduct = asyncHandler(
 // ═══════════════════════════════════════════════════════════
 // VARIANT
 // ═══════════════════════════════════════════════════════════
-
-

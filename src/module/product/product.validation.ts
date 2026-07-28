@@ -1,6 +1,7 @@
 // src/module/product/product.validation.ts
 import { z } from "zod";
 import mongoose from "mongoose";
+import { ProductTag } from "./product.interface";
 
 const objectId = z
   .string()
@@ -13,24 +14,7 @@ const attributeSchema = z.object({
   value: z.string().trim().min(1, "Attribute value is required"),
 });
 
-// ─── Product ──────────────────────────────────────────────
-export const createProductSchema = z.object({
-  category_id: objectId,
-  vendor_id: objectId,
-  name: z
-    .string()
-    .trim()
-    .min(2, "Min 2 characters")
-    .max(200, "Max 200 characters"),
-  description: z.string().trim().nullable(),
-  images: z.array(z.string().trim().url()).optional().default([]),
-  sku: z.string().trim().min(1, "SKU is required").toUpperCase(),
-  buying_price: z.number({ error: "Buying price is required" }).min(0),
-  selling_price: z.number({ error: "Selling price is required" }).min(0),
-  stock: z.number().min(0).optional().default(0),
-  low_stock_alert: z.number().min(0).optional().default(10),
-  has_variants: z.boolean().optional().default(false),
-});
+
 
 export const updateProductSchema = z.object({
   // category_id   : objectId.optional(),
@@ -79,6 +63,51 @@ export const productQuerySchema = z.object({
     .optional()
     .default("createdAt"),
   sort_order: z.enum(["asc", "desc"]).optional().default("desc"),
+});
+
+const mongoIdField = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, `${label} is required`)
+    .refine((v) => mongoose.Types.ObjectId.isValid(v), `Invalid ${label}`);
+
+export const createProductSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(200, "Name cannot exceed 200 characters"),
+
+  // Wire field is `category` (matches CategoryCombobox's hidden input name).
+  categoryId: mongoIdField("Category"),
+  // Sent alongside `category` for display purposes only — the product is
+  // normalized against the id, never this string. Not persisted.
+  categoryName: z.string().trim().optional(),
+
+  color: z.string().trim().min(1, "Color is required"),
+  size: z.string().trim().optional().default(""),
+
+  sellingPrice: z.coerce.number({ error: "Selling price is required" }).min(0),
+  buyingPrice: z.coerce.number().min(0).optional().default(0),
+  discount: z.coerce.number().min(0).max(100).optional().default(0),
+
+  stock: z.coerce.number().int().min(0, "Stock cannot be negative"),
+  lowStockAlert: z.coerce.number().int().min(0).optional().default(5),
+
+  description: z.string().trim().max(5000).optional().default(""),
+  specifications: z.string().trim().max(5000).optional().default(""),
+
+  tags: z
+    .array(z.nativeEnum(ProductTag))
+    .max(10, "Maximum 10 tags")
+    .optional()
+    .default([]),
+  showOnHomepage: z.coerce.boolean().optional().default(false),
+
+  // Resolved to a URL by an upload step (multer + Cloudinary) upstream of
+  // this schema — this validates the *result*, not a raw multipart file.
+  image: z.string().url().optional(),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

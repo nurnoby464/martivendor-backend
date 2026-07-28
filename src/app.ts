@@ -96,7 +96,7 @@ app.use("/api/v1/users", UsersRoute);
 app.use("/api/v1/company", CompanyRouter);
 app.use("/api/v1/vendor", VendorRoutes);
 app.use("/api/v1/category", CategoryRoutes);
-app.use("/api/v1/product", ProductRoutes);
+app.use("/api/v1/products", ProductRoutes);
 app.use("/api/v1/purchase", PurchaseRoute);
 app.use("/api/v1/product-variant", ProductVariantRoute);
 app.use("/api/v1/sales", SaleRouter);

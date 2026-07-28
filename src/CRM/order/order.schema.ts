@@ -13,7 +13,7 @@ const orderItemSchema = new Schema<IOrderItem>(
     sku: { type: String, required: true },
     image: { type: String, default: null },
     quantity: { type: Number, required: true, min: 1 },
-    unit_price: { type: Number, required: true },
+    buyingPrice: { type: Number, required: true },
     total_price: { type: Number, required: true },
   },
   { _id: false }, // no need separate _id for embedded items

@@ -30,11 +30,11 @@ export const getPurchases = asyncHandler(
     const query = req.validatedQuery as {
       page: number;
       limit: number;
-      vendor_id?: string;
+      vendorId?: string;
       status?: "pending" | "partial" | "paid";
-      from_date?: Date;
-      to_date?: Date;
-      sort_order: string;
+      fromDate?: Date;
+      toDate?: Date;
+      sortOrder: string;
     };
 
     const { purchases, total } = await PurchaseService.getPurchases(

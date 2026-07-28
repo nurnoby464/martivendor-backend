@@ -17,15 +17,19 @@ import { guard } from "../../middlewares/guard";
 const router = Router();
 
 // ── /api/products ─────────────────────────────────────────
-router
+(router
   .route("/")
   .get(
     validate({ query: productQuerySchema }),
     authenticate,
     verifySession,
-    guard("super_admin", "admin", "inventory"),
+    guard("super_admin", "seller", "admin", "staff", "seller_staff"),
     ProductController.getProducts,
-  );
+  )
+  .post(validate({ body: createProductSchema }),
+  authenticate,
+  verifySession,
+  guard("super_admin", "seller", "admin", "staff", "seller_staff"),ProductController.createProduct));
 
 // ── /api/products/:id ─────────────────────────────────────
 router

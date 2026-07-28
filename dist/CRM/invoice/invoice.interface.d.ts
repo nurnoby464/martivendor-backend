@@ -5,7 +5,7 @@ export interface IInvoiceItem {
     name: string;
     sku: string;
     quantity: number;
-    unit_price: number;
+    buyingPrice: number;
     total_price: number;
 }
 export interface IInvoice {

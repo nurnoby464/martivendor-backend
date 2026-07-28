@@ -28,13 +28,13 @@ interface CreatePurchasePayload extends CreatePurchaseInput {
 }
 
 interface ResolvedLineItem {
-  product_id: mongoose.Types.ObjectId;
-  variant_id: mongoose.Types.ObjectId;
-  product_name: string;
+  productId: mongoose.Types.ObjectId;
+  variantId: mongoose.Types.ObjectId;
+  productName: string;
   sku: string;
   quantity: number;
-  unit_price: number;
-  selling_price: number;
+  buyingPrice: number;
+  sellingPrice: number;
   total: number;
   color: string; // ← add
   size: string; // ← add
@@ -86,76 +86,76 @@ function variantKey(productId: string, color: string, size: string): string {
 
 // ─── Stage 0: Resolve or create vendor ───────────────────
 
-async function resolveVendor(
-  payload: {
-    vendor_id?: string;
-    vendorName?: string;
-    vendorPhone?: string;
-    vendorEmail?: string;
-  },
-  sellerId: mongoose.Types.ObjectId,
-  createdBy: mongoose.Types.ObjectId,
-  session: ClientSession,
-): Promise<IVendorDocument> {
-  // vendor_id provided → find existing
-  if (payload.vendor_id) {
-    const vendor = await Vendor.findOne({
-      _id: new mongoose.Types.ObjectId(payload.vendor_id),
-      sellerId,
-      is_active: true,
-    })
-      .session(session)
-      .lean<any>();
+// async function resolveVendor(
+//   payload: {
+//     vendorId?: string;
+//     vendorName?: string;
+//     vendorPhone?: string;
+//     vendorEmail?: string;
+//   },
+//   sellerId: mongoose.Types.ObjectId,
+//   createdBy: mongoose.Types.ObjectId,
+//   session: ClientSession,
+// ): Promise<IVendorDocument> {
+//   // vendorId provided → find existing
+//   if (payload.vendorId) {
+//     const vendor = await Vendor.findOne({
+//       _id: new mongoose.Types.ObjectId(payload.vendorId),
+//       sellerId,
+//       is_active: true,
+//     })
+//       .session(session)
+//       .lean<any>();
 
-    if (!vendor) throw new AppError("Vendor not found", 404);
-    return vendor;
-  }
+//     if (!vendor) throw new AppError("Vendor not found", 404);
+//     return vendor;
+//   }
 
-  // vendorName provided → create new vendor
-  if (payload.vendorName) {
-    // check duplicate phone under same company
-    if (payload.vendorPhone) {
-      const existing = await Vendor.findOne({
-        sellerId,
-        phone: payload.vendorPhone,
-      })
-        .session(session)
-        .lean<any>();
+//   // vendorName provided → create new vendor
+//   if (payload.vendorName) {
+//     // check duplicate phone under same company
+//     if (payload.vendorPhone) {
+//       const existing = await Vendor.findOne({
+//         sellerId,
+//         phone: payload.vendorPhone,
+//       })
+//         .session(session)
+//         .lean<any>();
 
-      if (existing) {
-        throw new AppError(
-          `Vendor with phone ${payload.vendorPhone} already exists`,
-          409,
-        );
-      }
-    }
-    if (!payload.vendorPhone) {
-      throw new AppError(`Vendor  phone is required`, 400);
-    }
+//       if (existing) {
+//         throw new AppError(
+//           `Vendor with phone ${payload.vendorPhone} already exists`,
+//           409,
+//         );
+//       }
+//     }
+//     if (!payload.vendorPhone) {
+//       throw new AppError(`Vendor  phone is required`, 400);
+//     }
 
-    const [created] = await Vendor.create(
-      [
-        {
-          sellerId,
-          createdBy,
-          name: payload.vendorName.trim(),
-          phone: payload.vendorPhone,
-          email: payload.vendorEmail ?? null,
-          // address: null,
-          is_active: true,
-        },
-      ],
-      { session },
-    );
-    if (!created) {
-      throw new AppError("Vendor created failed", 500);
-    }
-    return created;
-  }
+//     const [created] = await Vendor.create(
+//       [
+//         {
+//           sellerId,
+//           createdBy,
+//           name: payload.vendorName.trim(),
+//           phone: payload.vendorPhone,
+//           email: payload.vendorEmail ?? null,
+//           // address: null,
+//           is_active: true,
+//         },
+//       ],
+//       { session },
+//     );
+//     if (!created) {
+//       throw new AppError("Vendor created failed", 500);
+//     }
+//     return created;
+//   }
 
-  // neither provided — zod should catch this but safety net
-  throw new AppError("Vendor ID or Vendor Name is required", 400);
-}
+//   // neither provided — zod should catch this but safety net
+//   throw new AppError("Vendor ID or Vendor Name is required", 400);
+// }
 
 // ─── Stage 1: Bulk upsert categories ─────────────────────────────────────────
 
@@ -240,12 +240,12 @@ async function bulkUpsertProducts(
   sellerId: mongoose.Types.ObjectId,
   createdBy: mongoose.Types.ObjectId,
   session: ClientSession,
-  vendor: any,
+  // vendor: any,
 ): Promise<Map<string, { _id: mongoose.Types.ObjectId; sku: string }>> {
   const map = new Map<string, { _id: mongoose.Types.ObjectId; sku: string }>();
 
   const withId = items.filter((i) => i.productId);
-  const withName = items.filter((i) => !i.productId && i.product_name);
+  const withName = items.filter((i) => !i.productId && i.productName);
 
   // ── 1. load existing products by id ───────────────────────
   if (withId.length > 0) {
@@ -274,7 +274,7 @@ async function bulkUpsertProducts(
     // deduplicate by name
     const uniqueItems = [
       ...new Map(
-        withName.map((i) => [i.product_name!.trim().toLowerCase(), i]),
+        withName.map((i) => [i.productName!.trim().toLowerCase(), i]),
       ).values(),
     ];
 
@@ -282,7 +282,7 @@ async function bulkUpsertProducts(
       sellerId,
       name: {
         $in: uniqueItems.map(
-          (i) => new RegExp(`^${i.product_name!.trim()}$`, "i"),
+          (i) => new RegExp(`^${i.productName!.trim()}$`, "i"),
         ),
       },
     })
@@ -295,7 +295,7 @@ async function bulkUpsertProducts(
 
     // create missing products
     const missing = uniqueItems.filter(
-      (i) => !map.has(i.product_name!.trim().toLowerCase()),
+      (i) => !map.has(i.productName!.trim().toLowerCase()),
     );
 
     if (missing.length > 0) {
@@ -308,26 +308,26 @@ async function bulkUpsertProducts(
 
           if (!category_id) {
             throw new AppError(
-              `Category not resolved for product: "${i.product_name}"`,
+              `Category not resolved for product: "${i.productName}"`,
               500,
             );
           }
 
-          const sku = buildProductSku(i.product_name!);
+          const sku = buildProductSku(i.productName!);
 
           return {
             sellerId,
             category_id,
-            name: i.product_name!.trim(),
-            slug: buildSlug(i.product_name!) + "-" + Date.now(),
+            name: i.productName!.trim(),
+            slug: buildSlug(i.productName!) + "-" + Date.now(),
             sku,
             // ✅ For variant products, these are placeholders (will be updated from variants)
-            buying_price: 0, // Will be updated from variant aggregation
-            selling_price: 0, // Will be updated from variant aggregation
+            buyingPrice: 0, // Will be updated from variant aggregation
+            sellingPrice: 0, // Will be updated from variant aggregation
             profit: 0,
             profit_margin: 0,
             has_variants: true,
-            vendor_id: vendor._id,
+            // vendorId: vendor._id,
             stock: 0, // Will be updated from variant aggregation
             images: i.images ?? [],
             is_active: true,
@@ -357,11 +357,11 @@ async function bulkUpsertVariants(
   const resolveProduct = (item: CreatePurchaseInput["items"][number]) => {
     const product = item.productId
       ? productMap.get(item.productId)
-      : productMap.get(item.product_name!.trim().toLowerCase());
+      : productMap.get(item.productName!.trim().toLowerCase());
 
     if (!product) {
       throw new AppError(
-        `Product not resolved in variant stage: "${item.product_name}"`,
+        `Product not resolved in variant stage: "${item.productName}"`,
         500,
       );
     }
@@ -375,7 +375,7 @@ async function bulkUpsertVariants(
 
   const existing = await ProductVariant.find({
     sellerId,
-    product_id: { $in: productIds },
+    productId: { $in: productIds },
     is_active: true,
   })
     .session(session)
@@ -388,7 +388,7 @@ async function bulkUpsertVariants(
       const size =
         v.attributes?.find((a: any) => a.key === "size")?.value ?? "";
       return [
-        variantKey(v.product_id.toString(), color, size),
+        variantKey(v.productId.toString(), color, size),
         { _id: v._id, sku: v.sku },
       ];
     }),
@@ -398,8 +398,8 @@ async function bulkUpsertVariants(
   const toUpdateStock: Array<{
     variantId: mongoose.Types.ObjectId;
     quantity: number;
-    buying_price: number;
-    selling_price: number;
+    buyingPrice: number;
+    sellingPrice: number;
   }> = [];
 
   // ── classify each item → create or update ─────────────────
@@ -416,15 +416,15 @@ async function bulkUpsertVariants(
         const c =
           v.attributes?.find((a: any) => a.key === "color")?.value ?? "";
         const s = v.attributes?.find((a: any) => a.key === "size")?.value ?? "";
-        return variantKey(v.product_id.toString(), c, s) === key;
+        return variantKey(v.productId.toString(), c, s) === key;
       });
 
       if (variant) {
         toUpdateStock.push({
           variantId: variant._id,
           quantity: item.quantity,
-          buying_price: item.unit_price,
-          selling_price: item.selling_price,
+          buyingPrice: item.buyingPrice,
+          sellingPrice: item.sellingPrice,
         });
       }
     } else {
@@ -436,14 +436,14 @@ async function bulkUpsertVariants(
   if (toUpdateStock.length > 0) {
     await Promise.all(
       toUpdateStock.map(
-        ({ variantId, quantity, buying_price, selling_price }) =>
+        ({ variantId, quantity, buyingPrice, sellingPrice }) =>
           ProductVariant.findByIdAndUpdate(
             variantId,
             {
               $inc: { stock: quantity },
               $set: {
-                buying_price: buying_price,
-                selling_price: selling_price,
+                buyingPrice: buyingPrice,
+                sellingPrice: sellingPrice,
               },
             },
             { session },
@@ -464,7 +464,7 @@ async function bulkUpsertVariants(
         );
 
         return {
-          product_id: product._id,
+          productId: product._id,
           sellerId,
           sku,
           attributes: [
@@ -473,10 +473,10 @@ async function bulkUpsertVariants(
               ? [{ key: "size", value: item.size.trim() }]
               : []),
           ],
-          buying_price: item.unit_price,
-          selling_price: item.selling_price,
+          buyingPrice: item.buyingPrice,
+          sellingPrice: item.sellingPrice,
           stock: item.quantity,
-          low_stock_alert: item.low_stock_alert ?? 5,
+          lowStockAlert: item.lowStockAlert ?? 5,
           image: item.images?.[0] ?? null,
           is_active: true,
         };
@@ -489,7 +489,7 @@ async function bulkUpsertVariants(
         v.attributes?.find((a: any) => a.key === "color")?.value ?? "";
       const size =
         v.attributes?.find((a: any) => a.key === "size")?.value ?? "";
-      const key = variantKey(v.product_id.toString(), color, size);
+      const key = variantKey(v.productId.toString(), color, size);
       map.set(key, { _id: v._id, sku: v.sku });
     });
   }
@@ -505,7 +505,7 @@ async function bulkUpsertVariants(
       const agg = await ProductVariant.aggregate([
         {
           $match: {
-            product_id: productId,
+            productId: productId,
             sellerId,
             is_active: true,
           },
@@ -514,8 +514,8 @@ async function bulkUpsertVariants(
           $group: {
             _id: null,
             totalStock: { $sum: "$stock" },
-            minPrice: { $min: "$selling_price" },
-            maxPrice: { $max: "$selling_price" },
+            minPrice: { $min: "$sellingPrice" },
+            maxPrice: { $max: "$sellingPrice" },
             variantCount: { $sum: 1 },
             hasDiscount: {
               $sum: {
@@ -546,8 +546,8 @@ async function bulkUpsertVariants(
             $set: {
               // For variant products, these should be 0
               stock: totalStock,
-              buying_price: 0, // ✅ Not used, set to 0
-              selling_price: 0, // ✅ Not used, set to 0
+              buyingPrice: 0, // ✅ Not used, set to 0
+              sellingPrice: 0, // ✅ Not used, set to 0
               profit: 0,
               profit_margin: 0,
 
@@ -575,12 +575,8 @@ export const createPurchase = async (
   req: Request,
 ) => {
   const {
-    vendor_id,
-    vendorName,
-    vendorEmail,
-    vendorPhone,
-    purchase_date,
-    paid_amount,
+    purchaseDate,
+    paidAmount,
     note,
     items,
     sellerId,
@@ -590,21 +586,21 @@ export const createPurchase = async (
   const session = await mongoose.startSession();
   try {
     let purchase: any;
-    let vendor: any;
+    // let vendor: any;
 
     await session.withTransaction(async () => {
       // state - 0
-      vendor = await resolveVendor(
-        {
-          ...(vendor_id && { vendor_id }),
-          ...(vendorName && { vendorName }),
-          ...(vendorPhone && { vendorPhone }),
-          ...(vendorEmail && { vendorEmail }),
-        },
-        sellerId,
-        createdBy,
-        session,
-      );
+      // vendor = await resolveVendor(
+      //   {
+      //     ...(vendorId && { vendorId }),
+      //     ...(vendorName && { vendorName }),
+      //     ...(vendorPhone && { vendorPhone }),
+      //     ...(vendorEmail && { vendorEmail }),
+      //   },
+      //   sellerId,
+      //   createdBy,
+      //   session,
+      // );
 
       // ── Stage 1: Categories ──────────────────────────────────────────────
       const categoryMap = await bulkUpsertCategories(
@@ -621,7 +617,7 @@ export const createPurchase = async (
         sellerId,
         createdBy,
         session,
-        vendor,
+        // vendor,
       );
 
       // ── Stage 3: Variants ────────────────────────────────────────────────
@@ -637,11 +633,11 @@ export const createPurchase = async (
         // lookup by productId first, then name
         const product = item.productId
           ? productMap.get(item.productId)!
-          : productMap.get(item.product_name!.trim().toLowerCase())!;
+          : productMap.get(item.productName!.trim().toLowerCase())!;
 
         if (!product)
           throw new AppError(
-            `Product not resolved: "${item.product_name}"`,
+            `Product not resolved: "${item.productName}"`,
             500,
           );
 
@@ -654,19 +650,19 @@ export const createPurchase = async (
 
         if (!variant)
           throw new AppError(
-            `Variant not resolved: "${item.product_name}" (${item.color}, ${item.size})`,
+            `Variant not resolved: "${item.productName}" (${item.color}, ${item.size})`,
             500,
           );
 
         return {
-          product_id: product._id,
-          variant_id: variant._id,
-          product_name: item.product_name?.trim() ?? "",
+          productId: product._id,
+          variantId: variant._id,
+          productName: item.productName?.trim() ?? "",
           sku: variant.sku,
           quantity: item.quantity,
-          unit_price: item.unit_price,
-          selling_price: item.selling_price,
-          total: round2(item.unit_price * item.quantity),
+          buyingPrice: item.buyingPrice,
+          sellingPrice: item.sellingPrice,
+          total: round2(item.buyingPrice * item.quantity),
           color: item.color,
           size: item.size ?? "",
         };
@@ -679,11 +675,11 @@ export const createPurchase = async (
           500,
         );
 
-      const total_amount = round2(
+      const totalAmount = round2(
         resolvedItems.reduce((sum, i) => sum + i.total, 0),
       );
-      const product_ids = [
-        ...new Set(resolvedItems.map((i) => i.product_id.toString())),
+      const productIds = [
+        ...new Set(resolvedItems.map((i) => i.productId.toString())),
       ].map((id) => new mongoose.Types.ObjectId(id));
 
       // const purchaseStart = new Date(purchase_date ?? new Date());
@@ -692,8 +688,8 @@ export const createPurchase = async (
       // purchaseEnd.setHours(23, 59, 59, 999);
       // const duplicate = await Purchase.findOne({
       //   sellerId,
-      //   vendor_id: vendor._id,
-      //   product_ids: { $all: product_ids, $size: product_ids.length },
+      //   vendorId: vendor._id,
+      //   productIds: { $all: productIds, $size: productIds.length },
       //   purchase_date: { $gte: purchaseStart, $lte: purchaseEnd },
       // }).session(session);
 
@@ -707,13 +703,13 @@ export const createPurchase = async (
         [
           {
             sellerId,
-            vendor_id: vendor._id,
+            // vendorId: vendor._id,
             items: resolvedItems,
-            product_ids,
-            item_count: resolvedItems.length,
-            total_amount,
-            paid_amount: paid_amount ?? 0,
-            purchase_date: purchase_date ? new Date(purchase_date) : new Date(),
+            productIds,
+            itemCount: resolvedItems.length,
+            totalAmount,
+            paidAmount: paidAmount ?? 0,
+            purchaseDate: purchaseDate ? new Date(purchaseDate) : new Date(),
             note: note ?? null,
             createdBy,
           },
@@ -721,25 +717,25 @@ export const createPurchase = async (
         { session },
       );
 
-      await Vendor.findByIdAndUpdate(
-        vendor._id,
-        [
-          // aggregation pipeline update — recalculates due from source fields
-          {
-            $set: {
-              total_payable: { $add: ["$total_payable", total_amount] },
-              total_paid: { $add: ["$total_paid", paid_amount ?? 0] },
-              due: {
-                $subtract: [
-                  { $add: ["$total_payable", total_amount] },
-                  { $add: ["$total_paid", paid_amount ?? 0] },
-                ],
-              },
-            },
-          },
-        ],
-        { session, updatePipeline: true },
-      );
+      // await Vendor.findByIdAndUpdate(
+      //   vendor._id,
+      //   [
+      //     // aggregation pipeline update — recalculates due from source fields
+      //     {
+      //       $set: {
+      //         total_payable: { $add: ["$total_payable", totalAmount] },
+      //         total_paid: { $add: ["$total_paid", paidAmount ?? 0] },
+      //         due: {
+      //           $subtract: [
+      //             { $add: ["$total_payable", totalAmount] },
+      //             { $add: ["$total_paid", paidAmount ?? 0] },
+      //           ],
+      //         },
+      //       },
+      //     },
+      //   ],
+      //   { session, updatePipeline: true },
+      // );
 
       purchase = created;
     });
@@ -752,12 +748,12 @@ export const createPurchase = async (
       targetModel: "Purchase",
       targetId: purchase._id,
       after: {
-        vendor_name: vendor.name,
-        total_amount: purchase.total_amount,
+        // vendor_name: vendor.name,
+        totalAmount: purchase.totalAmount,
         item_count: purchase.item_count,
         status: purchase.status,
-        total_paid: purchase.paid_amount,
-        due_amount: purchase.due_amount,
+        total_paid: purchase.paidAmount,
+        dueAmount: purchase.dueAmount,
       },
     });
 
@@ -773,29 +769,29 @@ export const getPurchases = async (
   query: ListPurchaseQuery,
 ) => {
   const filter: Record<string, unknown> = { sellerId };
-  if (query.vendor_id) filter.vendor_id = query.vendor_id;
+  if (query.vendorId) filter.vendorId = query.vendorId;
   if (query.status) filter.status = query.status;
   if (query.search)
     filter.vendor_name = { $regex: query.search, $options: "i" };
 
-  if (query.vendor_id)
-    filter.vendor_id = new mongoose.Types.ObjectId(query.vendor_id);
+  if (query.vendorId)
+    filter.vendorId = new mongoose.Types.ObjectId(query.vendorId);
   if (query.status) filter.status = query.status;
 
-  if (query.from_date || query.to_date) {
+  if (query.fromDate || query.toDate) {
     const dateFilter: Record<string, Date> = {};
-    if (query.from_date) dateFilter.$gte = query.from_date;
-    if (query.to_date) dateFilter.$lte = query.to_date;
+    if (query.fromDate) dateFilter.$gte = query.fromDate;
+    if (query.toDate) dateFilter.$lte = query.toDate;
     filter.purchase_date = dateFilter;
   }
 
-  const sortDir = query.sort_order === "asc" ? 1 : -1;
+  const sortDir = query.sortOrder === "asc" ? 1 : -1;
 
   const [purchases, total] = await Promise.all([
     Purchase.find(filter)
-      .populate("vendor_id", "name phone")
+      .populate("vendorId", "name phone")
       .populate("createdBy", "name email")
-      .populate("product_ids", "name sku ")
+      .populate("productIds", "name sku ")
       .sort({ createdAt: sortDir })
       .skip((query.page - 1) * query.limit)
       .limit(query.limit)
@@ -815,15 +811,15 @@ export const getPurchaseById = async (payload: {
     sellerId: payload.sellerId,
   })
     .populate(
-      "vendor_id",
+      "vendorId",
       "name phone email address total_payable total_paid due",
     )
     .populate("createdBy", "name email")
     .populate(
-      "product_ids",
-      "name sku images has_variants buying_price selling_price",
+      "productIds",
+      "name sku images has_variants buyingPrice sellingPrice",
     )
-    // .populate("items.variant_id", "sku attributes")
+    // .populate("items.variantId", "sku attributes")
     .lean();
 
   if (!purchase) throw new AppError("Purchase not found", 404);
@@ -831,7 +827,7 @@ export const getPurchaseById = async (payload: {
   return purchase;
 };
 
-// ─── Update purchase (only paid_amount and note) ────────────────────────
+// ─── Update purchase (only paidAmount and note) ────────────────────────
 export const updatePayment = async (
   id: string,
   sellerId: mongoose.Types.ObjectId,
@@ -839,7 +835,7 @@ export const updatePayment = async (
   req: Request,
 ) => {
   const purchase = await Purchase.findOne({ _id: id, sellerId }).populate(
-    "vendor_id",
+    "vendorId",
     "name phone email address total_payable total_paid due",
   );
   if (!purchase) throw new AppError("Purchase not found", 404);
@@ -847,14 +843,14 @@ export const updatePayment = async (
     throw new AppError("This purchase is already fully paid", 422);
 
   const before = {
-    paid_amount: purchase.paid_amount,
+    paidAmount: purchase.paidAmount,
     status: purchase.status,
-    due_amount: purchase.due_amount,
+    dueAmount: purchase.dueAmount,
   };
-  const remaining_due = purchase.total_amount - purchase.paid_amount;
-  if (payload.paid_amount > remaining_due) {
+  const remaining_due = purchase.totalAmount - purchase.paidAmount;
+  if (payload.paidAmount > remaining_due) {
     throw new AppError(
-      `Paid amount (${payload.paid_amount}) cannot exceed total amount (${remaining_due})`,
+      `Paid amount (${payload.paidAmount}) cannot exceed total amount (${remaining_due})`,
       422,
     );
   }
@@ -867,16 +863,16 @@ export const updatePayment = async (
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
-      purchase.paid_amount += payload.paid_amount;
+      purchase.paidAmount += payload.paidAmount;
       if (payload.note) purchase.note = payload.note;
       await purchase.save({ session });
       await Vendor.findByIdAndUpdate(
-        purchase.vendor_id,
+        purchase.vendorId,
         [
           {
             $set: {
-              total_paid: { $add: ["$total_paid", payload.paid_amount] },
-              due: { $subtract: ["$due", payload.paid_amount] },
+              total_paid: { $add: ["$total_paid", payload.paidAmount] },
+              due: { $subtract: ["$due", payload.paidAmount] },
             },
           },
         ],
@@ -898,9 +894,9 @@ export const updatePayment = async (
     targetId: purchase._id,
     before,
     after: {
-      paid_amount: purchase.paid_amount,
+      paidAmount: purchase.paidAmount,
       status: purchase.status,
-      due_amount: purchase.due_amount,
+      dueAmount: purchase.dueAmount,
     },
   });
 
@@ -926,16 +922,16 @@ export const deletePurchase = async (
     //   );
     // }
 
-    const before = { total_amount: purchase.total_amount };
+    const before = { totalAmount: purchase.totalAmount };
 
     // Reverse vendor financials
     await Vendor.findByIdAndUpdate(
-      purchase.vendor_id,
+      purchase.vendorId,
       {
         $inc: {
-          total_payable: -purchase.total_amount,
-          total_paid: -purchase.paid_amount,
-          due: -purchase.due_amount,
+          total_payable: -purchase.totalAmount,
+          total_paid: -purchase.paidAmount,
+          due: -purchase.dueAmount,
         },
       },
       { session },
@@ -944,7 +940,7 @@ export const deletePurchase = async (
     // ── Reverse stock per item, then decide if the variant can be removed ──
     for (const item of purchase.items) {
       await ProductVariant.findByIdAndUpdate(
-        item.variant_id,
+        item.variantId,
         { $inc: { stock: -item.quantity } },
         { session },
       );
@@ -952,26 +948,26 @@ export const deletePurchase = async (
       const usedElsewhere = await Purchase.exists({
         _id: { $ne: purchase._id },
         sellerId,
-        "items.variant_id": item.variant_id,
+        "items.variantId": item.variantId,
       }).session(session);
 
       if (!usedElsewhere) {
         // Nobody else stocked this variant — created solely by this purchase.
-        await ProductVariant.findByIdAndDelete(item.variant_id, { session });
+        await ProductVariant.findByIdAndDelete(item.variantId, { session });
       }
     }
 
     // ── For each unique product on this purchase, re-sync or remove ──
-    for (const productId of purchase.product_ids) {
+    for (const productId of purchase.productIds) {
       const remainingVariants = await ProductVariant.find({
-        product_id: productId,
+        productId: productId,
       }).session(session);
 
       if (remainingVariants.length === 0) {
         const usedElsewhere = await Purchase.exists({
           _id: { $ne: purchase._id },
           sellerId,
-          product_ids: productId,
+          productIds: productId,
         }).session(session);
 
         if (!usedElsewhere) {
@@ -979,7 +975,7 @@ export const deletePurchase = async (
         }
       } else {
         const [totals] = await ProductVariant.aggregate([
-          { $match: { product_id: productId } },
+          { $match: { productId: productId } },
           {
             $group: {
               _id: null,
@@ -1024,15 +1020,15 @@ export const deletePurchase = async (
 };
 
 interface PurchaseItemSnapshot {
-  product_id: Types.ObjectId;
-  variant_id: Types.ObjectId;
-  product_name: string;
+  productId: Types.ObjectId;
+  variantId: Types.ObjectId;
+  productName: string;
   sku: string;
   color: string;
   size: string;
   quantity: number;
-  unit_price: number;
-  selling_price: number;
+  buyingPrice: number;
+  sellingPrice: number;
   total: number;
 }
 
@@ -1045,8 +1041,8 @@ export const updateStock = async (req: Request) => {
   }
   const {
     paidAmount,
-    sellingPrice,
-    buyingPrice,
+   sellingPrice,
+   buyingPrice,
     quantity,
     variantId,
     purchaseDate,
@@ -1058,32 +1054,32 @@ export const updateStock = async (req: Request) => {
   const variant = await ProductVariant.findOne({
     sellerId: sellerId,
     _id: new Types.ObjectId(variantId),
-  }).populate("product_id", "vendor_id name");
+  }).populate("productId", "vendorId name");
   if (!variant) {
     throw new AppError("Product variant not found");
   }
 
-  const populatedProduct = variant.product_id as unknown as IProductDocument;
-  if (!Types.ObjectId.isValid(populatedProduct.vendor_id)) {
+  const populatedProduct = variant.productId as unknown as IProductDocument;
+  if (!Types.ObjectId.isValid(populatedProduct.vendorId)) {
     throw new AppError("Vendor Id is required", 400);
   }
 
-  const buying_price =
-    variant.buying_price > buyingPrice ? variant.buying_price : buyingPrice;
-  const selling_price =
-    variant.selling_price > sellingPrice ? variant.selling_price : sellingPrice;
+  const updateBuyingPrice =
+    variant.buyingPrice > buyingPrice ? variant.buyingPrice : buyingPrice;
+  const updateSellingPrice =
+    variant.sellingPrice > sellingPrice ? variant.sellingPrice : sellingPrice;
   const totalPurchase = quantity * buyingPrice;
 
   const item: PurchaseItemSnapshot = {
-    product_id: variant.product_id as Types.ObjectId,
-    variant_id: variant._id as Types.ObjectId,
-    product_name: populatedProduct.name,
+    productId: variant.productId as Types.ObjectId,
+    variantId: variant._id as Types.ObjectId,
+    productName: populatedProduct.name,
     sku: variant.sku,
     color: variant.attributes.find((a) => a.key === "color")?.value ?? "",
     size: variant.attributes.find((a) => a.key === "size")?.value ?? "",
     quantity,
-    unit_price: buying_price,
-    selling_price: selling_price,
+    buyingPrice: updateBuyingPrice,
+    sellingPrice: updateSellingPrice,
     total: totalPurchase,
   };
 
@@ -1099,8 +1095,8 @@ export const updateStock = async (req: Request) => {
         {
           $set: {
             stock: { $add: ["$stock", quantity] },
-            buying_price,
-            selling_price,
+            buyingPrice,
+            sellingPrice,
           },
         },
       ],
@@ -1124,17 +1120,17 @@ export const updateStock = async (req: Request) => {
             display_price_max: {
               $cond: {
                 if: {
-                  $gte: ["$display_price_max", selling_price],
+                  $gte: ["$display_price_max", sellingPrice],
                 },
                 then: "$display_price_max",
-                else: selling_price,
+                else: sellingPrice,
               },
             },
             display_price_min: {
               $cond: {
-                if: { $lte: ["$display_price_min", selling_price] },
+                if: { $lte: ["$display_price_min", sellingPrice] },
                 then: "$display_price_min",
-                else: selling_price,
+                else: sellingPrice,
               },
             },
           },
@@ -1154,13 +1150,13 @@ export const updateStock = async (req: Request) => {
       [
         {
           sellerId: sellerId,
-          vendor_id: populatedProduct.vendor_id,
+          // vendorId: populatedProduct.vendorId,
           items: [item],
-          product_ids: [populatedProduct._id],
-          item_count: 1,
-          total_amount: totalPurchase,
-          paid_amount: paidAmount,
-          purchase_date: purchaseDate ? new Date(purchaseDate) : new Date(),
+          productIds: [populatedProduct._id],
+          itemCount: 1,
+          totalAmount: totalPurchase,
+          paidAmount: paidAmount,
+          purchaseDate: purchaseDate ? new Date(purchaseDate) : new Date(),
           note: note ?? "",
           createdBy: userId,
         },
@@ -1174,7 +1170,7 @@ export const updateStock = async (req: Request) => {
     const updateVendor = await Vendor.findOneAndUpdate(
       {
         sellerId: sellerId,
-        _id: populatedProduct.vendor_id,
+        _id: populatedProduct.vendorId,
       },
       [
         {
@@ -1210,328 +1206,3 @@ export const updateStock = async (req: Request) => {
   }
 };
 
-/*
-interface CreatePurchasePayload extends CreatePurchaseInput {
-  sellerId: mongoose.Types.ObjectId;
-  createdBy: mongoose.Types.ObjectId;
-}
-
-interface ResolvedLineItem {
-  product_id: mongoose.Types.ObjectId;
-  variant_id: mongoose.Types.ObjectId;
-  product_name: string;
-  sku: string;
-  quantity: number;
-  unit_price: number;
-  selling_price: number;
-  total: number;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
-function buildSlug(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-");
-}
-
-// ─── Upsert helpers ───────────────────────────────────────────────────────────
-
-async function upsertCategory(
-  name: string,
-  sellerId: mongoose.Types.ObjectId,
-  createdBy: mongoose.Types.ObjectId,
-  session: mongoose.ClientSession,
-): Promise<mongoose.Types.ObjectId> {
-  const existing = await Category.findOne({
-    sellerId,
-    name: { $regex: `^${name.trim()}$`, $options: "i" },
-  })
-    .session(session)
-    .lean<any>();
-
-  if (existing) return existing._id;
-
-  const [created] = await Category.create(
-    [
-      sanitizeData({
-        sellerId,
-        createdBy,
-        name: name.trim(),
-        slug: buildSlug(name),
-      }),
-    ],
-    { session },
-  );
-  if (!created) throw new AppError("Failed to create category", 500);
-  return created._id;
-}
-
-async function upsertProduct(
-  opts: {
-    name: string;
-    category_id: mongoose.Types.ObjectId;
-    vendor_id: mongoose.Types.ObjectId;
-    sellerId: mongoose.Types.ObjectId;
-    buying_price: number;
-    selling_price: number;
-    createdBy: mongoose.Types.ObjectId;
-  },
-  session: mongoose.ClientSession,
-): Promise<{ product_id: mongoose.Types.ObjectId; product_sku: string }> {
-  const existing = await Product.findOne({
-    sellerId: opts.sellerId,
-    category_id: opts.category_id,
-    name: { $regex: `^${opts.name.trim()}$`, $options: "i" },
-  })
-    .session(session)
-    .lean<any>();
-
-  if (existing) return { product_id: existing._id, product_sku: existing.sku };
-
-  // Build SKU here in the service — do NOT rely on pre-save hook
-  // because the hook runs Product.findById() without the session
-  // and can't see documents created inside this transaction.
-  const baseSku = opts.name
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-")
-    .slice(0, 12);
-  const sku = `${baseSku}-${Date.now().toString().slice(-5)}`; // e.g. "COTTON-SHIRT-93201"
-
-  const [created] = await Product.create(
-    [
-      {
-        sellerId: opts.sellerId,
-        category_id: opts.category_id,
-        vendor_id: opts.vendor_id,
-        name: opts.name.trim(),
-        slug: buildSlug(opts.name) + "-" + Date.now(),
-        sku,
-        buying_price: opts.buying_price,
-        selling_price: opts.selling_price,
-        has_variants: true,
-        stock: 0,
-        is_active: true,
-        createdBy: opts.createdBy,
-      },
-    ],
-    { session },
-  );
-  if (!created) throw new AppError("Failed to create product", 500);
-  return { product_id: created._id, product_sku: created.sku };
-}
-
-async function upsertVariant(
-  opts: {
-    product_id: mongoose.Types.ObjectId;
-    product_sku: string; // ← passed in from upsertProduct
-    sellerId: mongoose.Types.ObjectId;
-    color: string;
-    size: string;
-    buying_price: number;
-    selling_price: number;
-    quantity: number;
-    low_stock_alert: number;
-  },
-  session: mongoose.ClientSession,
-): Promise<{ variant_id: mongoose.Types.ObjectId; sku: string }> {
-  // Find existing variant by product + color + size
-  const existing = await ProductVariant.findOne({
-    product_id: opts.product_id,
-    sellerId: opts.sellerId,
-    attributes: {
-      $all: [
-        {
-          $elemMatch: {
-            key: "color",
-            value: { $regex: `^${opts.color}$`, $options: "i" },
-          },
-        },
-        {
-          $elemMatch: {
-            key: "size",
-            value: { $regex: `^${opts.size}$`, $options: "i" },
-          },
-        },
-      ],
-    },
-  }).session(session);
-
-  if (existing) {
-    existing.buying_price = opts.buying_price;
-    existing.selling_price = opts.selling_price;
-    existing.stock += opts.quantity;
-    await existing.save({ session });
-    return { variant_id: existing._id, sku: existing.sku };
-  }
-
-  // Build variant SKU here — NOT in pre-save hook.
-  // Same reason: pre-save hook calls Product.findById() without session
-  // and the product is invisible inside an uncommitted transaction.
-  const clean = (s: string) =>
-    s
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, "-")
-      .slice(0, 8);
-  const varSku = `${opts.product_sku}-${clean(opts.color)}-${clean(opts.size)}`;
-  // e.g. "COTTON-SHIRT-93201-ORANGE-M"
-
-  const [created] = await ProductVariant.create(
-    [
-      {
-        product_id: opts.product_id,
-        sellerId: opts.sellerId,
-        sku: varSku,
-        attributes: [
-          { key: "color", value: opts.color.trim() },
-          { key: "size", value: opts.size.trim() },
-        ],
-        buying_price: opts.buying_price,
-        selling_price: opts.selling_price,
-        stock: opts.quantity,
-        low_stock_alert: opts.low_stock_alert,
-        is_active: true,
-      },
-    ],
-    { session },
-  );
-  if (!created) throw new AppError("Failed to create product variant", 500);
-  return { variant_id: created._id, sku: created.sku };
-}
-// ─── Create purchase ──────────────────────────────────────
-export const createPurchase = async (
-  payload: CreatePurchasePayload,
-  req: Request,
-) => {
-  const {
-    vendor_id,
-    purchase_date,
-    paid_amount,
-    note,
-    items,
-    sellerId,
-    createdBy,
-  } = payload;
-
-  const vendor = await Vendor.findOne({
-    _id: vendor_id,
-    sellerId,
-    is_active: true,
-  }).lean<any>();
-  if (!vendor) throw new AppError("Vendor not found", 404);
-
-  const session = await mongoose.startSession();
-  try {
-    let purchase: any;
-
-    await session.withTransaction(async () => {
-      const resolvedItems: ResolvedLineItem[] = [];
-
-      for (const item of items) {
-        // 1. Category — find or create
-        const category_id = await upsertCategory(
-          item.category,
-          sellerId,
-          createdBy,
-          session,
-        );
-
-        // 2. Product — find or create
-        const { product_id, product_sku } = await upsertProduct(
-          {
-            name: item.product_name,
-            category_id,
-            vendor_id: new mongoose.Types.ObjectId(vendor_id),
-            sellerId,
-            buying_price: item.unit_price,
-            selling_price: item.selling_price,
-            createdBy,
-          },
-          session,
-        );
-
-        // 3. Variant — find or create, stock updated inside
-        const { variant_id, sku } = await upsertVariant(
-          {
-            product_id,
-            product_sku,
-            sellerId,
-            color: item.color,
-            size: item.size,
-            buying_price: item.unit_price,
-            selling_price: item.selling_price,
-            quantity: item.quantity,
-            low_stock_alert: item.low_stock_alert ?? 5,
-          },
-          session,
-        );
-
-        resolvedItems.push({
-          product_id,
-          variant_id,
-          product_name: item.product_name.trim(),
-          sku,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          selling_price: item.selling_price,
-          total: round2(item.unit_price * item.quantity),
-        });
-      }
-
-      const total_amount = round2(
-        resolvedItems.reduce((sum, i) => sum + i.total, 0),
-      );
-      const product_ids = [
-        ...new Set(resolvedItems.map((i) => i.product_id.toString())),
-      ].map((id) => new mongoose.Types.ObjectId(id));
-
-      const [created] = await Purchase.create(
-        [
-          {
-            sellerId,
-            vendor_id: new mongoose.Types.ObjectId(vendor_id),
-            product_ids,
-            item_count: resolvedItems?.length,
-            total_amount,
-            paid_amount: paid_amount ?? 0,
-            purchase_date: purchase_date ? new Date(purchase_date) : new Date(),
-            note: note ?? null,
-            createdBy,
-          },
-        ],
-        { session },
-      );
-
-      purchase = created;
-    });
-    // ── Guard before auditLog ──────────────────────────────────
-    if (!purchase) throw new AppError("Failed to create purchase", 500);
-
-    auditLog({
-      req,
-      action: AUDIT_ACTIONS.PURCHASE_CREATED,
-      targetModel: "Purchase",
-      targetId: purchase._id,
-      after: {
-        vendor_name: vendor.name,
-        total_amount: purchase.total_amount,
-        item_count: purchase.item_count, // ← use purchase.item_count, not items.length
-        status: purchase.status,
-        total_paid: purchase.paid_amount,
-        due_amount: purchase.due_amount,
-
-      },
-    });
-
-    return purchase;
-  } finally {
-    await session.endSession();
-  }
-};
-*/
