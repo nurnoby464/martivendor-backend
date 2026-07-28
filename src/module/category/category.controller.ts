@@ -9,7 +9,7 @@ export const createCategory = asyncHandler(
   async (req: Request, res: Response) => {
     console.log("category body",req.body)
     const category = await CategoryService.createCategory({
-      ...req.body, // Contains name, parent_id, image (URL)
+      ...req.body, // Contains name, parentId, image (URL)
       sellerId: req.user.sellerId!,
       createdBy: req.user._id,
       req,
@@ -50,19 +50,19 @@ export const getCategories = asyncHandler(
     const page = req.validatedQuery.page as number;
     const limit = req.validatedQuery.limit as number;
     const search = req.validatedQuery.search as string;
-    const parent_id = req.validatedQuery.parent_id as string;
+    const parentId = req.validatedQuery.parentId as string;
     const depth = req.validatedQuery.depth as number;
-    const is_active = req.validatedQuery.is_active as boolean;
+    const isActive = req.validatedQuery.isActive as boolean;
 
-    const query = { page, limit, search, parent_id, depth, is_active };
+    const query = { page, limit, search, parentId, depth, isActive };
     const { categories, total } = await CategoryService.getCategories({
       sellerId: req.user.sellerId!,
       page,
-      parent_id,
+      parentId,
       depth,
       limit,
       search,
-      is_active,
+      isActive,
     });
     return ApiResponse.paginated(
       res,
@@ -92,7 +92,7 @@ export const updateCategory = asyncHandler(
     const category = await CategoryService.updateCategory({
       id: req.params.id as string,
       sellerId: req.user.sellerId!,
-      data: req.body, // Contains name, image (URL), is_active
+      data: req.body, // Contains name, image (URL), isActive
       req,
     });
     return ApiResponse.success(res, category, "Category updated successfully");

@@ -37,7 +37,7 @@ router
   .get(
     authenticate,
     verifySession,
-    guard("super_admin", "admin", "inventory"),
+    guard("super_admin", "admin", "inventory","seller","staff","seller_staff"),
     CategoryController.getCategoryTree,
   );
 
@@ -48,7 +48,7 @@ router
     validate({ params: categoryParamsSchema }),
     authenticate,
     verifySession,
-    guard("super_admin", "admin", "inventory"),
+    guard("super_admin", "admin", "inventory","seller"),
     CategoryController.getCategoryTree,
   );
 

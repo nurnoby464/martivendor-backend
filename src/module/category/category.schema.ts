@@ -22,7 +22,7 @@ const CategorySchema = new Schema<ICategoryDocument>(
       trim: true,
       lowercase: true,
     },
-    parent_id: {
+    parentId: {
       type: Schema.Types.ObjectId,
       ref: "Category",
       default: null,
@@ -40,7 +40,7 @@ const CategorySchema = new Schema<ICategoryDocument>(
       type: String,
       default: null,
     },
-    is_active: {
+    isActive: {
       type: Boolean,
       default: true,
     },

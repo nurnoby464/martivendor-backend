@@ -33,30 +33,30 @@ const assertUniqSlug = async (
 export const createCategory = async (payload: {
   sellerId: mongoose.Types.ObjectId;
   name: string;
-  parent_id?: string | null;
+  parentId?: string | null;
   image?: string | null;
   createdBy: mongoose.Types.ObjectId;
   isActive:boolean;
   req: Request;
 }) => {
-  const { sellerId, name, parent_id, image, createdBy } = payload;
+  const { sellerId, name, parentId, image, createdBy } = payload;
 
   const slug = generateSlug(name);
   // await assertUniqSlug(slug, sellerId);
 
-  const filter: Record<string, unknown> = { sellerId, slug, parent_id };
+  const filter: Record<string, unknown> = { sellerId, slug, parentId };
   const exists = await Category.findOne(filter).lean();
   if (exists) throw new AppError(`Category "${slug}" already exists`, 409);
   let path: mongoose.Types.ObjectId[] = [];
   let depth = 0;
 
-  if (parent_id) {
+  if (parentId) {
     const parent = await Category.findOne({
-      _id: parent_id,
+      _id: parentId,
       sellerId,
     }).lean();
     if (!parent) throw new AppError("Parent category not found", 404);
-    if (!parent.is_active)
+    if (!parent.isActive)
       throw new AppError("Parent category is inactive", 400);
 
     // ✅ Array spread instead of string concatenation
@@ -68,7 +68,7 @@ export const createCategory = async (payload: {
     sellerId,
     name,
     slug,
-    parent_id: parent_id ?? null,
+    parentId: parentId ?? null,
     path,
     depth,
     image: image ?? null,
@@ -87,15 +87,15 @@ export const createCategory = async (payload: {
 
 //   const allCategories = await Category.find({
 //     sellerId,
-//     is_active: true,
+//     isActive: true,
 //   }).sort({ depth: 1, name: 1 }).lean();
 //   console.log(allCategories)
 
 //   const buildTree = (parentId: string | null = null): any[] => {
 //     return allCategories
 //       .filter(cat => {
-//         if (parentId === null) return !cat.parent_id;
-//         return cat.parent_id?.toString() === parentId;
+//         if (parentId === null) return !cat.parentId;
+//         return cat.parentId?.toString() === parentId;
 //       })
 //       .map(cat => ({
 //         id: cat._id,
@@ -104,7 +104,7 @@ export const createCategory = async (payload: {
 //         slug: cat.slug,
 //         image: cat.image,
 //         depth: cat.depth,
-//         parent_id: cat.parent_id,
+//         parentId: cat.parentId,
 //         children: buildTree(cat._id.toString())
 //       }));
 //   };
@@ -124,9 +124,9 @@ type LeanCategory = {
   name: string;
   slug: string;
   depth: number;
-  parent_id: mongoose.Types.ObjectId | null;
+  parentId: mongoose.Types.ObjectId | null;
   path: string;
-  is_active: boolean;
+  isActive: boolean;
   sellerId: mongoose.Types.ObjectId;
   image: string | null;
 };
@@ -150,7 +150,7 @@ type CategoryFlatItem = {
 //   if (search) {
 //     const matched = await Category.findOne({
 //       sellerId,
-//       is_active: true,
+//       isActive: true,
 //       name: { $regex: search.trim(), $options: "i" },
 //     }).lean<LeanCategory>();
 
@@ -158,11 +158,11 @@ type CategoryFlatItem = {
 
 //     categories = await Category.find({
 //       sellerId,
-//       is_active: true,
+//       isActive: true,
 //       $or: [{ _id: matched._id }, { path: matched._id.toHexString() }],
 //     }).lean<LeanCategory[]>();
 //   } else {
-//     categories = await Category.find({ sellerId, is_active: true })
+//     categories = await Category.find({ sellerId, isActive: true })
 //       .sort({ path: 1, name: 1 })
 //       .lean<LeanCategory[]>();
 //   }
@@ -191,7 +191,7 @@ type CategoryFlatItem = {
 //       name: c.name,
 //       fullPath: getFullPath(c),
 //       depth: c.depth,
-//       parentId: c.parent_id,
+//       parentId: c.parentId,
 //     }));
 // };
 
@@ -205,7 +205,7 @@ export const getCategoryTree = async (payload: {
 
   const baseFilter: any = {
     sellerId,
-    is_active: true,
+    isActive: true,
   };
 
   let matched: LeanCategory[];
@@ -266,14 +266,14 @@ export const getCategoryTree = async (payload: {
   // hasChildren check
   const childDocs = await Category.find({
     sellerId,
-    is_active: true,
-    parent_id: { $in: matched.map((c) => c._id) },
+    isActive: true,
+    parentId: { $in: matched.map((c) => c._id) },
   })
-    .select("parent_id")
-    .lean<{ parent_id: mongoose.Types.ObjectId }[]>();
+    .select("parentId")
+    .lean<{ parentId: mongoose.Types.ObjectId }[]>();
 
   const hasChildrenSet = new Set(
-    childDocs.map((c) => c.parent_id.toHexString()),
+    childDocs.map((c) => c.parentId.toHexString()),
   );
 
   const categories: CategorySearchItem[] = matched.map((c) => {
@@ -285,8 +285,8 @@ export const getCategoryTree = async (payload: {
       })
       .filter(Boolean) as AncestorItem[];
 
-    const parent = c.parent_id
-      ? ancestorMap.get(c.parent_id.toHexString())
+    const parent = c.parentId
+      ? ancestorMap.get(c.parentId.toHexString())
       : null;
 
     const fullPath = [...ancestorList.map((a) => a.name), c.name].join(" > ");
@@ -296,7 +296,7 @@ export const getCategoryTree = async (payload: {
       name: c.name,
       slug: c.slug,
       fullPath,
-      parentId: c.parent_id ?? null,
+      parentId: c.parentId ?? null,
       parentName: parent?.name ?? null,
       ancestors: ancestorList,
       depth: c.depth,
@@ -314,18 +314,18 @@ export const getCategories = async (payload: {
   page: number;
   limit: number;
   search?: string;
-  parent_id?: string | null;
+  parentId?: string | null;
   depth?: number;
-  is_active?: boolean;
+  isActive?: boolean;
 }) => {
-  const { sellerId, page, limit, search, parent_id, depth, is_active } =
+  const { sellerId, page, limit, search, parentId, depth, isActive } =
     payload;
 
   const filter: Record<string, unknown> = { sellerId };
 
-  if (is_active !== undefined) filter.is_active = is_active;
+  if (isActive !== undefined) filter.isActive = isActive;
   if (depth !== undefined) filter.depth = depth;
-  if (parent_id !== undefined) filter.parent_id = parent_id ?? null;
+  if (parentId !== undefined) filter.parentId = parentId ?? null;
 
   if (search) {
     filter.name = { $regex: search, $options: "i" };
@@ -333,7 +333,7 @@ export const getCategories = async (payload: {
 
   const [categories, total] = await Promise.all([
     Category.find(filter)
-      .populate("parent_id", "name slug depth")
+      .populate("parentId", "name slug depth")
       .sort({ depth: 1, name: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -353,7 +353,7 @@ export const getCategoryById = async (payload: {
     _id: payload.id,
     sellerId: payload.sellerId,
   })
-    .populate("parent_id", "name slug depth")
+    .populate("parentId", "name slug depth")
     .lean();
 
   if (!category) throw new AppError("Category not found", 404);
@@ -368,7 +368,7 @@ export const updateCategory = async (payload: {
   data: {
     name?: string;
     image?: string | null; // Just the URL from Cloudinary
-    is_active?: boolean;
+    isActive?: boolean;
   };
 }) => {
   const { id, sellerId, data } = payload;
@@ -390,7 +390,7 @@ export const updateCategory = async (payload: {
   }
 
   if (data.image !== undefined) category.image = data.image;
-  if (data.is_active !== undefined) category.is_active = data.is_active;
+  if (data.isActive !== undefined) category.isActive = data.isActive;
 
   await category.save();
 
@@ -421,7 +421,7 @@ export const deleteCategory = async (payload: {
   if (!category) throw new AppError("Category not found", 404);
 
   // Check for children
-  const hasChildren = await Category.exists({ sellerId, parent_id: id });
+  const hasChildren = await Category.exists({ sellerId, parentId: id });
   if (hasChildren) {
     throw new AppError(
       "Cannot delete a category that has subcategories. Delete children first.",
@@ -429,7 +429,7 @@ export const deleteCategory = async (payload: {
     );
   }
 
-  category.is_active = false;
+  category.isActive = false;
   await category.save();
 
   auditLog({
@@ -475,7 +475,7 @@ export const searchCategories = async (payload: {
 
   const baseFilter: Record<string, unknown> = {
     sellerId,
-    is_active: true,
+    isActive: true,
   };
 
   let matched: ICategoryDocument[];
@@ -493,7 +493,7 @@ export const searchCategories = async (payload: {
     // 2. fetch root + all descendants
     const descendantFilter: Record<string, unknown> = {
       sellerId,
-      is_active: true,
+      isActive: true,
       $or: [{ _id: root._id }, { path: root._id }],
     };
 
@@ -537,14 +537,14 @@ export const searchCategories = async (payload: {
   // check hasChildren for all matched in ONE query
   const childDocs = await Category.find({
     sellerId,
-    is_active: true,
-    parent_id: { $in: matched.map((c) => c._id) },
+    isActive: true,
+    parentId: { $in: matched.map((c) => c._id) },
   })
-    .select("parent_id")
-    .lean<{ parent_id: mongoose.Types.ObjectId }[]>();
+    .select("parentId")
+    .lean<{ parentId: mongoose.Types.ObjectId }[]>();
 
   const hasChildrenSet = new Set(
-    childDocs.map((c) => c.parent_id.toHexString()),
+    childDocs.map((c) => c.parentId.toHexString()),
   );
 
   // build response — pure in-memory, no more DB calls
@@ -556,8 +556,8 @@ export const searchCategories = async (payload: {
       })
       .filter(Boolean) as AncestorItem[];
 
-    const parent = c.parent_id
-      ? ancestorMap.get(c.parent_id.toHexString())
+    const parent = c.parentId
+      ? ancestorMap.get(c.parentId.toHexString())
       : null;
 
     const fullPath = [...ancestorList.map((a) => a.name), c.name].join(" > ");
@@ -567,7 +567,7 @@ export const searchCategories = async (payload: {
       name: c.name,
       slug: c.slug,
       fullPath,
-      parentId: c.parent_id ?? null,
+      parentId: c.parentId ?? null,
       parentName: parent?.name ?? null,
       ancestors: ancestorList,
       depth: c.depth,
