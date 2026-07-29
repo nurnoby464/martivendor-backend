@@ -76,6 +76,16 @@ export const getProductById = asyncHandler(
     return ApiResponse.success(res, result);
   },
 );
+export const getProductBySlug = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await ProductService.getProductBySlug({
+      slug: req.params.slug as string,
+      // sellerId: req.user.sellerId!,
+    });
+
+    return ApiResponse.success(res, result);
+  },
+);
 
 export const updateProduct = asyncHandler(
   async (req: Request, res: Response) => {

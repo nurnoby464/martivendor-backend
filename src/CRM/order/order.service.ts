@@ -163,7 +163,7 @@ export const createOrder = async ({
     const variantMap = new Map(variants.map((v) => [v._id.toString(), v]));
 
     // 2. load all products
-    const productIds = variants.map((v) => v.product_id);
+    const productIds = variants.map((v) => v.productId);
     const product = await Product.find({
       sellerId: sellerId,
       is_active: true,
@@ -179,7 +179,7 @@ export const createOrder = async ({
       if (!variant) {
         throw new AppError(`Not found this ${item.variant_id} `, 404);
       }
-      const product = productMap.get(variant.product_id.toString());
+      const product = productMap.get(variant.productId.toString());
       if (!product) {
         throw new AppError(
           `Product not found for variant: ${item.variant_id} `,
@@ -192,7 +192,7 @@ export const createOrder = async ({
           400,
         );
       }
-      const unitPrice = variant.selling_price;
+      const unitPrice = variant.sellingPrice;
       const taxRete = product.taxRate;
       const taxAmount = Math.round((unitPrice * item.quantity * taxRete) / 100);
 

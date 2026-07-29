@@ -3,11 +3,11 @@ export interface ICategory {
     sellerId: mongoose.Types.ObjectId;
     name: string;
     slug: string;
-    parent_id: mongoose.Types.ObjectId | null;
+    parentId: mongoose.Types.ObjectId | null;
     path: mongoose.Types.ObjectId[];
     depth: number;
     image: string | null;
-    is_active: boolean;
+    isActive: boolean;
     createdBy: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;

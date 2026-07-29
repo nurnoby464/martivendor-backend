@@ -87,7 +87,7 @@ app.use("/api/v1/users", user_route_1.UsersRoute);
 app.use("/api/v1/company", seller_route_1.CompanyRouter);
 app.use("/api/v1/vendor", vendor_route_1.VendorRoutes);
 app.use("/api/v1/category", category_route_1.CategoryRoutes);
-app.use("/api/v1/product", product_route_1.ProductRoutes);
+app.use("/api/v1/products", product_route_1.ProductRoutes);
 app.use("/api/v1/purchase", purchase_route_1.PurchaseRoute);
 app.use("/api/v1/product-variant", product_variant_route_1.ProductVariantRoute);
 app.use("/api/v1/sales", sales_route_1.SaleRouter);

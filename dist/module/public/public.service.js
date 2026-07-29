@@ -43,28 +43,28 @@ const product_variant_schema_1 = __importDefault(require("../product-variant/pro
 const category_schema_1 = __importDefault(require("../category/category.schema"));
 const appError_1 = require("../../middlewares/appError");
 const getProducts = async (payload) => {
-    const { company_id, page, limit, search, category_id, vendor_id, has_variants, is_active, low_stock, sort_by, sort_order, } = payload;
+    const { company_id, page, limit, search, categoryId, vendorId, hasVariants, is_active, low_stock, sort_by, sort_order, } = payload;
     if (!company_id)
         throw new appError_1.AppError("company_id is required", 400);
     const filter = { company_id };
     if (is_active !== undefined)
         filter.is_active = is_active;
-    if (has_variants !== undefined)
-        filter.has_variants = has_variants;
-    if (category_id) {
+    if (hasVariants !== undefined)
+        filter.hasVariants = hasVariants;
+    if (categoryId) {
         const allDescendantCategories = await category_schema_1.default.find({
             company_id,
-            path: new mongoose_1.default.Types.ObjectId(category_id), // ✅ array contains match
+            path: new mongoose_1.default.Types.ObjectId(categoryId), // ✅ array contains match
             is_active: true,
         }).lean();
         const allCategoryIds = [
-            new mongoose_1.default.Types.ObjectId(category_id),
+            new mongoose_1.default.Types.ObjectId(categoryId),
             ...allDescendantCategories.map((c) => c._id),
         ];
-        filter.category_id = { $in: allCategoryIds };
+        filter.categoryId = { $in: allCategoryIds };
     }
-    if (vendor_id)
-        filter.vendor_id = vendor_id;
+    if (vendorId)
+        filter.vendorId = vendorId;
     // low stock filter — stock <= low_stock_alert
     if (low_stock === "true") {
         filter.$expr = { $lte: ["$stock", "$low_stock_alert"] };
@@ -78,8 +78,8 @@ const getProducts = async (payload) => {
     const sortDir = sort_order === "asc" ? 1 : -1;
     const [products, total] = await Promise.all([
         product_schema_1.default.find(filter)
-            .populate("category_id", "name slug depth")
-            // .populate("vendor_id", "name phone")
+            .populate("categoryId", "name slug depth")
+            // .populate("vendorId", "name phone")
             .sort({ [sort_by]: sortDir })
             .skip((page - 1) * limit)
             .limit(limit)
@@ -90,24 +90,25 @@ const getProducts = async (payload) => {
 };
 exports.getProducts = getProducts;
 const dbTest = async (req, query) => {
-    const { vendor_id, page, category_id, limit, sort_by, sort_order, has_variants, is_active, search, low_stock, } = query;
+    const { 
+    // vendorId,
+    page, categoryId, limit, sortBy, sortOrder, hasVariants, isActive, search, lowStock, } = query;
     const filter = { company_id: "69db7c91dfc260658b4a384a" };
-    if (vendor_id)
-        filter.vendor_id = vendor_id;
-    if (category_id)
-        filter.category_id = category_id;
-    if (has_variants !== undefined)
-        filter.has_variants = has_variants;
-    if (is_active !== undefined)
-        filter.is_active = is_active;
-    if (low_stock === "true")
+    // if (vendorId) filter.vendorId = vendorId;
+    if (categoryId)
+        filter.categoryId = categoryId;
+    if (hasVariants !== undefined)
+        filter.hasVariants = hasVariants;
+    if (isActive !== undefined)
+        filter.isActive = isActive;
+    if (lowStock === "true")
         filter.$expr = { $lte: ["$stock", "$low_stock_alert"] };
     if (search) {
         filter.name = { $regex: search, $options: "i" };
         filter.selling_price = { $regex: search, $options: "i" };
     }
     const sortOptions = {};
-    sortOptions[sort_by ?? "createdAt"] = sort_order === "asc" ? 1 : -1;
+    sortOptions[sortBy ?? "createdAt"] = sortOrder === "asc" ? 1 : -1;
     const skip = (page - 1) * limit;
     const [products, total] = await Promise.all([
         product_schema_1.default.find(filter)
@@ -126,15 +127,15 @@ const getProductById = async (payload) => {
         _id: payload.id,
         company_id: payload.company_id,
     })
-        .populate("category_id", "name slug path depth")
-        // .populate("vendor_id", "name phone email")
+        .populate("categoryId", "name slug path depth")
+        // .populate("vendorId", "name phone email")
         .populate("createdBy", "name email")
         .lean();
     if (!product)
         throw new appError_1.AppError("Product not found", 404);
-    // attach variants if has_variants
+    // attach variants if hasVariants
     let variants = [];
-    if (product.has_variants) {
+    if (product.hasVariants) {
         variants = await product_variant_schema_1.default.find({
             company_id: payload.company_id,
             product_id: payload.id,
@@ -215,11 +216,11 @@ const searchCategories = async (payload) => {
     const childDocs = await category_schema_1.default.find({
         company_id,
         is_active: true,
-        parent_id: { $in: matched.map((c) => c._id) },
+        parentId: { $in: matched.map((c) => c._id) },
     })
-        .select("parent_id")
+        .select("parentId")
         .lean();
-    const hasChildrenSet = new Set(childDocs.map((c) => c.parent_id.toHexString()));
+    const hasChildrenSet = new Set(childDocs.map((c) => c.parentId.toHexString()));
     // build response — pure in-memory, no more DB calls
     const categories = matched.map((c) => {
         const ancestorList = (c.path ?? [])
@@ -228,8 +229,8 @@ const searchCategories = async (payload) => {
             return a ? { _id: a._id, name: a.name, depth: a.depth } : null;
         })
             .filter(Boolean);
-        const parent = c.parent_id
-            ? ancestorMap.get(c.parent_id.toHexString())
+        const parent = c.parentId
+            ? ancestorMap.get(c.parentId.toHexString())
             : null;
         const fullPath = [...ancestorList.map((a) => a.name), c.name].join(" > ");
         return {
@@ -237,7 +238,7 @@ const searchCategories = async (payload) => {
             name: c.name,
             slug: c.slug,
             fullPath,
-            parentId: c.parent_id ?? null,
+            parentId: c.parentId ?? null,
             parentName: parent?.name ?? null,
             ancestors: ancestorList,
             depth: c.depth,

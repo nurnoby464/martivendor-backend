@@ -45,13 +45,23 @@ const router = (0, express_1.Router)();
 // ── /api/products ─────────────────────────────────────────
 router
     .route("/")
-    .get((0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), ProductController.getProducts);
+    .get((0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "admin", "staff", "seller_staff"), ProductController.getProducts)
+    .post((0, validate_1.validate)({ body: product_validation_1.createProductSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "admin", "staff", "seller_staff"), ProductController.createProduct);
+router
+    .route("/slug/:slug")
+    .get((0, validate_1.validate)({ params: product_validation_1.productSlugParamsSchema }), ProductController.getProductBySlug);
 // ── /api/products/:id ─────────────────────────────────────
 router
     .route("/:id")
-    .get((0, validate_1.validate)({ params: product_validation_1.productParamsSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), ProductController.getProductById)
-    .patch((0, validate_1.validate)({ params: product_validation_1.productParamsSchema, body: product_validation_1.updateProductSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), ProductController.updateProduct)
-    .delete((0, validate_1.validate)({ params: product_validation_1.productParamsSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), ProductController.deleteProduct);
+    // .get(
+    //   validate({ params: productParamsSchema }),
+    //   authenticate,
+    //   verifySession,
+    //   guard("super_admin", "seller", "admin", "staff", "seller_staff"),
+    //   ProductController.getProductById,
+    // )
+    .patch((0, validate_1.validate)({ params: product_validation_1.productParamsSchema, body: product_validation_1.updateProductSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "admin", "staff", "seller_staff"), ProductController.updateProduct)
+    .delete((0, validate_1.validate)({ params: product_validation_1.productParamsSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "admin", "staff", "seller_staff"), ProductController.deleteProduct);
 // ── /api/products/:id/variants ────────────────────────────
 exports.ProductRoutes = router;
 //# sourceMappingURL=product.route.js.map

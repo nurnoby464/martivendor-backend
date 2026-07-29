@@ -4,20 +4,20 @@ export interface IAttribute {
     value: string;
 }
 export interface IProductVariant {
-    product_id: mongoose.Types.ObjectId;
+    productId: mongoose.Types.ObjectId;
     sellerId: mongoose.Types.ObjectId;
     attributes: IAttribute[];
     sku: string;
     image: string | null;
-    buying_price: number;
-    selling_price: number;
+    buyingPrice: number;
+    sellingPrice: number;
     profit: number;
-    profit_margin: number;
+    profitMargin: number;
     stock: number;
-    low_stock_alert: number;
+    lowStockAlert: number;
     discountType: "flat" | "percentage" | null;
     discountValue: number;
-    is_active: boolean;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

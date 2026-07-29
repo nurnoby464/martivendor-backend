@@ -15,20 +15,20 @@ exports.createVariantSchema = zod_1.z.object({
         .array(attributeSchema)
         .min(1, "At least one attribute required"),
     //   sku            : z.string().trim().toUpperCase().optional(),   // auto-generated if omitted
-    buying_price: zod_1.z.number({ error: "Buying price is required" }).min(0),
-    selling_price: zod_1.z.number({ error: "Selling price is required" }).min(0),
+    buyingPrice: zod_1.z.number({ error: "Buying price is required" }).min(0),
+    sellingPrice: zod_1.z.number({ error: "Selling price is required" }).min(0),
     stock: zod_1.z.number().int().min(0).optional().default(0),
-    low_stock_alert: zod_1.z.number().int().min(0).optional().default(5),
+    lowStockAlert: zod_1.z.number().int().min(0).optional().default(5),
     image: zod_1.z.string().trim().url("Must be a valid image URL").nullable(),
 });
 exports.updateVariantSchema = zod_1.z
     .object({
-    buying_price: zod_1.z.number().min(0).optional(),
-    selling_price: zod_1.z.number().min(0).optional(),
+    buyingPrice: zod_1.z.number().min(0).optional(),
+    sellingPrice: zod_1.z.number().min(0).optional(),
     stock: zod_1.z.number().int().min(0).optional(),
-    low_stock_alert: zod_1.z.number().int().min(0).optional(),
+    lowStockAlert: zod_1.z.number().int().min(0).optional(),
     image: zod_1.z.string().trim().url().optional(),
-    is_active: zod_1.z.boolean().optional(),
+    isActive: zod_1.z.boolean().optional(),
 })
     .refine((d) => Object.keys(d).length > 0, {
     message: "At least one field is required",

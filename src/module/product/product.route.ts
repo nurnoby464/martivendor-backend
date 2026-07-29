@@ -6,6 +6,7 @@ import {
   createProductSchema,
   productParamsSchema,
   productQuerySchema,
+  productSlugParamsSchema,
   updateProductSchema,
 } from "./product.validation";
 import {
@@ -17,7 +18,7 @@ import { guard } from "../../middlewares/guard";
 const router = Router();
 
 // ── /api/products ─────────────────────────────────────────
-(router
+router
   .route("/")
   .get(
     validate({ query: productQuerySchema }),
@@ -26,33 +27,43 @@ const router = Router();
     guard("super_admin", "seller", "admin", "staff", "seller_staff"),
     ProductController.getProducts,
   )
-  .post(validate({ body: createProductSchema }),
-  authenticate,
-  verifySession,
-  guard("super_admin", "seller", "admin", "staff", "seller_staff"),ProductController.createProduct));
+  .post(
+    validate({ body: createProductSchema }),
+    authenticate,
+    verifySession,
+    guard("super_admin", "seller", "admin", "staff", "seller_staff"),
+    ProductController.createProduct,
+  );
+
+router
+  .route("/slug/:slug")
+  .get(
+    validate({ params: productSlugParamsSchema }),
+    ProductController.getProductBySlug,
+  );
 
 // ── /api/products/:id ─────────────────────────────────────
 router
   .route("/:id")
-  .get(
-    validate({ params: productParamsSchema }),
-    authenticate,
-    verifySession,
-    guard("super_admin", "admin", "inventory"),
-    ProductController.getProductById,
-  )
+  // .get(
+  //   validate({ params: productParamsSchema }),
+  //   authenticate,
+  //   verifySession,
+  //   guard("super_admin", "seller", "admin", "staff", "seller_staff"),
+  //   ProductController.getProductById,
+  // )
   .patch(
     validate({ params: productParamsSchema, body: updateProductSchema }),
     authenticate,
     verifySession,
-    guard("super_admin", "admin", "inventory"),
+    guard("super_admin", "seller", "admin", "staff", "seller_staff"),
     ProductController.updateProduct,
   )
   .delete(
     validate({ params: productParamsSchema }),
     authenticate,
     verifySession,
-    guard("super_admin", "admin", "inventory"),
+    guard("super_admin", "seller", "admin", "staff", "seller_staff"),
     ProductController.deleteProduct,
   );
 

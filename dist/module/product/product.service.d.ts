@@ -1,14 +1,25 @@
 import mongoose from "mongoose";
 import { Request } from "express";
+import { CreateProductInput } from "./product.validation";
+interface CreateProductContext {
+    sellerId: mongoose.Types.ObjectId;
+    createdBy: mongoose.Types.ObjectId;
+}
+export declare function recalculateProductAggregates(productId: mongoose.Types.ObjectId, session?: mongoose.ClientSession): Promise<void>;
+export declare function createProduct(ctx: CreateProductContext, input: CreateProductInput): Promise<(import("./product.interface").IProduct & {
+    _id: mongoose.Types.ObjectId;
+} & {
+    __v: number;
+}) | null>;
 export declare const getProducts: (payload: {
     sellerId: mongoose.Types.ObjectId;
     page: number;
     limit: number;
     search?: string;
-    category_id?: string;
+    categoryId?: string;
     vendor_id?: string;
-    has_variants?: boolean;
-    is_active?: boolean;
+    hasVariants?: boolean;
+    isActive?: boolean;
     low_stock?: string;
     sort_by: string;
     sort_order: string;
@@ -31,21 +42,31 @@ export declare const getProductById: (payload: {
     };
     variants: any[];
 }>;
+export declare const getProductBySlug: (payload: {
+    slug: string;
+}) => Promise<{
+    product: import("./product.interface").IProduct & {
+        _id: mongoose.Types.ObjectId;
+    } & {
+        __v: number;
+    };
+    variants: any[];
+}>;
 export declare const updateProduct: (payload: {
     id: string;
     sellerId: mongoose.Types.ObjectId;
     req: Request;
     data: {
-        category_id?: string;
+        categoryId?: string;
         vendor_id?: string;
         name?: string;
         description?: string | null;
         images?: string[];
-        buying_price?: number;
-        selling_price?: number;
+        buyingPrice?: number;
+        sellingPrice?: number;
         stock?: number;
-        low_stock_alert?: number;
-        is_active?: boolean;
+        lowStockAlert?: number;
+        isActive?: boolean;
     };
 }) => Promise<mongoose.Document<unknown, {}, import("./product.interface").IProduct, {}, mongoose.DefaultSchemaOptions> & import("./product.interface").IProduct & {
     _id: mongoose.Types.ObjectId;
@@ -65,4 +86,5 @@ export declare const deleteProduct: (payload: {
 } & {
     id: string;
 }>;
+export {};
 //# sourceMappingURL=product.service.d.ts.map

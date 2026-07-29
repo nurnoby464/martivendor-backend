@@ -5,7 +5,7 @@ interface IGetProductVariant {
     req: Request;
 }
 export declare const createVariant: (payload: CreateVariantInput & {
-    product_id: string;
+    productId: string;
     sellerId: mongoose.Types.ObjectId;
 }, req: Request) => Promise<mongoose.Document<unknown, {}, import("./product-variant.interface").IProductVariantDocument, {}, mongoose.DefaultSchemaOptions> & import("./product-variant.interface").IProductVariantDocument & Required<{
     _id: Types.ObjectId;
@@ -15,7 +15,7 @@ export declare const createVariant: (payload: CreateVariantInput & {
     id: string;
 }>;
 export declare const getVariants: (payload: {
-    product_id: string;
+    productId: string;
     sellerId: mongoose.Types.ObjectId;
 }) => Promise<(import("./product-variant.interface").IProductVariantDocument & Required<{
     _id: Types.ObjectId;
@@ -34,7 +34,7 @@ export declare const updateVariant: (variantId: string, sellerId: mongoose.Types
 }>;
 export declare const deleteVariant: (payload: {
     id: string;
-    product_id: string;
+    productId: string;
     sellerId: mongoose.Types.ObjectId;
     req: Request;
 }) => Promise<mongoose.Document<unknown, {}, import("./product-variant.interface").IProductVariantDocument, {}, mongoose.DefaultSchemaOptions> & import("./product-variant.interface").IProductVariantDocument & Required<{

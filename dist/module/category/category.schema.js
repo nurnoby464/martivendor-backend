@@ -21,7 +21,7 @@ const CategorySchema = new mongoose_1.Schema({
         trim: true,
         lowercase: true,
     },
-    parent_id: {
+    parentId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Category",
         default: null,
@@ -39,7 +39,7 @@ const CategorySchema = new mongoose_1.Schema({
         type: String,
         default: null,
     },
-    is_active: {
+    isActive: {
         type: Boolean,
         default: true,
     },

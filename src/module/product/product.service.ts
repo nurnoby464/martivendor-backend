@@ -106,10 +106,71 @@ export async function createProduct(
   input: CreateProductInput,
 ) {
   const session = await mongoose.startSession();
-  let createdProductId: mongoose.Types.ObjectId | undefined;
+  let resultProductId: mongoose.Types.ObjectId | undefined;
 
   try {
     await session.withTransaction(async () => {
+      const attributes = [
+        { key: "color", value: input.color },
+        ...(input.size ? [{ key: "size", value: input.size }] : []),
+      ];
+
+      // ---- Branch 1: attach a new variant to an EXISTING product ----
+      if (input.productId) {
+        const product = await Product.findOne({
+          _id: new mongoose.Types.ObjectId(input.productId),
+          sellerId: ctx.sellerId, // ownership check — can't add variants to another seller's product
+        }).session(session);
+
+        if (!product) {
+          throw new AppError("Product not found", 404);
+        }
+
+        // Guard against creating an identical color/size combo twice.
+        const duplicate = await ProductVariant.findOne({
+          productId: product._id,
+          attributes: { $all: attributes.map((a) => ({ $elemMatch: a })) },
+        }).session(session);
+        if (duplicate) {
+          throw new AppError(
+            "A variant with this color/size already exists for this product",
+            409,
+          );
+        }
+
+        const existingVariantCount = await ProductVariant.countDocuments({
+          productId: product._id,
+        }).session(session);
+        const nextSuffix = String(existingVariantCount + 1).padStart(2, "0");
+
+        const [variant] = await ProductVariant.create(
+          [
+            {
+              productId: product._id,
+              sellerId: ctx.sellerId,
+              attributes,
+              sku: `${product.sku}-${nextSuffix}`,
+              image: input.image ?? null,
+              buyingPrice: input.buyingPrice,
+              sellingPrice: input.sellingPrice,
+              stock: input.stock,
+              lowStockAlert: input.lowStockAlert,
+              discountType: input.discount > 0 ? "percentage" : null,
+              discountValue: input.discount,
+              isActive: true,
+            },
+          ],
+          { session },
+        );
+        if (!variant) throw new AppError("Variant creation failed", 500);
+
+        await recalculateProductAggregates(product._id, session);
+
+        resultProductId = product._id;
+        return;
+      }
+
+      // ---- Branch 2: create a brand-new product + its first variant ----
       const slug = await buildUniqueSlug(ctx.sellerId, input.name, session);
 
       const [product] = await Product.create(
@@ -119,12 +180,14 @@ export async function createProduct(
             categoryId: new mongoose.Types.ObjectId(input.categoryId),
             name: input.name,
             slug,
-            sellingPrice:input.sellingPrice,
-            buyingPrice:input.buyingPrice,
+            sellingPrice: input.sellingPrice,
+            buyingPrice: input.buyingPrice,
             description: input.description || null,
             specification: input.specifications || null,
             images: input.image ? [input.image] : [],
             tags: input.tags,
+            discount: input.discount,
+            hasDiscount: input.discount > 0 ? true : false,
             showOnHomepage: input.showOnHomepage,
             hasVariants: true,
             isActive: true,
@@ -134,10 +197,6 @@ export async function createProduct(
         { session },
       );
       if (!product) throw new AppError("Product created failed", 500);
-      const attributes = [
-        { key: "color", value: input.color },
-        ...(input.size ? [{ key: "size", value: input.size }] : []),
-      ];
 
       const [variant] = await ProductVariant.create(
         [
@@ -162,10 +221,9 @@ export async function createProduct(
 
       await recalculateProductAggregates(product._id, session);
 
-      createdProductId = product._id;
+      resultProductId = product._id;
     });
   } catch (err: any) {
-    // Duplicate SKU/slug races that slipped past the pre-check.
     if (err?.code === 11000) {
       throw new AppError("A product with this SKU or slug already exists", 409);
     }
@@ -174,11 +232,11 @@ export async function createProduct(
     await session.endSession();
   }
 
-  if (!createdProductId) {
+  if (!resultProductId) {
     throw new AppError("Product creation failed unexpectedly", 500);
   }
 
-  return Product.findById(createdProductId)
+  return Product.findById(resultProductId)
     .populate("categoryId", "name slug")
     .lean();
 }
@@ -357,6 +415,33 @@ export const getProductById = async (payload: {
     variants = await ProductVariant.find({
       sellerId: payload.sellerId,
       product_id: payload.id,
+      isActive: true,
+    }).lean();
+  }
+
+  return { product, variants };
+};
+export const getProductBySlug = async (payload: {
+  slug: string;
+  // sellerId: mongoose.Types.ObjectId;
+}) => {
+  const product = await Product.findOne({
+    slug: payload.slug,
+    // sellerId: payload.sellerId,
+  })
+    .populate("categoryId", "name slug path depth")
+    // .populate("vendor_id", "name phone email")
+    .populate("createdBy", "name email")
+    .lean();
+
+  if (!product) throw new AppError("Product not found", 404);
+
+  // attach variants if hasVariants
+  let variants: any[] = [];
+  if (product.hasVariants) {
+    variants = await ProductVariant.find({
+      // sellerId: payload.sellerId,
+      productId: product._id,
       isActive: true,
     }).lean();
   }

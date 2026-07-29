@@ -15,9 +15,9 @@ export const getProducts = async (payload: {
   page: number;
   limit: number;
   search?: string;
-  category_id?: string;
-  vendor_id?: string;
-  has_variants?: boolean;
+  categoryId?: string;
+  vendorId?: string;
+  hasVariants?: boolean;
   is_active?: boolean;
   low_stock?: string;
   sort_by: string;
@@ -28,9 +28,9 @@ export const getProducts = async (payload: {
     page,
     limit,
     search,
-    category_id,
-    vendor_id,
-    has_variants,
+    categoryId,
+    vendorId,
+    hasVariants,
     is_active,
     low_stock,
     sort_by,
@@ -41,21 +41,21 @@ export const getProducts = async (payload: {
   const filter: Record<string, unknown> = { company_id };
 
   if (is_active !== undefined) filter.is_active = is_active;
-  if (has_variants !== undefined) filter.has_variants = has_variants;
-  if (category_id) {
+  if (hasVariants !== undefined) filter.hasVariants = hasVariants;
+  if (categoryId) {
     const allDescendantCategories = await Category.find({
       company_id,
-      path: new mongoose.Types.ObjectId(category_id), // ✅ array contains match
+      path: new mongoose.Types.ObjectId(categoryId), // ✅ array contains match
       is_active: true,
     }).lean();
 
     const allCategoryIds = [
-      new mongoose.Types.ObjectId(category_id),
+      new mongoose.Types.ObjectId(categoryId),
       ...allDescendantCategories.map((c) => c._id),
     ];
-    filter.category_id = { $in: allCategoryIds };
+    filter.categoryId = { $in: allCategoryIds };
   }
-  if (vendor_id) filter.vendor_id = vendor_id;
+  if (vendorId) filter.vendorId = vendorId;
 
   // low stock filter — stock <= low_stock_alert
   if (low_stock === "true") {
@@ -73,8 +73,8 @@ export const getProducts = async (payload: {
 
   const [products, total] = await Promise.all([
     Product.find(filter)
-      .populate("category_id", "name slug depth")
-      // .populate("vendor_id", "name phone")
+      .populate("categoryId", "name slug depth")
+      // .populate("vendorId", "name phone")
       .sort({ [sort_by]: sortDir })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -86,24 +86,24 @@ export const getProducts = async (payload: {
 };
 export const dbTest = async (req: Request, query: GetProductQuery) => {
   const {
-    vendor_id,
+    // vendorId,
     page,
-    category_id,
+    categoryId,
     limit,
-    sort_by,
-    sort_order,
-    has_variants,
-    is_active,
+    sortBy,
+    sortOrder,
+    hasVariants,
+    isActive,
     search,
-    low_stock,
+    lowStock,
   } = query;
   const filter: any = { company_id: "69db7c91dfc260658b4a384a" };
 
-  if (vendor_id) filter.vendor_id = vendor_id;
-  if (category_id) filter.category_id = category_id;
-  if (has_variants !== undefined) filter.has_variants = has_variants;
-  if (is_active !== undefined) filter.is_active = is_active;
-  if (low_stock === "true")
+  // if (vendorId) filter.vendorId = vendorId;
+  if (categoryId) filter.categoryId = categoryId;
+  if (hasVariants !== undefined) filter.hasVariants = hasVariants;
+  if (isActive !== undefined) filter.isActive = isActive;
+  if (lowStock === "true")
     filter.$expr = { $lte: ["$stock", "$low_stock_alert"] };
   if (search) {
     filter.name = { $regex: search, $options: "i" };
@@ -111,7 +111,7 @@ export const dbTest = async (req: Request, query: GetProductQuery) => {
   }
 
   const sortOptions: any = {};
-  sortOptions[sort_by ?? "createdAt"] = sort_order === "asc" ? 1 : -1;
+  sortOptions[sortBy ?? "createdAt"] = sortOrder === "asc" ? 1 : -1;
   const skip = (page - 1) * limit;
 
   const [products, total] = await Promise.all([
@@ -134,16 +134,16 @@ export const getProductById = async (payload: {
     _id: payload.id,
     company_id: payload.company_id,
   })
-    .populate("category_id", "name slug path depth")
-    // .populate("vendor_id", "name phone email")
+    .populate("categoryId", "name slug path depth")
+    // .populate("vendorId", "name phone email")
     .populate("createdBy", "name email")
     .lean();
 
   if (!product) throw new AppError("Product not found", 404);
 
-  // attach variants if has_variants
+  // attach variants if hasVariants
   let variants: any[] = [];
-  if (product.has_variants) {
+  if (product.hasVariants) {
     variants = await ProductVariant.find({
       company_id: payload.company_id,
       product_id: payload.id,
@@ -257,13 +257,13 @@ export const searchCategories = async (payload: {
   const childDocs = await Category.find({
     company_id,
     is_active: true,
-    parent_id: { $in: matched.map((c) => c._id) },
+    parentId: { $in: matched.map((c) => c._id) },
   })
-    .select("parent_id")
-    .lean<{ parent_id: mongoose.Types.ObjectId }[]>();
+    .select("parentId")
+    .lean<{ parentId: mongoose.Types.ObjectId }[]>();
 
   const hasChildrenSet = new Set(
-    childDocs.map((c) => c.parent_id.toHexString()),
+    childDocs.map((c) => c.parentId.toHexString()),
   );
 
   // build response — pure in-memory, no more DB calls
@@ -275,8 +275,8 @@ export const searchCategories = async (payload: {
       })
       .filter(Boolean) as AncestorItem[];
 
-    const parent = c.parent_id
-      ? ancestorMap.get(c.parent_id.toHexString())
+    const parent = c.parentId
+      ? ancestorMap.get(c.parentId.toHexString())
       : null;
 
     const fullPath = [...ancestorList.map((a) => a.name), c.name].join(" > ");
@@ -286,7 +286,7 @@ export const searchCategories = async (payload: {
       name: c.name,
       slug: c.slug,
       fullPath,
-      parentId: c.parent_id ?? null,
+      parentId: c.parentId ?? null,
       parentName: parent?.name ?? null,
       ancestors: ancestorList,
       depth: c.depth,

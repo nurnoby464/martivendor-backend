@@ -45,14 +45,14 @@ exports.createVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const sellerId = new mongoose_1.default.Types.ObjectId(req.user.sellerId);
     const variant = await ProductVariantServices.createVariant({
         ...req.body,
-        product_id: req.params.id,
+        productId: req.params.id,
         sellerId,
     }, req);
     return ApiResponse_1.ApiResponse.created(res, variant, "Variant created successfully");
 });
 exports.getVariants = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const variants = await ProductVariantServices.getVariants({
-        product_id: req.params.id,
+        productId: req.params.id,
         sellerId: req.user.sellerId,
     });
     return ApiResponse_1.ApiResponse.success(res, variants);
@@ -70,7 +70,7 @@ exports.updateVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 exports.deleteVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const variant = await ProductVariantServices.deleteVariant({
         id: req.params.variantId,
-        product_id: req.params.id,
+        productId: req.params.id,
         sellerId: req.user.sellerId,
         req,
     });

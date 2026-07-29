@@ -15,21 +15,21 @@ export const createVariantSchema = z.object({
     .array(attributeSchema)
     .min(1, "At least one attribute required"),
   //   sku            : z.string().trim().toUpperCase().optional(),   // auto-generated if omitted
-  buying_price: z.number({ error: "Buying price is required" }).min(0),
-  selling_price: z.number({ error: "Selling price is required" }).min(0),
+  buyingPrice: z.number({ error: "Buying price is required" }).min(0),
+  sellingPrice: z.number({ error: "Selling price is required" }).min(0),
   stock: z.number().int().min(0).optional().default(0),
-  low_stock_alert: z.number().int().min(0).optional().default(5),
+  lowStockAlert: z.number().int().min(0).optional().default(5),
   image: z.string().trim().url("Must be a valid image URL").nullable(),
 });
 
 export const updateVariantSchema = z
   .object({
-    buying_price: z.number().min(0).optional(),
-    selling_price: z.number().min(0).optional(),
+    buyingPrice: z.number().min(0).optional(),
+    sellingPrice: z.number().min(0).optional(),
     stock: z.number().int().min(0).optional(),
-    low_stock_alert: z.number().int().min(0).optional(),
+    lowStockAlert: z.number().int().min(0).optional(),
     image: z.string().trim().url().optional(),
-    is_active: z.boolean().optional(),
+    isActive: z.boolean().optional(),
   })
   .refine((d) => Object.keys(d).length > 0, {
     message: "At least one field is required",

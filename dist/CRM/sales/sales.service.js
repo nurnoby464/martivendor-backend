@@ -164,7 +164,7 @@ const createSale = async (payload) => {
             if (!variant)
                 throw new appError_1.AppError(`Variant not found: ${item.variantId}`, 404);
             // check variant belongs to this product
-            if (variant.product_id.toString() !== item.productId) {
+            if (variant.productId.toString() !== item.productId) {
                 throw new appError_1.AppError(`Variant ${item.variantId} does not belong to product ${item.productId}`, 400);
             }
             // check stock
@@ -190,7 +190,7 @@ const createSale = async (payload) => {
                 size,
                 sku: variant.sku,
                 quantity: item.quantity,
-                unitPrice: variant.buying_price, // from variant — actual cost
+                unitPrice: variant.buyingPrice, // from variant — actual cost
                 sellingPrice: item.sellingPrice,
                 discountType: item.discountType ?? null,
                 discountValue: item.discountValue,

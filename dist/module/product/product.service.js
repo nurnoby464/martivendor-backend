@@ -3,7 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProduct = exports.updateProduct = exports.getProductById = exports.getProducts = void 0;
+exports.deleteProduct = exports.updateProduct = exports.getProductBySlug = exports.getProductById = exports.getProducts = void 0;
+exports.recalculateProductAggregates = recalculateProductAggregates;
+exports.createProduct = createProduct;
 const mongoose_1 = __importDefault(require("mongoose"));
 const slugify_1 = __importDefault(require("slugify"));
 const product_schema_1 = __importDefault(require("./product.schema"));
@@ -18,6 +20,173 @@ const generateSlug = (name) => {
     const slug = (0, slugify_1.default)(name, { lower: true, strict: true });
     return slug || `product-${Date.now()}`;
 };
+async function buildUniqueSlug(sellerId, name, session) {
+    const base = (0, slugify_1.default)(name, { lower: true, strict: true }).slice(0, 180) || "product";
+    let candidate = base;
+    // Bounded retry rather than an unbounded loop — 5 name-collision attempts
+    // is already generous for a single seller.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        const exists = await product_schema_1.default.exists({ sellerId, slug: candidate }).session(session);
+        if (!exists)
+            return candidate;
+        candidate = `${base}-${attempt + 1}`;
+    }
+    // Last resort: guarantee uniqueness with a short random suffix instead of
+    // failing the whole create over a slug collision.
+    return `${base}-${new mongoose_1.default.Types.ObjectId().toString().slice(-6)}`;
+}
+async function recalculateProductAggregates(productId, session) {
+    // exactOptionalPropertyTypes: true means { session: undefined } is not
+    // the same as omitting `session` entirely — Mongoose's UpdateOptions
+    // wants the key absent, not present-with-undefined. Conditional spread
+    // instead of passing `{ session }` directly, same fix as the earlier
+    // `search` key issue in useCategoryTree.
+    const options = session ? { session } : {};
+    const variants = await product_variant_schema_1.default.find({ productId, isActive: true })
+        .select("sellingPrice stock discountValue")
+        .session(session ?? null)
+        .lean();
+    if (variants.length === 0) {
+        // No active variants left (e.g. all deleted/deactivated) — zero out
+        // rather than leaving stale numbers from before.
+        await product_schema_1.default.updateOne({ _id: productId }, {
+            $set: {
+                displayPriceMin: 0,
+                displayPriceMax: 0,
+                totalStock: 0,
+                variantCount: 0,
+                hasDiscount: false,
+            },
+        }, options);
+        return;
+    }
+    const prices = variants.map((v) => v.sellingPrice);
+    const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
+    const hasDiscount = variants.some((v) => (v.discountValue ?? 0) > 0);
+    await product_schema_1.default.updateOne({ _id: productId }, {
+        $set: {
+            displayPriceMin: Math.min(...prices),
+            displayPriceMax: Math.max(...prices),
+            totalStock,
+            variantCount: variants.length,
+            hasDiscount,
+        },
+    }, options);
+}
+async function createProduct(ctx, input) {
+    const session = await mongoose_1.default.startSession();
+    let resultProductId;
+    try {
+        await session.withTransaction(async () => {
+            const attributes = [
+                { key: "color", value: input.color },
+                ...(input.size ? [{ key: "size", value: input.size }] : []),
+            ];
+            // ---- Branch 1: attach a new variant to an EXISTING product ----
+            if (input.productId) {
+                const product = await product_schema_1.default.findOne({
+                    _id: new mongoose_1.default.Types.ObjectId(input.productId),
+                    sellerId: ctx.sellerId, // ownership check — can't add variants to another seller's product
+                }).session(session);
+                if (!product) {
+                    throw new appError_1.AppError("Product not found", 404);
+                }
+                // Guard against creating an identical color/size combo twice.
+                const duplicate = await product_variant_schema_1.default.findOne({
+                    productId: product._id,
+                    attributes: { $all: attributes.map((a) => ({ $elemMatch: a })) },
+                }).session(session);
+                if (duplicate) {
+                    throw new appError_1.AppError("A variant with this color/size already exists for this product", 409);
+                }
+                const existingVariantCount = await product_variant_schema_1.default.countDocuments({
+                    productId: product._id,
+                }).session(session);
+                const nextSuffix = String(existingVariantCount + 1).padStart(2, "0");
+                const [variant] = await product_variant_schema_1.default.create([
+                    {
+                        productId: product._id,
+                        sellerId: ctx.sellerId,
+                        attributes,
+                        sku: `${product.sku}-${nextSuffix}`,
+                        image: input.image ?? null,
+                        buyingPrice: input.buyingPrice,
+                        sellingPrice: input.sellingPrice,
+                        stock: input.stock,
+                        lowStockAlert: input.lowStockAlert,
+                        discountType: input.discount > 0 ? "percentage" : null,
+                        discountValue: input.discount,
+                        isActive: true,
+                    },
+                ], { session });
+                if (!variant)
+                    throw new appError_1.AppError("Variant creation failed", 500);
+                await recalculateProductAggregates(product._id, session);
+                resultProductId = product._id;
+                return;
+            }
+            // ---- Branch 2: create a brand-new product + its first variant ----
+            const slug = await buildUniqueSlug(ctx.sellerId, input.name, session);
+            const [product] = await product_schema_1.default.create([
+                {
+                    sellerId: ctx.sellerId,
+                    categoryId: new mongoose_1.default.Types.ObjectId(input.categoryId),
+                    name: input.name,
+                    slug,
+                    sellingPrice: input.sellingPrice,
+                    buyingPrice: input.buyingPrice,
+                    description: input.description || null,
+                    specification: input.specifications || null,
+                    images: input.image ? [input.image] : [],
+                    tags: input.tags,
+                    discount: input.discount,
+                    hasDiscount: input.discount > 0 ? true : false,
+                    showOnHomepage: input.showOnHomepage,
+                    hasVariants: true,
+                    isActive: true,
+                    createdBy: ctx.createdBy,
+                },
+            ], { session });
+            if (!product)
+                throw new appError_1.AppError("Product created failed", 500);
+            const [variant] = await product_variant_schema_1.default.create([
+                {
+                    productId: product._id,
+                    sellerId: ctx.sellerId,
+                    attributes,
+                    sku: `${product.sku}-01`,
+                    image: input.image ?? null,
+                    buyingPrice: input.buyingPrice,
+                    sellingPrice: input.sellingPrice,
+                    stock: input.stock,
+                    lowStockAlert: input.lowStockAlert,
+                    discountType: input.discount > 0 ? "percentage" : null,
+                    discountValue: input.discount,
+                    isActive: true,
+                },
+            ], { session });
+            if (!variant)
+                throw new appError_1.AppError("Variant created failed", 500);
+            await recalculateProductAggregates(product._id, session);
+            resultProductId = product._id;
+        });
+    }
+    catch (err) {
+        if (err?.code === 11000) {
+            throw new appError_1.AppError("A product with this SKU or slug already exists", 409);
+        }
+        throw err;
+    }
+    finally {
+        await session.endSession();
+    }
+    if (!resultProductId) {
+        throw new appError_1.AppError("Product creation failed unexpectedly", 500);
+    }
+    return product_schema_1.default.findById(resultProductId)
+        .populate("categoryId", "name slug")
+        .lean();
+}
 // const assertUniqProductSku = async (
 //   sku: string,
 //   sellerId: mongoose.Types.ObjectId,
@@ -49,9 +218,9 @@ const generateSlug = (name) => {
 //   const { sellerId, createdBy, ...rest } = payload;
 //   // validate category belongs to company
 //   // const category = await Category.findOne({
-//   //   _id: category_id,
+//   //   _id: categoryId,
 //   //   sellerId,
-//   //   is_active: true,
+//   //   isActive: true,
 //   // }).lean();
 //   // if (!category) throw new AppError("Category not found or inactive", 404);
 //   const slug = generateSlug(rest.name);
@@ -59,7 +228,7 @@ const generateSlug = (name) => {
 //   // const vendor = await Vendor.findOne({
 //   //   _id: vendor_id,
 //   //   sellerId,
-//   //   is_active: true,
+//   //   isActive: true,
 //   // }).lean();
 //   // if (!vendor) throw new AppError("Vendor not found or inactive", 404);
 //   // unique slug check
@@ -77,10 +246,10 @@ const generateSlug = (name) => {
 //     after: {
 //       name: product.name,
 //       slug: product.slug,
-//       buying_price: product.buying_price,
-//       selling_price: product.selling_price,
+//       buyingPrice: product.buyingPrice,
+//       sellingPrice: product.sellingPrice,
 //       description: product.description,
-//       category_id: product.category_id,
+//       categoryId: product.categoryId,
 //       vendor_id: product.vendor_id,
 //     },
 //   });
@@ -88,31 +257,31 @@ const generateSlug = (name) => {
 // };
 // ─── Get all products (paginated) ────────────────────────
 const getProducts = async (payload) => {
-    const { sellerId, page, limit, search, category_id, vendor_id, has_variants, is_active, low_stock, sort_by, sort_order, } = payload;
+    const { sellerId, page, limit, search, categoryId, vendor_id, hasVariants, isActive, low_stock, sort_by, sort_order, } = payload;
     if (!sellerId)
         throw new appError_1.AppError("sellerId is required", 400);
     const filter = { sellerId };
-    if (is_active !== undefined)
-        filter.is_active = is_active;
-    if (has_variants !== undefined)
-        filter.has_variants = has_variants;
-    if (category_id) {
+    if (isActive !== undefined)
+        filter.isActive = isActive;
+    if (hasVariants !== undefined)
+        filter.hasVariants = hasVariants;
+    if (categoryId) {
         const allDescendantCategories = await category_schema_1.default.find({
             sellerId,
-            path: new mongoose_1.default.Types.ObjectId(category_id), // ✅ array contains match
-            is_active: true,
+            path: new mongoose_1.default.Types.ObjectId(categoryId), // ✅ array contains match
+            isActive: true,
         }).lean();
         const allCategoryIds = [
-            new mongoose_1.default.Types.ObjectId(category_id),
+            new mongoose_1.default.Types.ObjectId(categoryId),
             ...allDescendantCategories.map((c) => c._id),
         ];
-        filter.category_id = { $in: allCategoryIds };
+        filter.categoryId = { $in: allCategoryIds };
     }
     if (vendor_id)
         filter.vendor_id = vendor_id;
-    // low stock filter — stock <= low_stock_alert
+    // low stock filter — stock <= lowStockAlert
     if (low_stock === "true") {
-        filter.$expr = { $lte: ["$stock", "$low_stock_alert"] };
+        filter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
     }
     if (search) {
         filter.$or = [
@@ -123,7 +292,7 @@ const getProducts = async (payload) => {
     const sortDir = sort_order === "asc" ? 1 : -1;
     const [products, total] = await Promise.all([
         product_schema_1.default.find(filter)
-            .populate("category_id", "name slug depth")
+            .populate("categoryId", "name slug depth")
             // .populate("vendor_id", "name phone")
             .sort({ [sort_by]: sortDir })
             .skip((page - 1) * limit)
@@ -140,24 +309,47 @@ const getProductById = async (payload) => {
         _id: payload.id,
         sellerId: payload.sellerId,
     })
-        .populate("category_id", "name slug path depth")
+        .populate("categoryId", "name slug path depth")
         // .populate("vendor_id", "name phone email")
         .populate("createdBy", "name email")
         .lean();
     if (!product)
         throw new appError_1.AppError("Product not found", 404);
-    // attach variants if has_variants
+    // attach variants if hasVariants
     let variants = [];
-    if (product.has_variants) {
+    if (product.hasVariants) {
         variants = await product_variant_schema_1.default.find({
             sellerId: payload.sellerId,
             product_id: payload.id,
-            is_active: true,
+            isActive: true,
         }).lean();
     }
     return { product, variants };
 };
 exports.getProductById = getProductById;
+const getProductBySlug = async (payload) => {
+    const product = await product_schema_1.default.findOne({
+        slug: payload.slug,
+        // sellerId: payload.sellerId,
+    })
+        .populate("categoryId", "name slug path depth")
+        // .populate("vendor_id", "name phone email")
+        .populate("createdBy", "name email")
+        .lean();
+    if (!product)
+        throw new appError_1.AppError("Product not found", 404);
+    // attach variants if hasVariants
+    let variants = [];
+    if (product.hasVariants) {
+        variants = await product_variant_schema_1.default.find({
+            // sellerId: payload.sellerId,
+            productId: product._id,
+            isActive: true,
+        }).lean();
+    }
+    return { product, variants };
+};
+exports.getProductBySlug = getProductBySlug;
 // ─── Update product ───────────────────────────────────────
 const updateProduct = async (payload) => {
     const { id, sellerId, data } = payload;
@@ -165,22 +357,22 @@ const updateProduct = async (payload) => {
     if (!product)
         throw new appError_1.AppError("Product not found", 404);
     // validate new category if changing
-    if (data.category_id) {
+    if (data.categoryId) {
         const category = await category_schema_1.default.findOne({
-            _id: data.category_id,
+            _id: data.categoryId,
             sellerId,
-            is_active: true,
+            isActive: true,
         }).lean();
         if (!category)
             throw new appError_1.AppError("Category not found or inactive", 404);
-        product.category_id = new mongoose_1.default.Types.ObjectId(data.category_id);
+        product.categoryId = new mongoose_1.default.Types.ObjectId(data.categoryId);
     }
     // validate new vendor if changing
     if (data.vendor_id) {
         const vendor = await vendor_schema_1.default.findOne({
             _id: data.vendor_id,
             sellerId,
-            is_active: true,
+            isActive: true,
         }).lean();
         if (!vendor)
             throw new appError_1.AppError("Vendor not found or inactive", 404);
@@ -189,7 +381,7 @@ const updateProduct = async (payload) => {
     const before = {
         name: product.name,
         sellerId: product.sellerId,
-        category_id: product.category_id,
+        categoryId: product.categoryId,
         // vendor_id: product.vendor_id,
     };
     // regenerate slug if name changes
@@ -205,24 +397,24 @@ const updateProduct = async (payload) => {
         product.slug = newSlug;
         product.name = data.name;
     }
-    // block manual stock update if has_variants
-    if (data.stock !== undefined && product.has_variants) {
+    // block manual stock update if hasVariants
+    if (data.stock !== undefined && product.hasVariants) {
         throw new appError_1.AppError("Cannot set stock directly on a product with variants", 400);
     }
     if (data.description !== undefined)
         product.description = data.description;
     if (data.images !== undefined)
         product.images = data.images;
-    if (data.buying_price !== undefined)
-        product.buying_price = data.buying_price;
-    if (data.selling_price !== undefined)
-        product.selling_price = data.selling_price;
+    if (data.buyingPrice !== undefined)
+        product.buyingPrice = data.buyingPrice;
+    if (data.sellingPrice !== undefined)
+        product.sellingPrice = data.sellingPrice;
     if (data.stock !== undefined)
         product.stock = data.stock;
-    if (data.low_stock_alert !== undefined)
-        product.low_stock_alert = data.low_stock_alert;
-    if (data.is_active !== undefined)
-        product.is_active = data.is_active;
+    if (data.lowStockAlert !== undefined)
+        product.lowStockAlert = data.lowStockAlert;
+    if (data.isActive !== undefined)
+        product.isActive = data.isActive;
     await product.save(); // pre-save hook recalculates profit + margin
     (0, auditLogger_1.auditLog)({
         req: payload.req,
@@ -233,10 +425,10 @@ const updateProduct = async (payload) => {
         after: {
             name: product.name,
             slug: product.slug,
-            buying_price: product.buying_price,
-            selling_price: product.selling_price,
+            buyingPrice: product.buyingPrice,
+            sellingPrice: product.sellingPrice,
             sellerId: product.sellerId,
-            category_id: product.category_id,
+            categoryId: product.categoryId,
             // vendor_id: product.vendor_id,
         },
     });
@@ -253,11 +445,11 @@ const deleteProduct = async (payload) => {
         name: product.name,
     };
     // soft delete product
-    product.is_active = false;
+    product.isActive = false;
     await product.save();
     // soft delete all variants
-    if (product.has_variants) {
-        await product_variant_schema_1.default.updateMany({ product_id: id }, { is_active: false });
+    if (product.hasVariants) {
+        await product_variant_schema_1.default.updateMany({ product_id: id }, { isActive: false });
     }
     (0, auditLogger_1.auditLog)({
         req: payload.req,

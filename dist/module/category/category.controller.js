@@ -39,8 +39,9 @@ const ApiResponse_1 = require("../../utils/ApiResponse");
 const CategoryService = __importStar(require("./category.service"));
 // ─── Create Category ──────────────────────────────────────
 exports.createCategory = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    console.log("category body", req.body);
     const category = await CategoryService.createCategory({
-        ...req.body, // Contains name, parent_id, image (URL)
+        ...req.body, // Contains name, parentId, image (URL)
         sellerId: req.user.sellerId,
         createdBy: req.user._id,
         req,
@@ -67,18 +68,18 @@ exports.getCategories = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const page = req.validatedQuery.page;
     const limit = req.validatedQuery.limit;
     const search = req.validatedQuery.search;
-    const parent_id = req.validatedQuery.parent_id;
+    const parentId = req.validatedQuery.parentId;
     const depth = req.validatedQuery.depth;
-    const is_active = req.validatedQuery.is_active;
-    const query = { page, limit, search, parent_id, depth, is_active };
+    const isActive = req.validatedQuery.isActive;
+    const query = { page, limit, search, parentId, depth, isActive };
     const { categories, total } = await CategoryService.getCategories({
         sellerId: req.user.sellerId,
         page,
-        parent_id,
+        parentId,
         depth,
         limit,
         search,
-        is_active,
+        isActive,
     });
     return ApiResponse_1.ApiResponse.paginated(res, "Category", categories, total, query.page, query.limit);
 });
@@ -95,7 +96,7 @@ exports.updateCategory = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const category = await CategoryService.updateCategory({
         id: req.params.id,
         sellerId: req.user.sellerId,
-        data: req.body, // Contains name, image (URL), is_active
+        data: req.body, // Contains name, image (URL), isActive
         req,
     });
     return ApiResponse_1.ApiResponse.success(res, category, "Category updated successfully");

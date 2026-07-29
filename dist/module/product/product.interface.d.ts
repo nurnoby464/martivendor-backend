@@ -1,28 +1,53 @@
 import mongoose from "mongoose";
 import { Document } from "mongoose";
+export declare enum ProductTag {
+    NEW_ARRIVAL = "NEW_ARRIVAL",
+    FLASH_SALE = "FLASH_SALE",
+    TOP_DEALS = "TOP_DEALS",
+    BEST_SELLER = "BEST_SELLER",
+    FEATURED = "FEATURED",
+    TRENDING = "TRENDING",
+    POPULAR = "POPULAR",
+    HOT = "HOT",
+    ON_SALE = "ON_SALE",
+    LIMITED_EDITION = "LIMITED_EDITION",
+    EXCLUSIVE = "EXCLUSIVE",
+    PRE_ORDER = "PRE_ORDER",
+    COMING_SOON = "COMING_SOON",
+    LOW_STOCK = "LOW_STOCK",
+    BACK_IN_STOCK = "BACK_IN_STOCK",
+    FREE_SHIPPING = "FREE_SHIPPING",
+    TOP_RATED = "TOP_RATED",
+    RECOMMENDED = "RECOMMENDED",
+    CLEARANCE = "CLEARANCE",
+    DISCOUNT = "DISCOUNT"
+}
 export interface IProduct {
     sellerId: mongoose.Types.ObjectId;
-    category_id: mongoose.Types.ObjectId;
-    vendor_id: mongoose.Types.ObjectId;
+    categoryId: mongoose.Types.ObjectId;
     name: string;
     slug: string;
     description: string | null;
+    specification: string | null;
     images: string[];
     sku: string;
-    buying_price: number;
-    selling_price: number;
+    buyingPrice: number;
+    sellingPrice: number;
+    discount: number;
     profit: number;
-    profit_margin: number;
+    profitMargin: number;
     stock: number;
-    low_stock_alert: number;
-    display_price_min: number;
-    display_price_max: number;
-    total_stock: number;
-    variant_count: number;
-    has_discount: boolean;
-    has_variants: boolean;
+    lowStockAlert: number;
+    displayPriceMin: number;
+    displayPriceMax: number;
+    totalStock: number;
+    variantCount: number;
+    hasDiscount: boolean;
+    hasVariants: boolean;
     taxRate: number;
-    is_active: boolean;
+    isActive: boolean;
+    tags: ProductTag[];
+    showOnHomepage: boolean;
     createdBy: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;

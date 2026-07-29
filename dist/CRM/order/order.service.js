@@ -137,7 +137,7 @@ const createOrder = async ({ sellerId, input, }) => {
         }
         const variantMap = new Map(variants.map((v) => [v._id.toString(), v]));
         // 2. load all products
-        const productIds = variants.map((v) => v.product_id);
+        const productIds = variants.map((v) => v.productId);
         const product = await product_schema_1.default.find({
             sellerId: sellerId,
             is_active: true,
@@ -151,14 +151,14 @@ const createOrder = async ({ sellerId, input, }) => {
             if (!variant) {
                 throw new appError_1.AppError(`Not found this ${item.variant_id} `, 404);
             }
-            const product = productMap.get(variant.product_id.toString());
+            const product = productMap.get(variant.productId.toString());
             if (!product) {
                 throw new appError_1.AppError(`Product not found for variant: ${item.variant_id} `, 404);
             }
             if (variant.stock < item.quantity) {
                 throw new appError_1.AppError(`Insufficient stock for ${product.name} - ${variant.sku}. Available: ${variant.stock}`, 400);
             }
-            const unitPrice = variant.selling_price;
+            const unitPrice = variant.sellingPrice;
             const taxRete = product.taxRate;
             const taxAmount = Math.round((unitPrice * item.quantity * taxRete) / 100);
             const discountAmount = (0, healper_1.calculateDiscount)({

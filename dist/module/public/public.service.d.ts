@@ -7,9 +7,9 @@ export declare const getProducts: (payload: {
     page: number;
     limit: number;
     search?: string;
-    category_id?: string;
-    vendor_id?: string;
-    has_variants?: boolean;
+    categoryId?: string;
+    vendorId?: string;
+    hasVariants?: boolean;
     is_active?: boolean;
     low_stock?: string;
     sort_by: string;

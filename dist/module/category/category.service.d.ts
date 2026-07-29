@@ -4,9 +4,10 @@ import { ICategoryDocument } from "./category.interface";
 export declare const createCategory: (payload: {
     sellerId: mongoose.Types.ObjectId;
     name: string;
-    parent_id?: string | null;
+    parentId?: string | null;
     image?: string | null;
     createdBy: mongoose.Types.ObjectId;
+    isActive: boolean;
     req: Request;
 }) => Promise<mongoose.Document<unknown, {}, ICategoryDocument, {}, mongoose.DefaultSchemaOptions> & ICategoryDocument & Required<{
     _id: mongoose.Types.ObjectId;
@@ -29,9 +30,9 @@ export declare const getCategories: (payload: {
     page: number;
     limit: number;
     search?: string;
-    parent_id?: string | null;
+    parentId?: string | null;
     depth?: number;
-    is_active?: boolean;
+    isActive?: boolean;
 }) => Promise<{
     categories: (ICategoryDocument & Required<{
         _id: mongoose.Types.ObjectId;
@@ -55,7 +56,7 @@ export declare const updateCategory: (payload: {
     data: {
         name?: string;
         image?: string | null;
-        is_active?: boolean;
+        isActive?: boolean;
     };
 }) => Promise<mongoose.Document<unknown, {}, ICategoryDocument, {}, mongoose.DefaultSchemaOptions> & ICategoryDocument & Required<{
     _id: mongoose.Types.ObjectId;

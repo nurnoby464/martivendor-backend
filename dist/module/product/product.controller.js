@@ -33,13 +33,31 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProduct = exports.updateProduct = exports.getProductById = exports.getProducts = void 0;
+exports.deleteProduct = exports.updateProduct = exports.getProductBySlug = exports.getProductById = exports.getProducts = exports.createProduct = void 0;
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const ProductService = __importStar(require("./product.service"));
+const product_validation_1 = require("./product.validation");
+const appError_1 = require("../../middlewares/appError");
 // ═══════════════════════════════════════════════════════════
 // PRODUCT
 // ═══════════════════════════════════════════════════════════
+exports.createProduct = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const input = product_validation_1.createProductSchema.parse(req.body);
+    // Populated by auth middleware — same pattern as your existing `getMe`
+    // endpoint (role-based access, field-level selection).
+    const sellerId = req.user?.sellerId;
+    const userId = req.user?._id;
+    if (!sellerId || !userId) {
+        throw new appError_1.AppError("Only authenticated sellers can create products", 403);
+    }
+    const product = await ProductService.createProduct({ sellerId, createdBy: userId }, input);
+    res.status(201).json({
+        success: true,
+        message: "Product created successfully",
+        data: product,
+    });
+});
 exports.getProducts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const query = req.validatedQuery;
     const { products, total } = await ProductService.getProducts({
@@ -52,6 +70,13 @@ exports.getProductById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const result = await ProductService.getProductById({
         id: req.params.id,
         sellerId: req.user.sellerId,
+    });
+    return ApiResponse_1.ApiResponse.success(res, result);
+});
+exports.getProductBySlug = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const result = await ProductService.getProductBySlug({
+        slug: req.params.slug,
+        // sellerId: req.user.sellerId!,
     });
     return ApiResponse_1.ApiResponse.success(res, result);
 });

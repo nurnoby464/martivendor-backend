@@ -14,7 +14,7 @@ export const createVariant = asyncHandler(
     const variant = await ProductVariantServices.createVariant(
       {
         ...(req.body as CreateVariantInput),
-        product_id: req.params.id as string,
+        productId: req.params.id as string,
         sellerId,
       },
       req,
@@ -26,7 +26,7 @@ export const createVariant = asyncHandler(
 
 export const getVariants = asyncHandler(async (req: Request, res: Response) => {
   const variants = await ProductVariantServices.getVariants({
-    product_id: req.params.id as string,
+    productId: req.params.id as string,
     sellerId: req.user.sellerId!,
   });
 
@@ -61,7 +61,7 @@ export const deleteVariant = asyncHandler(
   async (req: Request, res: Response) => {
     const variant = await ProductVariantServices.deleteVariant({
       id: req.params.variantId as string,
-      product_id: req.params.id as string,
+      productId: req.params.id as string,
       sellerId: req.user.sellerId!,
       req,
     });

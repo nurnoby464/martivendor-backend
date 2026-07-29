@@ -1060,9 +1060,9 @@ export const updateStock = async (req: Request) => {
   }
 
   const populatedProduct = variant.productId as unknown as IProductDocument;
-  if (!Types.ObjectId.isValid(populatedProduct.vendorId)) {
-    throw new AppError("Vendor Id is required", 400);
-  }
+  // if (!Types.ObjectId.isValid(populatedProduct.vendorId)) {
+  //   throw new AppError("Vendor Id is required", 400);
+  // }
 
   const updateBuyingPrice =
     variant.buyingPrice > buyingPrice ? variant.buyingPrice : buyingPrice;
@@ -1170,7 +1170,7 @@ export const updateStock = async (req: Request) => {
     const updateVendor = await Vendor.findOneAndUpdate(
       {
         sellerId: sellerId,
-        _id: populatedProduct.vendorId,
+        // _id: populatedProduct.vendorId,
       },
       [
         {

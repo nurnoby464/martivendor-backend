@@ -14,19 +14,17 @@ const attributeSchema = z.object({
   value: z.string().trim().min(1, "Attribute value is required"),
 });
 
-
-
 export const updateProductSchema = z.object({
   // category_id   : objectId.optional(),
   // vendor_id     : objectId.optional(),
   name: z.string().trim().min(2).max(200).optional(),
   description: z.string().trim().optional().nullable(),
   images: z.array(z.string().trim().url()).optional(),
-  buying_price: z.number().min(0).optional(),
-  selling_price: z.number().min(0).optional(),
+  buyingPrice: z.number().min(0).optional(),
+  sellingPrice: z.number().min(0).optional(),
   stock: z.number().min(0).optional(),
-  low_stock_alert: z.number().min(0).optional(),
-  is_active: z.boolean().optional(),
+  lowStockAlert: z.number().min(0).optional(),
+  isActive: z.boolean().optional(),
 });
 
 // ─── Variant ──────────────────────────────────────────────
@@ -34,6 +32,9 @@ export const updateProductSchema = z.object({
 // ─── Params ───────────────────────────────────────────────
 export const productParamsSchema = z.object({
   id: objectId,
+});
+export const productSlugParamsSchema = z.object({
+  slug: z.string().toLowerCase().trim(),
 });
 
 // ─── Query ────────────────────────────────────────────────
@@ -47,22 +48,22 @@ export const productQuerySchema = z.object({
     .optional()
     .transform((v) => parseInt(v ?? "10")),
   search: z.string().trim().optional(),
-  category_id: objectId.optional(),
+  categoryId: objectId.optional(),
   vendor_id: objectId.optional(),
-  has_variants: z
+  hasVariants: z
     .enum(["true", "false"])
     .optional()
     .transform((v) => (v === undefined ? undefined : v === "true")),
-  is_active: z
+  isActive: z
     .enum(["true", "false"])
     .optional()
     .transform((v) => (v === undefined ? undefined : v === "true")),
-  low_stock: z.enum(["true"]).optional(), // ?low_stock=true → filter stock <= alert
-  sort_by: z
+  lowStock: z.enum(["true"]).optional(), // ?low_stock=true → filter stock <= alert
+  sortBy: z
     .enum(["name", "createdAt", "stock", "selling_price"])
     .optional()
     .default("createdAt"),
-  sort_order: z.enum(["asc", "desc"]).optional().default("desc"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 const mongoIdField = (label: string) =>
@@ -78,7 +79,7 @@ export const createProductSchema = z.object({
     .trim()
     .min(2, "Name must be at least 2 characters")
     .max(200, "Name cannot exceed 200 characters"),
-
+  productId: z.string().optional(),
   // Wire field is `category` (matches CategoryCombobox's hidden input name).
   categoryId: mongoIdField("Category"),
   // Sent alongside `category` for display purposes only — the product is
@@ -114,3 +115,4 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ListProductQuery = z.infer<typeof createProductSchema>;
 export type GetProductQuery = z.infer<typeof productQuerySchema>;
+export type GetProductSlugQuery = z.infer<typeof productSlugParamsSchema>;

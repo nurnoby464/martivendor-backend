@@ -197,7 +197,7 @@ export const createSale = async (payload: ICreateSalePayload) => {
         throw new AppError(`Variant not found: ${item.variantId}`, 404);
 
       // check variant belongs to this product
-      if (variant.product_id.toString() !== item.productId) {
+      if (variant.productId.toString() !== item.productId) {
         throw new AppError(
           `Variant ${item.variantId} does not belong to product ${item.productId}`,
           400,
@@ -234,7 +234,7 @@ export const createSale = async (payload: ICreateSalePayload) => {
         size,
         sku: variant.sku,
         quantity: item.quantity,
-        unitPrice: variant.buying_price, // from variant — actual cost
+        unitPrice: variant.buyingPrice, // from variant — actual cost
         sellingPrice: item.sellingPrice,
         discountType: item.discountType ?? null,
         discountValue: item.discountValue,

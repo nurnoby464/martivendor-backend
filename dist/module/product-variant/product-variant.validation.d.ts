@@ -4,19 +4,19 @@ export declare const createVariantSchema: z.ZodObject<{
         key: z.ZodString;
         value: z.ZodString;
     }, z.core.$strip>>;
-    buying_price: z.ZodNumber;
-    selling_price: z.ZodNumber;
+    buyingPrice: z.ZodNumber;
+    sellingPrice: z.ZodNumber;
     stock: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
-    low_stock_alert: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+    lowStockAlert: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
     image: z.ZodNullable<z.ZodString>;
 }, z.core.$strip>;
 export declare const updateVariantSchema: z.ZodObject<{
-    buying_price: z.ZodOptional<z.ZodNumber>;
-    selling_price: z.ZodOptional<z.ZodNumber>;
+    buyingPrice: z.ZodOptional<z.ZodNumber>;
+    sellingPrice: z.ZodOptional<z.ZodNumber>;
     stock: z.ZodOptional<z.ZodNumber>;
-    low_stock_alert: z.ZodOptional<z.ZodNumber>;
+    lowStockAlert: z.ZodOptional<z.ZodNumber>;
     image: z.ZodOptional<z.ZodString>;
-    is_active: z.ZodOptional<z.ZodBoolean>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>;
 export declare const variantParamsSchema: z.ZodObject<{
     id: z.ZodString;
@@ -35,9 +35,9 @@ export declare const productVariantQuerySchema: z.ZodObject<{
     }>>, z.ZodTransform<1 | -1, "asc" | "desc" | undefined>>>;
     sortBy: z.ZodDefault<z.ZodEnum<{
         createdAt: "createdAt";
+        purchase_date: "purchase_date";
         total_amount: "total_amount";
         due_amount: "due_amount";
-        purchase_date: "purchase_date";
     }>>;
     stock: z.ZodOptional<z.ZodEnum<{
         lowStock: "lowStock";

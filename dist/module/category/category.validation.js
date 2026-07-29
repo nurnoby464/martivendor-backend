@@ -18,7 +18,8 @@ exports.createCategorySchema = zod_1.z.object({
         .trim()
         .min(2, "Min 2 characters")
         .max(100, "Max 100 characters"),
-    parent_id: objectId.optional().nullable(),
+    parentId: objectId.optional().nullable(),
+    isActive: zod_1.z.boolean(),
     image: zod_1.z.string().trim().url("Invalid image URL").optional().nullable(),
 });
 exports.updateCategorySchema = zod_1.z.object({

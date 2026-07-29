@@ -26,23 +26,23 @@ const assertUniqSlug = async (slug, sellerId, excludeId) => {
 // ─── Create Category ─────────────────────────────────────
 // category.service.ts - Update createCategory
 const createCategory = async (payload) => {
-    const { sellerId, name, parent_id, image, createdBy } = payload;
+    const { sellerId, name, parentId, image, createdBy } = payload;
     const slug = generateSlug(name);
     // await assertUniqSlug(slug, sellerId);
-    const filter = { sellerId, slug, parent_id };
+    const filter = { sellerId, slug, parentId };
     const exists = await category_schema_1.default.findOne(filter).lean();
     if (exists)
         throw new appError_1.AppError(`Category "${slug}" already exists`, 409);
     let path = [];
     let depth = 0;
-    if (parent_id) {
+    if (parentId) {
         const parent = await category_schema_1.default.findOne({
-            _id: parent_id,
+            _id: parentId,
             sellerId,
         }).lean();
         if (!parent)
             throw new appError_1.AppError("Parent category not found", 404);
-        if (!parent.is_active)
+        if (!parent.isActive)
             throw new appError_1.AppError("Parent category is inactive", 400);
         // ✅ Array spread instead of string concatenation
         path = [...parent.path, parent._id];
@@ -52,7 +52,7 @@ const createCategory = async (payload) => {
         sellerId,
         name,
         slug,
-        parent_id: parent_id ?? null,
+        parentId: parentId ?? null,
         path,
         depth,
         image: image ?? null,
@@ -70,17 +70,17 @@ exports.createCategory = createCategory;
 //   if (search) {
 //     const matched = await Category.findOne({
 //       sellerId,
-//       is_active: true,
+//       isActive: true,
 //       name: { $regex: search.trim(), $options: "i" },
 //     }).lean<LeanCategory>();
 //     if (!matched) return [];
 //     categories = await Category.find({
 //       sellerId,
-//       is_active: true,
+//       isActive: true,
 //       $or: [{ _id: matched._id }, { path: matched._id.toHexString() }],
 //     }).lean<LeanCategory[]>();
 //   } else {
-//     categories = await Category.find({ sellerId, is_active: true })
+//     categories = await Category.find({ sellerId, isActive: true })
 //       .sort({ path: 1, name: 1 })
 //       .lean<LeanCategory[]>();
 //   }
@@ -106,14 +106,14 @@ exports.createCategory = createCategory;
 //       name: c.name,
 //       fullPath: getFullPath(c),
 //       depth: c.depth,
-//       parentId: c.parent_id,
+//       parentId: c.parentId,
 //     }));
 // };
 const getCategoryTree = async (payload) => {
     const { sellerId, query, skip, limit } = payload;
     const baseFilter = {
         sellerId,
-        is_active: true,
+        isActive: true,
     };
     let matched;
     let total;
@@ -168,12 +168,12 @@ const getCategoryTree = async (payload) => {
     // hasChildren check
     const childDocs = await category_schema_1.default.find({
         sellerId,
-        is_active: true,
-        parent_id: { $in: matched.map((c) => c._id) },
+        isActive: true,
+        parentId: { $in: matched.map((c) => c._id) },
     })
-        .select("parent_id")
+        .select("parentId")
         .lean();
-    const hasChildrenSet = new Set(childDocs.map((c) => c.parent_id.toHexString()));
+    const hasChildrenSet = new Set(childDocs.map((c) => c.parentId.toHexString()));
     const categories = matched.map((c) => {
         const ancestorIds = c.path ? c.path.split(",") : [];
         const ancestorList = ancestorIds
@@ -182,8 +182,8 @@ const getCategoryTree = async (payload) => {
             return a ? { _id: a._id, name: a.name, depth: a.depth } : null;
         })
             .filter(Boolean);
-        const parent = c.parent_id
-            ? ancestorMap.get(c.parent_id.toHexString())
+        const parent = c.parentId
+            ? ancestorMap.get(c.parentId.toHexString())
             : null;
         const fullPath = [...ancestorList.map((a) => a.name), c.name].join(" > ");
         return {
@@ -191,7 +191,7 @@ const getCategoryTree = async (payload) => {
             name: c.name,
             slug: c.slug,
             fullPath,
-            parentId: c.parent_id ?? null,
+            parentId: c.parentId ?? null,
             parentName: parent?.name ?? null,
             ancestors: ancestorList,
             depth: c.depth,
@@ -204,20 +204,20 @@ const getCategoryTree = async (payload) => {
 exports.getCategoryTree = getCategoryTree;
 // ─── Get All Categories (Flat List with Pagination) ───────
 const getCategories = async (payload) => {
-    const { sellerId, page, limit, search, parent_id, depth, is_active } = payload;
+    const { sellerId, page, limit, search, parentId, depth, isActive } = payload;
     const filter = { sellerId };
-    if (is_active !== undefined)
-        filter.is_active = is_active;
+    if (isActive !== undefined)
+        filter.isActive = isActive;
     if (depth !== undefined)
         filter.depth = depth;
-    if (parent_id !== undefined)
-        filter.parent_id = parent_id ?? null;
+    if (parentId !== undefined)
+        filter.parentId = parentId ?? null;
     if (search) {
         filter.name = { $regex: search, $options: "i" };
     }
     const [categories, total] = await Promise.all([
         category_schema_1.default.find(filter)
-            .populate("parent_id", "name slug depth")
+            .populate("parentId", "name slug depth")
             .sort({ depth: 1, name: 1 })
             .skip((page - 1) * limit)
             .limit(limit)
@@ -233,7 +233,7 @@ const getCategoryById = async (payload) => {
         _id: payload.id,
         sellerId: payload.sellerId,
     })
-        .populate("parent_id", "name slug depth")
+        .populate("parentId", "name slug depth")
         .lean();
     if (!category)
         throw new appError_1.AppError("Category not found", 404);
@@ -259,8 +259,8 @@ const updateCategory = async (payload) => {
     }
     if (data.image !== undefined)
         category.image = data.image;
-    if (data.is_active !== undefined)
-        category.is_active = data.is_active;
+    if (data.isActive !== undefined)
+        category.isActive = data.isActive;
     await category.save();
     (0, auditLogger_1.auditLog)({
         req: payload.req,
@@ -283,11 +283,11 @@ const deleteCategory = async (payload) => {
     if (!category)
         throw new appError_1.AppError("Category not found", 404);
     // Check for children
-    const hasChildren = await category_schema_1.default.exists({ sellerId, parent_id: id });
+    const hasChildren = await category_schema_1.default.exists({ sellerId, parentId: id });
     if (hasChildren) {
         throw new appError_1.AppError("Cannot delete a category that has subcategories. Delete children first.", 400);
     }
-    category.is_active = false;
+    category.isActive = false;
     await category.save();
     (0, auditLogger_1.auditLog)({
         req: payload.req,
@@ -304,7 +304,7 @@ const searchCategories = async (payload) => {
     const { sellerId, search, skip, limit } = payload;
     const baseFilter = {
         sellerId,
-        is_active: true,
+        isActive: true,
     };
     let matched;
     let total;
@@ -319,7 +319,7 @@ const searchCategories = async (payload) => {
         // 2. fetch root + all descendants
         const descendantFilter = {
             sellerId,
-            is_active: true,
+            isActive: true,
             $or: [{ _id: root._id }, { path: root._id }],
         };
         [matched, total] = await Promise.all([
@@ -359,12 +359,12 @@ const searchCategories = async (payload) => {
     // check hasChildren for all matched in ONE query
     const childDocs = await category_schema_1.default.find({
         sellerId,
-        is_active: true,
-        parent_id: { $in: matched.map((c) => c._id) },
+        isActive: true,
+        parentId: { $in: matched.map((c) => c._id) },
     })
-        .select("parent_id")
+        .select("parentId")
         .lean();
-    const hasChildrenSet = new Set(childDocs.map((c) => c.parent_id.toHexString()));
+    const hasChildrenSet = new Set(childDocs.map((c) => c.parentId.toHexString()));
     // build response — pure in-memory, no more DB calls
     const categories = matched.map((c) => {
         const ancestorList = (c.path ?? [])
@@ -373,8 +373,8 @@ const searchCategories = async (payload) => {
             return a ? { _id: a._id, name: a.name, depth: a.depth } : null;
         })
             .filter(Boolean);
-        const parent = c.parent_id
-            ? ancestorMap.get(c.parent_id.toHexString())
+        const parent = c.parentId
+            ? ancestorMap.get(c.parentId.toHexString())
             : null;
         const fullPath = [...ancestorList.map((a) => a.name), c.name].join(" > ");
         return {
@@ -382,7 +382,7 @@ const searchCategories = async (payload) => {
             name: c.name,
             slug: c.slug,
             fullPath,
-            parentId: c.parent_id ?? null,
+            parentId: c.parentId ?? null,
             parentName: parent?.name ?? null,
             ancestors: ancestorList,
             depth: c.depth,

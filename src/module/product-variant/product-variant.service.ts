@@ -23,23 +23,23 @@ interface IGetProductVariant {
 
 export const createVariant = async (
   payload: CreateVariantInput & {
-    product_id: string;
+    productId: string;
     sellerId: mongoose.Types.ObjectId;
   },
   req: Request,
 ) => {
-  const { product_id, sellerId, ...rest } = payload;
+  const { productId, sellerId, ...rest } = payload;
 
-  // product must exist, belong to company, and have has_variants = true
+  // product must exist, belong to company, and have hasVariants = true
   const product = await Product.findOne({
-    _id: product_id,
+    _id: productId,
     sellerId,
-    is_active: true,
+    isActive: true,
   }).lean();
   if (!product) throw new AppError("Product not found", 404);
-  if (!product.has_variants) {
+  if (!product.hasVariants) {
     throw new AppError(
-      "This product does not support variants. Enable has_variants first.",
+      "This product does not support variants. Enable hasVariants first.",
       400,
     );
   }
@@ -49,8 +49,8 @@ export const createVariant = async (
 
   // Block duplicate attribute combination for this product
   const duplicate = await ProductVariant.findOne({
-    product_id,
-    is_active: true,
+    productId,
+    isActive: true,
     $and: rest.attributes.map((a: any) => ({
       attributes: { $elemMatch: { key: a.key, value: a.value } },
     })),
@@ -64,7 +64,7 @@ export const createVariant = async (
   const variant = await ProductVariant.create(
     sanitizeData({
       ...rest,
-      product_id: new mongoose.Types.ObjectId(product_id),
+      productId: new mongoose.Types.ObjectId(productId),
       sellerId,
     }),
   );
@@ -75,7 +75,7 @@ export const createVariant = async (
     targetModel: "ProductVariant",
     targetId: variant._id,
     after: {
-      product_id: variant.product_id,
+      productId: variant.productId,
     },
   });
 
@@ -84,17 +84,17 @@ export const createVariant = async (
 
 // ─── Get variants of a product ────────────────────────────
 export const getVariants = async (payload: {
-  product_id: string;
+  productId: string;
   sellerId: mongoose.Types.ObjectId;
 }) => {
   const product = await Product.findOne({
-    _id: payload.product_id,
+    _id: payload.productId,
     sellerId: payload.sellerId,
   }).lean();
   if (!product) throw new AppError("Product not found", 404);
 
   const variants = await ProductVariant.find({
-    product_id: payload.product_id,
+    productId: payload.productId,
   })
     .sort({ createdAt: 1 })
     .lean();
@@ -127,7 +127,7 @@ export const updateVariant = async (
   if (!variant) throw new AppError("Variant not found", 404);
 
   const before = {
-    product_id: variant.product_id,
+    productId: variant.productId,
   };
 
   const updated = await ProductVariant.findOneAndUpdate(
@@ -144,7 +144,7 @@ export const updateVariant = async (
     targetId: variant._id,
     before,
     after: {
-      product_id: updated.product_id,
+      productId: updated.productId,
     },
   });
   return updated;
@@ -153,20 +153,20 @@ export const updateVariant = async (
 // ─── Delete variant ───────────────────────────────────────
 export const deleteVariant = async (payload: {
   id: string;
-  product_id: string;
+  productId: string;
   sellerId: mongoose.Types.ObjectId;
   req: Request;
 }) => {
-  const { id, product_id, sellerId, req } = payload;
+  const { id, productId, sellerId, req } = payload;
 
   const variant = await ProductVariant.findOne({
     _id: id,
-    product_id,
+    productId,
     sellerId,
   });
   if (!variant) throw new AppError("Variant not found", 404);
 
-  variant.is_active = false;
+  variant.isActive = false;
   await variant.save();
 
   auditLog({
@@ -215,10 +215,7 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
     }
     if (stock === "reminderStock") {
       filter.$expr = {
-        $and: [
-          { $lte: ["$stock", "$low_stock_alert"] },
-          { $gte: ["$stock", 1] },
-        ],
+        $and: [{ $lte: ["$stock", "$lowStockAlert"] }, { $gte: ["$stock", 1] }],
       };
     }
   }
@@ -254,7 +251,7 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
                     {
                       $and: [
                         { $gte: ["$stock", 1] },
-                        { $lte: ["$stock", "$low_stock_alert"] },
+                        { $lte: ["$stock", "$lowStockAlert"] },
                       ],
                     },
                     1,
@@ -274,10 +271,22 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
           {
             $lookup: {
               from: "products",
-              localField: "product_id",
+              localField: "productId",
               foreignField: "_id",
               as: "_product",
-              pipeline: [{ $project: { name: 1, category_id: 1 } }], // ← also grab category_id
+              pipeline: [
+                {
+                  $project: {
+                    name: 1,
+                    categoryId: 1,
+                    specification: 1,
+                    description: 1,
+                    discount: 1,
+                    hasDiscount: 1,
+                    tags: 1,
+                  },
+                },
+              ], // ← also grab category_id
             },
           },
           {
@@ -288,13 +297,18 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
                   "Unknown Product",
                 ],
               },
-              category_id: { $arrayElemAt: ["$_product.category_id", 0] }, // ← flatten it out
+              specification: { $arrayElemAt: ["$_product.specification", 0] },
+              categoryId: { $arrayElemAt: ["$_product.categoryId", 0] }, // ← flatten it out
+              description: { $arrayElemAt: ["$_product.description", 0] },
+              hasDiscount: { $arrayElemAt: ["$_product.hasDiscount", 0] },
+              tags: { $arrayElemAt: ["$_product.tags", 0] },
+              discount: { $arrayElemAt: ["$_product.discount", 0] },
             },
           },
           {
             $lookup: {
               from: "categories",
-              localField: "category_id",
+              localField: "categoryId",
               foreignField: "_id",
               as: "_categoryDoc",
               pipeline: [{ $project: { name: 1, slug: 1, path: 1 } }],
@@ -425,25 +439,30 @@ export const getAllProductWithVariant = async (payload: IGetProductVariant) => {
           {
             $project: {
               _id: 1,
-              product_id: 1,
+              productId: 1,
               sellerId: 1,
-              category_id: 1, // ← add
+              categoryId: 1, // ← add
               categoryName: 1, // ← add
               categorySlug: 1, // ← add
               categoryPath: 1, // ["Men", "Shirt"]
               categoryBreadcrumb: 1,
               sku: 1,
               image: 1,
-              buying_price: 1,
-              selling_price: 1,
+              buyingPrice: 1,
+              sellingPrice: 1,
               profit: 1,
               profit_margin: 1,
               stock: 1,
-              low_stock_alert: 1,
-              is_active: 1,
+              lowStockAlert: 1,
+              isActive: 1,
               productName: 1,
               color: 1,
               size: 1,
+              specification: 1,
+              description: 1,
+              discount: 1,
+              hasDiscount: 1,
+              tags: 1,
             },
           },
         ],
@@ -496,8 +515,8 @@ export const editProductVariant = async (req: Request) => {
       },
       {
         $set: {
-          selling_price: sellingPrice ? sellingPrice : existing.selling_price,
-          low_stock_alert: alertStock ? alertStock : existing.low_stock_alert,
+          sellingPrice: sellingPrice ? sellingPrice : existing.sellingPrice,
+          lowStockAlert: alertStock ? alertStock : existing.lowStockAlert,
           image: newImage ? newImage : existing.image,
         },
       },
@@ -508,7 +527,7 @@ export const editProductVariant = async (req: Request) => {
     }
 
     const editProduct = await Product.findOneAndUpdate(
-      { sellerId: sellerId, _id: existing.product_id },
+      { sellerId: sellerId, _id: existing.productId },
       [
         {
           $set: {

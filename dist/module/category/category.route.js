@@ -45,16 +45,16 @@ const router = (0, express_1.Router)();
 // ── /api/categories ───────────────────────────────────────
 router
     .route("/")
-    .get((0, validate_1.validate)({ query: category_validation_1.categoryQuerySchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), CategoryController.getCategories)
-    .post((0, validate_1.validate)({ body: category_validation_1.createCategorySchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), CategoryController.createCategory);
+    .get((0, validate_1.validate)({ query: category_validation_1.categoryQuerySchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory", "seller", "staff"), CategoryController.getCategories)
+    .post((0, validate_1.validate)({ body: category_validation_1.createCategorySchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory", "seller", "staff"), CategoryController.createCategory);
 // ── /api/categories/tree ──────────────────────────────────
 router
     .route("/tree")
-    .get(AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), CategoryController.getCategoryTree);
+    .get(AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory", "seller", "staff", "seller_staff"), CategoryController.getCategoryTree);
 // ── /api/categories/:id/tree ──────────────────────────────
 router
     .route("/:id/tree")
-    .get((0, validate_1.validate)({ params: category_validation_1.categoryParamsSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory"), CategoryController.getCategoryTree);
+    .get((0, validate_1.validate)({ params: category_validation_1.categoryParamsSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin", "inventory", "seller"), CategoryController.getCategoryTree);
 // ── /api/categories/:id ───────────────────────────────────
 router
     .route("/:id")
