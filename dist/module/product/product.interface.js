@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProductTag = void 0;
+exports.ProductType = exports.ProductTag = void 0;
 var ProductTag;
 (function (ProductTag) {
     ProductTag["NEW_ARRIVAL"] = "NEW_ARRIVAL";
@@ -24,4 +24,9 @@ var ProductTag;
     ProductTag["CLEARANCE"] = "CLEARANCE";
     ProductTag["DISCOUNT"] = "DISCOUNT";
 })(ProductTag || (exports.ProductTag = ProductTag = {}));
+var ProductType;
+(function (ProductType) {
+    ProductType["NEW"] = "NEW";
+    ProductType["PRE_OWNED"] = "PRE_OWNED";
+})(ProductType || (exports.ProductType = ProductType = {}));
 //# sourceMappingURL=product.interface.js.map

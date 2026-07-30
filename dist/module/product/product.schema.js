@@ -51,6 +51,12 @@ const ProductSchema = new mongoose_1.Schema({
         default: null,
         trim: true,
     },
+    productType: {
+        type: String,
+        enum: Object.values(product_interface_1.ProductType),
+        required: true,
+        default: product_interface_1.ProductType.NEW,
+    },
     specification: {
         type: String,
         default: null,

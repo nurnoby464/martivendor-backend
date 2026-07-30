@@ -48,8 +48,9 @@ exports.productQuerySchema = zod_1.z.object({
         .optional()
         .transform((v) => parseInt(v ?? "10")),
     search: zod_1.z.string().trim().optional(),
+    productType: zod_1.z.enum(product_interface_1.ProductType).optional(),
     categoryId: objectId.optional(),
-    vendor_id: objectId.optional(),
+    // vendor_id: objectId.optional(),
     hasVariants: zod_1.z
         .enum(["true", "false"])
         .optional()
@@ -60,7 +61,7 @@ exports.productQuerySchema = zod_1.z.object({
         .transform((v) => (v === undefined ? undefined : v === "true")),
     lowStock: zod_1.z.enum(["true"]).optional(), // ?low_stock=true → filter stock <= alert
     sortBy: zod_1.z
-        .enum(["name", "createdAt", "stock", "selling_price"])
+        .enum(["name", "createdAt", "stock", "sellingPrice", "updatedAt"])
         .optional()
         .default("createdAt"),
     sortOrder: zod_1.z.enum(["asc", "desc"]).optional().default("desc"),
@@ -77,6 +78,7 @@ exports.createProductSchema = zod_1.z.object({
         .min(2, "Name must be at least 2 characters")
         .max(200, "Name cannot exceed 200 characters"),
     productId: zod_1.z.string().optional(),
+    productType: zod_1.z.enum(product_interface_1.ProductType).default(product_interface_1.ProductType.NEW),
     // Wire field is `category` (matches CategoryCombobox's hidden input name).
     categoryId: mongoIdField("Category"),
     // Sent alongside `category` for display purposes only — the product is

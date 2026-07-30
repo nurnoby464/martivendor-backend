@@ -6,6 +6,7 @@ import * as ProductService from "./product.service";
 import mongoose from "mongoose";
 import { CreateProductInput, createProductSchema } from "./product.validation";
 import { AppError } from "../../middlewares/appError";
+import { ProductTag, ProductType } from "./product.interface";
 
 // ═══════════════════════════════════════════════════════════
 // PRODUCT
@@ -43,14 +44,19 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     limit: number;
     search?: string;
     category_id?: string;
-    vendor_id?: string;
-    has_variants?: boolean;
-    is_active?: boolean;
+    // vendor_id?: string;
+    hasVariants?: boolean;
+    isActive?: boolean;
     low_stock?: string;
-    sort_by: string;
-    sort_order: string;
+    sortBy: string;
+    sortOrder: string;
+    productType: ProductType;
+    sellingPrice: string;
+    tags: ProductTag;
+    discount: number;
+    hasDiscount: boolean;
   };
-
+  console.log("product controller query", query);
   const { products, total } = await ProductService.getProducts({
     sellerId: req.user.sellerId!,
     ...query,

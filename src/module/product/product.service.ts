@@ -12,6 +12,7 @@ import { Request } from "express";
 import { compareSync } from "bcryptjs";
 import { CreateProductInput } from "./product.validation";
 import { sanitizeData } from "../../utils/sanitizeData";
+import { ProductTag, ProductType } from "./product.interface";
 
 // ─── helpers ─────────────────────────────────────────────
 const generateSlug = (name: string): string => {
@@ -57,12 +58,12 @@ export async function recalculateProductAggregates(
   // instead of passing `{ session }` directly, same fix as the earlier
   // `search` key issue in useCategoryTree.
   const options = session ? { session } : {};
- 
+
   const variants = await ProductVariant.find({ productId, isActive: true })
     .select("sellingPrice stock discountValue")
     .session(session ?? null)
     .lean();
- 
+
   if (variants.length === 0) {
     // No active variants left (e.g. all deleted/deactivated) — zero out
     // rather than leaving stale numbers from before.
@@ -81,11 +82,11 @@ export async function recalculateProductAggregates(
     );
     return;
   }
- 
+
   const prices = variants.map((v) => v.sellingPrice);
   const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
   const hasDiscount = variants.some((v) => (v.discountValue ?? 0) > 0);
- 
+
   await Product.updateOne(
     { _id: productId },
     {
@@ -105,6 +106,14 @@ export async function createProduct(
   ctx: CreateProductContext,
   input: CreateProductInput,
 ) {
+  // ---- Validation: productType is required, first thing checked ----
+  if (!input.productType) {
+    throw new AppError("productType is required", 400);
+  }
+  if (!Object.values(ProductType).includes(input.productType)) {
+    throw new AppError("Invalid productType", 400);
+  }
+
   const session = await mongoose.startSession();
   let resultProductId: mongoose.Types.ObjectId | undefined;
 
@@ -116,6 +125,7 @@ export async function createProduct(
       ];
 
       // ---- Branch 1: attach a new variant to an EXISTING product ----
+      // Only valid if the existing product's productType matches the incoming one.
       if (input.productId) {
         const product = await Product.findOne({
           _id: new mongoose.Types.ObjectId(input.productId),
@@ -126,48 +136,52 @@ export async function createProduct(
           throw new AppError("Product not found", 404);
         }
 
-        // Guard against creating an identical color/size combo twice.
-        const duplicate = await ProductVariant.findOne({
-          productId: product._id,
-          attributes: { $all: attributes.map((a) => ({ $elemMatch: a })) },
-        }).session(session);
-        if (duplicate) {
-          throw new AppError(
-            "A variant with this color/size already exists for this product",
-            409,
+        if (product.productType === input.productType) {
+          // productType matches — proceed as a variant of the existing product.
+          const duplicate = await ProductVariant.findOne({
+            productId: product._id,
+            attributes: { $all: attributes.map((a) => ({ $elemMatch: a })) },
+          }).session(session);
+          if (duplicate) {
+            throw new AppError(
+              "A variant with this color/size already exists for this product",
+              409,
+            );
+          }
+
+          const existingVariantCount = await ProductVariant.countDocuments({
+            productId: product._id,
+          }).session(session);
+          const nextSuffix = String(existingVariantCount + 1).padStart(2, "0");
+
+          const [variant] = await ProductVariant.create(
+            [
+              {
+                productId: product._id,
+                sellerId: ctx.sellerId,
+                attributes,
+                sku: `${product.sku}-${nextSuffix}`,
+                image: input.image ?? null,
+                buyingPrice: input.buyingPrice,
+                sellingPrice: input.sellingPrice,
+                stock: input.stock,
+                lowStockAlert: input.lowStockAlert,
+                discountType: input.discount > 0 ? "percentage" : null,
+                discountValue: input.discount,
+                isActive: true,
+              },
+            ],
+            { session },
           );
+          if (!variant) throw new AppError("Variant creation failed", 500);
+
+          await recalculateProductAggregates(product._id, session);
+
+          resultProductId = product._id;
+          return;
         }
-
-        const existingVariantCount = await ProductVariant.countDocuments({
-          productId: product._id,
-        }).session(session);
-        const nextSuffix = String(existingVariantCount + 1).padStart(2, "0");
-
-        const [variant] = await ProductVariant.create(
-          [
-            {
-              productId: product._id,
-              sellerId: ctx.sellerId,
-              attributes,
-              sku: `${product.sku}-${nextSuffix}`,
-              image: input.image ?? null,
-              buyingPrice: input.buyingPrice,
-              sellingPrice: input.sellingPrice,
-              stock: input.stock,
-              lowStockAlert: input.lowStockAlert,
-              discountType: input.discount > 0 ? "percentage" : null,
-              discountValue: input.discount,
-              isActive: true,
-            },
-          ],
-          { session },
-        );
-        if (!variant) throw new AppError("Variant creation failed", 500);
-
-        await recalculateProductAggregates(product._id, session);
-
-        resultProductId = product._id;
-        return;
+        // productType does NOT match — fall through to Branch 2 and
+        // create a brand-new product instead of attaching a variant here.
       }
 
       // ---- Branch 2: create a brand-new product + its first variant ----
@@ -180,6 +194,7 @@ export async function createProduct(
             categoryId: new mongoose.Types.ObjectId(input.categoryId),
             name: input.name,
             slug,
+            productType: input.productType, // NEW
             sellingPrice: input.sellingPrice,
             buyingPrice: input.buyingPrice,
             description: input.description || null,
@@ -324,12 +339,16 @@ export const getProducts = async (payload: {
   limit: number;
   search?: string;
   categoryId?: string;
-  vendor_id?: string;
+  // vendor_id?: string;
   hasVariants?: boolean;
   isActive?: boolean;
   low_stock?: string;
-  sort_by: string;
-  sort_order: string;
+  sortBy: string;
+  sortOrder: string;
+  productType: ProductType;
+  tags: ProductTag;
+  discount:number;
+  hasDiscount:boolean;
 }) => {
   const {
     sellerId,
@@ -337,14 +356,19 @@ export const getProducts = async (payload: {
     limit,
     search,
     categoryId,
-    vendor_id,
+    // vendor_id,
     hasVariants,
     isActive,
     low_stock,
-    sort_by,
-    sort_order,
-  } = payload;
+    sortBy,
+    sortOrder,
+    productType,
+    tags,
+    discount,
+    hasDiscount
 
+  } = payload;
+  console.log("product services payload", payload);
   if (!sellerId) throw new AppError("sellerId is required", 400);
   const filter: Record<string, unknown> = { sellerId };
 
@@ -363,12 +387,17 @@ export const getProducts = async (payload: {
     ];
     filter.categoryId = { $in: allCategoryIds };
   }
-  if (vendor_id) filter.vendor_id = vendor_id;
+  // if (vendor_id) filter.vendor_id = vendor_id;
 
   // low stock filter — stock <= lowStockAlert
   if (low_stock === "true") {
     filter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
   }
+
+  if (productType) filter.productType = productType;
+  if (discount) filter.discount = discount;
+  if (hasDiscount) filter.hasDiscount = hasDiscount;
+  if (tags && tags?.length > 0) filter.tags = { $in: tags };
 
   if (search) {
     filter.$or = [
@@ -377,13 +406,13 @@ export const getProducts = async (payload: {
     ];
   }
 
-  const sortDir = sort_order === "asc" ? 1 : -1;
+  const sortDir = sortOrder === "asc" ? 1 : -1;
 
   const [products, total] = await Promise.all([
     Product.find(filter)
       .populate("categoryId", "name slug depth")
       // .populate("vendor_id", "name phone")
-      .sort({ [sort_by]: sortDir })
+      .sort({ [sortBy]: sortDir })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),

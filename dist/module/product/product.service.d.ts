@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Request } from "express";
 import { CreateProductInput } from "./product.validation";
+import { ProductType } from "./product.interface";
 interface CreateProductContext {
     sellerId: mongoose.Types.ObjectId;
     createdBy: mongoose.Types.ObjectId;
@@ -17,12 +18,12 @@ export declare const getProducts: (payload: {
     limit: number;
     search?: string;
     categoryId?: string;
-    vendor_id?: string;
     hasVariants?: boolean;
     isActive?: boolean;
     low_stock?: string;
-    sort_by: string;
-    sort_order: string;
+    sortBy: string;
+    sortOrder: string;
+    productType: ProductType;
 }) => Promise<{
     products: (import("./product.interface").IProduct & {
         _id: mongoose.Types.ObjectId;

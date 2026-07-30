@@ -60,6 +60,7 @@ exports.createProduct = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 exports.getProducts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const query = req.validatedQuery;
+    console.log(query);
     const { products, total } = await ProductService.getProducts({
         sellerId: req.user.sellerId,
         ...query,

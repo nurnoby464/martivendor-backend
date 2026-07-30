@@ -22,11 +22,16 @@ export declare enum ProductTag {
     CLEARANCE = "CLEARANCE",
     DISCOUNT = "DISCOUNT"
 }
+export declare enum ProductType {
+    NEW = "NEW",
+    PRE_OWNED = "PRE_OWNED"
+}
 export interface IProduct {
     sellerId: mongoose.Types.ObjectId;
     categoryId: mongoose.Types.ObjectId;
     name: string;
     slug: string;
+    productType: ProductType;
     description: string | null;
     specification: string | null;
     images: string[];

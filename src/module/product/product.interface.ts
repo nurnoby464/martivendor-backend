@@ -23,6 +23,10 @@ export enum ProductTag {
   DISCOUNT = "DISCOUNT",
 }
 
+export enum ProductType {
+  NEW = "NEW",
+  PRE_OWNED = "PRE_OWNED",
+}
 export interface IProduct {
   sellerId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId;
@@ -30,6 +34,7 @@ export interface IProduct {
 
   name: string;
   slug: string;
+  productType: ProductType;
   description: string | null;
   specification: string | null;
   images: string[];

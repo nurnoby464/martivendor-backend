@@ -15,6 +15,7 @@ const appError_1 = require("../../middlewares/appError");
 const product_variant_schema_1 = __importDefault(require("../product-variant/product-variant.schema"));
 const auditLogger_1 = require("../../utils/auditLogger");
 const audit_interface_1 = require("../audit/audit.interface");
+const product_interface_1 = require("./product.interface");
 // ─── helpers ─────────────────────────────────────────────
 const generateSlug = (name) => {
     const slug = (0, slugify_1.default)(name, { lower: true, strict: true });
@@ -74,6 +75,13 @@ async function recalculateProductAggregates(productId, session) {
     }, options);
 }
 async function createProduct(ctx, input) {
+    // ---- Validation: productType is required, first thing checked ----
+    if (!input.productType) {
+        throw new appError_1.AppError("productType is required", 400);
+    }
+    if (!Object.values(product_interface_1.ProductType).includes(input.productType)) {
+        throw new appError_1.AppError("Invalid productType", 400);
+    }
     const session = await mongoose_1.default.startSession();
     let resultProductId;
     try {
@@ -83,6 +91,7 @@ async function createProduct(ctx, input) {
                 ...(input.size ? [{ key: "size", value: input.size }] : []),
             ];
             // ---- Branch 1: attach a new variant to an EXISTING product ----
+            // Only valid if the existing product's productType matches the incoming one.
             if (input.productId) {
                 const product = await product_schema_1.default.findOne({
                     _id: new mongoose_1.default.Types.ObjectId(input.productId),
@@ -91,39 +100,43 @@ async function createProduct(ctx, input) {
                 if (!product) {
                     throw new appError_1.AppError("Product not found", 404);
                 }
-                // Guard against creating an identical color/size combo twice.
-                const duplicate = await product_variant_schema_1.default.findOne({
-                    productId: product._id,
-                    attributes: { $all: attributes.map((a) => ({ $elemMatch: a })) },
-                }).session(session);
-                if (duplicate) {
-                    throw new appError_1.AppError("A variant with this color/size already exists for this product", 409);
-                }
-                const existingVariantCount = await product_variant_schema_1.default.countDocuments({
-                    productId: product._id,
-                }).session(session);
-                const nextSuffix = String(existingVariantCount + 1).padStart(2, "0");
-                const [variant] = await product_variant_schema_1.default.create([
-                    {
+                if (product.productType === input.productType) {
+                    // productType matches — proceed as a variant of the existing product.
+                    const duplicate = await product_variant_schema_1.default.findOne({
                         productId: product._id,
-                        sellerId: ctx.sellerId,
-                        attributes,
-                        sku: `${product.sku}-${nextSuffix}`,
-                        image: input.image ?? null,
-                        buyingPrice: input.buyingPrice,
-                        sellingPrice: input.sellingPrice,
-                        stock: input.stock,
-                        lowStockAlert: input.lowStockAlert,
-                        discountType: input.discount > 0 ? "percentage" : null,
-                        discountValue: input.discount,
-                        isActive: true,
-                    },
-                ], { session });
-                if (!variant)
-                    throw new appError_1.AppError("Variant creation failed", 500);
-                await recalculateProductAggregates(product._id, session);
-                resultProductId = product._id;
-                return;
+                        attributes: { $all: attributes.map((a) => ({ $elemMatch: a })) },
+                    }).session(session);
+                    if (duplicate) {
+                        throw new appError_1.AppError("A variant with this color/size already exists for this product", 409);
+                    }
+                    const existingVariantCount = await product_variant_schema_1.default.countDocuments({
+                        productId: product._id,
+                    }).session(session);
+                    const nextSuffix = String(existingVariantCount + 1).padStart(2, "0");
+                    const [variant] = await product_variant_schema_1.default.create([
+                        {
+                            productId: product._id,
+                            sellerId: ctx.sellerId,
+                            attributes,
+                            sku: `${product.sku}-${nextSuffix}`,
+                            image: input.image ?? null,
+                            buyingPrice: input.buyingPrice,
+                            sellingPrice: input.sellingPrice,
+                            stock: input.stock,
+                            lowStockAlert: input.lowStockAlert,
+                            discountType: input.discount > 0 ? "percentage" : null,
+                            discountValue: input.discount,
+                            isActive: true,
+                        },
+                    ], { session });
+                    if (!variant)
+                        throw new appError_1.AppError("Variant creation failed", 500);
+                    await recalculateProductAggregates(product._id, session);
+                    resultProductId = product._id;
+                    return;
+                }
+                // productType does NOT match — fall through to Branch 2 and
+                // create a brand-new product instead of attaching a variant here.
             }
             // ---- Branch 2: create a brand-new product + its first variant ----
             const slug = await buildUniqueSlug(ctx.sellerId, input.name, session);
@@ -133,6 +146,7 @@ async function createProduct(ctx, input) {
                     categoryId: new mongoose_1.default.Types.ObjectId(input.categoryId),
                     name: input.name,
                     slug,
+                    productType: input.productType, // NEW
                     sellingPrice: input.sellingPrice,
                     buyingPrice: input.buyingPrice,
                     description: input.description || null,
@@ -257,7 +271,9 @@ async function createProduct(ctx, input) {
 // };
 // ─── Get all products (paginated) ────────────────────────
 const getProducts = async (payload) => {
-    const { sellerId, page, limit, search, categoryId, vendor_id, hasVariants, isActive, low_stock, sort_by, sort_order, } = payload;
+    const { sellerId, page, limit, search, categoryId, 
+    // vendor_id,
+    hasVariants, isActive, low_stock, sortBy, sortOrder, productType, } = payload;
     if (!sellerId)
         throw new appError_1.AppError("sellerId is required", 400);
     const filter = { sellerId };
@@ -277,24 +293,25 @@ const getProducts = async (payload) => {
         ];
         filter.categoryId = { $in: allCategoryIds };
     }
-    if (vendor_id)
-        filter.vendor_id = vendor_id;
+    // if (vendor_id) filter.vendor_id = vendor_id;
     // low stock filter — stock <= lowStockAlert
     if (low_stock === "true") {
         filter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
     }
+    if (productType)
+        filter.productType = productType;
     if (search) {
         filter.$or = [
             { name: { $regex: search, $options: "i" } },
             { sku: { $regex: search, $options: "i" } },
         ];
     }
-    const sortDir = sort_order === "asc" ? 1 : -1;
+    const sortDir = sortOrder === "asc" ? 1 : -1;
     const [products, total] = await Promise.all([
         product_schema_1.default.find(filter)
             .populate("categoryId", "name slug depth")
             // .populate("vendor_id", "name phone")
-            .sort({ [sort_by]: sortDir })
+            .sort({ [sortBy]: sortDir })
             .skip((page - 1) * limit)
             .limit(limit)
             .lean(),

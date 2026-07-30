@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { IProduct, ProductTag } from "./product.interface";
+import { IProduct, ProductTag, ProductType } from "./product.interface";
 
 // ── Counter for SKU sequence per seller ───────────────────────────────────────
 const ProductCounterSchema = new Schema(
@@ -7,7 +7,7 @@ const ProductCounterSchema = new Schema(
     sellerId: { type: Schema.Types.ObjectId, required: true },
     seq: { type: Number, default: 0 },
   },
-  { collection: "product_counters" }
+  { collection: "product_counters" },
 );
 
 ProductCounterSchema.index({ sellerId: 1 }, { unique: true });
@@ -63,6 +63,12 @@ const ProductSchema = new Schema<IProduct>(
       type: String,
       default: null,
       trim: true,
+    },
+    productType: {
+      type: String,
+      enum: Object.values(ProductType),
+      required: true,
+      default: ProductType.NEW,
     },
 
     specification: {
@@ -182,7 +188,7 @@ const ProductSchema = new Schema<IProduct>(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ── Auto-generate SKU & calculate profit ──────────────────────────────────────
@@ -192,16 +198,14 @@ ProductSchema.pre("save", async function () {
     const counter = await ProductCounter.findOneAndUpdate(
       { sellerId: this.sellerId },
       { $inc: { seq: 1 } },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     this.sku = buildProductSku(this.name, counter.seq);
   }
 
   // Always recalculate profit
-  this.profit = parseFloat(
-    (this.sellingPrice - this.buyingPrice).toFixed(2)
-  );
+  this.profit = parseFloat((this.sellingPrice - this.buyingPrice).toFixed(2));
 
   this.profitMargin =
     this.sellingPrice > 0

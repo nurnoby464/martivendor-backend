@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProductTag } from "./product.interface";
+import { ProductTag, ProductType } from "./product.interface";
 export declare const updateProductSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -20,8 +20,8 @@ export declare const productQuerySchema: z.ZodObject<{
     page: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>;
     limit: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>;
     search: z.ZodOptional<z.ZodString>;
+    productType: z.ZodOptional<z.ZodEnum<typeof ProductType>>;
     categoryId: z.ZodOptional<z.ZodString>;
-    vendor_id: z.ZodOptional<z.ZodString>;
     hasVariants: z.ZodPipe<z.ZodOptional<z.ZodEnum<{
         true: "true";
         false: "false";
@@ -36,8 +36,9 @@ export declare const productQuerySchema: z.ZodObject<{
     sortBy: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
         name: "name";
         createdAt: "createdAt";
+        updatedAt: "updatedAt";
+        sellingPrice: "sellingPrice";
         stock: "stock";
-        selling_price: "selling_price";
     }>>>;
     sortOrder: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
         asc: "asc";
@@ -47,6 +48,7 @@ export declare const productQuerySchema: z.ZodObject<{
 export declare const createProductSchema: z.ZodObject<{
     name: z.ZodString;
     productId: z.ZodOptional<z.ZodString>;
+    productType: z.ZodDefault<z.ZodEnum<typeof ProductType>>;
     categoryId: z.ZodString;
     categoryName: z.ZodOptional<z.ZodString>;
     color: z.ZodString;

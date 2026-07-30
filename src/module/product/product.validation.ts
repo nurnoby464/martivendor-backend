@@ -1,7 +1,7 @@
 // src/module/product/product.validation.ts
 import { z } from "zod";
 import mongoose from "mongoose";
-import { ProductTag } from "./product.interface";
+import { ProductTag, ProductType } from "./product.interface";
 
 const objectId = z
   .string()
@@ -48,8 +48,9 @@ export const productQuerySchema = z.object({
     .optional()
     .transform((v) => parseInt(v ?? "10")),
   search: z.string().trim().optional(),
+  productType: z.enum(ProductType).optional(),
   categoryId: objectId.optional(),
-  vendor_id: objectId.optional(),
+  // vendor_id: objectId.optional(),
   hasVariants: z
     .enum(["true", "false"])
     .optional()
@@ -60,10 +61,19 @@ export const productQuerySchema = z.object({
     .transform((v) => (v === undefined ? undefined : v === "true")),
   lowStock: z.enum(["true"]).optional(), // ?low_stock=true → filter stock <= alert
   sortBy: z
-    .enum(["name", "createdAt", "stock", "selling_price"])
+    .enum(["name", "createdAt", "stock", "sellingPrice", "updatedAt"])
     .optional()
     .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  tags: z
+    .union([z.enum(ProductTag), z.array(z.enum(ProductTag)).max(10)])
+    .transform((v) => (Array.isArray(v) ? v : [v]))
+    .optional(),
+  discount: z.coerce.number().min(0).max(100).optional(),
+  hasDiscount: z
+    .enum(["true","false"])
+    .transform((v) => (v === "true" ? true : false))
+    .optional(),
 });
 
 const mongoIdField = (label: string) =>
@@ -80,6 +90,7 @@ export const createProductSchema = z.object({
     .min(2, "Name must be at least 2 characters")
     .max(200, "Name cannot exceed 200 characters"),
   productId: z.string().optional(),
+  productType: z.enum(ProductType).default(ProductType.NEW),
   // Wire field is `category` (matches CategoryCombobox's hidden input name).
   categoryId: mongoIdField("Category"),
   // Sent alongside `category` for display purposes only — the product is
