@@ -44,6 +44,12 @@ export declare const productQuerySchema: z.ZodObject<{
         asc: "asc";
         desc: "desc";
     }>>>;
+    tags: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodEnum<typeof ProductTag>, z.ZodArray<z.ZodEnum<typeof ProductTag>>]>, z.ZodTransform<ProductTag[], ProductTag | ProductTag[]>>>;
+    discount: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    hasDiscount: z.ZodOptional<z.ZodPipe<z.ZodEnum<{
+        true: "true";
+        false: "false";
+    }>, z.ZodTransform<boolean, "true" | "false">>>;
 }, z.core.$strip>;
 export declare const createProductSchema: z.ZodObject<{
     name: z.ZodString;
@@ -64,9 +70,14 @@ export declare const createProductSchema: z.ZodObject<{
     showOnHomepage: z.ZodDefault<z.ZodOptional<z.ZodCoercedBoolean<unknown>>>;
     image: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
+export declare const productViewQuerySchema: z.ZodObject<{
+    productId: z.ZodString;
+    variantId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ListProductQuery = z.infer<typeof createProductSchema>;
 export type GetProductQuery = z.infer<typeof productQuerySchema>;
 export type GetProductSlugQuery = z.infer<typeof productSlugParamsSchema>;
+export type GetProductViewQuery = z.infer<typeof productViewQuerySchema>;
 //# sourceMappingURL=product.validation.d.ts.map

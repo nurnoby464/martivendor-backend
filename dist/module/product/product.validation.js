@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createProductSchema = exports.productQuerySchema = exports.productSlugParamsSchema = exports.productParamsSchema = exports.updateProductSchema = void 0;
+exports.productViewQuerySchema = exports.createProductSchema = exports.productQuerySchema = exports.productSlugParamsSchema = exports.productParamsSchema = exports.updateProductSchema = void 0;
 // src/module/product/product.validation.ts
 const zod_1 = require("zod");
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -65,6 +65,15 @@ exports.productQuerySchema = zod_1.z.object({
         .optional()
         .default("createdAt"),
     sortOrder: zod_1.z.enum(["asc", "desc"]).optional().default("desc"),
+    tags: zod_1.z
+        .union([zod_1.z.enum(product_interface_1.ProductTag), zod_1.z.array(zod_1.z.enum(product_interface_1.ProductTag)).max(10)])
+        .transform((v) => (Array.isArray(v) ? v : [v]))
+        .optional(),
+    discount: zod_1.z.coerce.number().min(0).max(100).optional(),
+    hasDiscount: zod_1.z
+        .enum(["true", "false"])
+        .transform((v) => (v === "true" ? true : false))
+        .optional(),
 });
 const mongoIdField = (label) => zod_1.z
     .string()
@@ -102,5 +111,13 @@ exports.createProductSchema = zod_1.z.object({
     // Resolved to a URL by an upload step (multer + Cloudinary) upstream of
     // this schema — this validates the *result*, not a raw multipart file.
     image: zod_1.z.string().url().optional(),
+});
+exports.productViewQuerySchema = zod_1.z.object({
+    productId: mongoIdField("Product ID"),
+    variantId: zod_1.z
+        .string()
+        .trim()
+        .optional()
+        .refine((v) => !v || mongoose_1.default.Types.ObjectId.isValid(v), "Invalid Variant ID"),
 });
 //# sourceMappingURL=product.validation.js.map

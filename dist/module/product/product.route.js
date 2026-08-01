@@ -47,6 +47,7 @@ router
     .route("/")
     .get((0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "admin", "staff", "seller_staff"), ProductController.getProducts)
     .post((0, validate_1.validate)({ body: product_validation_1.createProductSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "admin", "staff", "seller_staff"), ProductController.createProduct);
+router.route("/cart/view").get((0, validate_1.validate)({ query: product_validation_1.productViewQuerySchema }), ProductController.getProductView);
 router
     .route("/slug/:slug")
     .get((0, validate_1.validate)({ params: product_validation_1.productSlugParamsSchema }), ProductController.getProductBySlug);

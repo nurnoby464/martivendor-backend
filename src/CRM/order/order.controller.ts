@@ -6,7 +6,7 @@ import { Request, Response } from "express";
 import { IGetMyOrdersQuery } from "./order.interface";
 
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const sellerId = req.company?._id;
+  const sellerId = req.body?.sellerId;
   if (!sellerId) {
     return ApiResponse.error(res, "Created Order place failed", 400);
   }
@@ -68,7 +68,7 @@ export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
 
 export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
   const customerId = req.user.profileId as Types.ObjectId;
- 
+
   const sellerId = req.user.sellerId as Types.ObjectId;
   if (!sellerId) {
     return ApiResponse.error(res, "Company not found", 404);
@@ -93,3 +93,22 @@ export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
     limit,
   );
 });
+export const getMyOrderById = asyncHandler(
+  async (req: Request, res: Response) => {
+    // const customerId = req.user.profileId as Types.ObjectId;
+    // const sellerId = req.user.sellerId as Types.ObjectId;
+    // if (!sellerId) {
+    //   return ApiResponse.error(res, "Company not found", 404);
+    // }
+    const { orderId } = req.params as { orderId: string };
+    const order = await OrderServices.getMyOrderById(
+      // customerId,
+      // sellerId,
+      orderId,
+    );
+    if (!order) {
+      return ApiResponse.error(res, "Order not found", 404);
+    }
+    return ApiResponse.success(res, order, "My Order fetched successfully");
+  },
+);

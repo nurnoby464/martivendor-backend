@@ -4,7 +4,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { ApiResponse } from "../../utils/ApiResponse";
 import * as ProductService from "./product.service";
 import mongoose from "mongoose";
-import { CreateProductInput, createProductSchema } from "./product.validation";
+import { CreateProductInput, createProductSchema, GetProductViewQuery } from "./product.validation";
 import { AppError } from "../../middlewares/appError";
 import { ProductTag, ProductType } from "./product.interface";
 
@@ -115,6 +115,17 @@ export const deleteProduct = asyncHandler(
     });
 
     return ApiResponse.success(res, null, "Product deactivated successfully");
+  },
+);
+export const getProductView = asyncHandler(
+  async (req: Request, res: Response) => {
+    const product = await ProductService.getProductView(req.validatedQuery as GetProductViewQuery);
+
+    return ApiResponse.success(
+      res,
+      product,
+      "Product details fetch successfully",
+    );
   },
 );
 

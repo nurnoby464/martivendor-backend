@@ -26,6 +26,7 @@ export const createOrderBody = z.object({
     .regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format")
     .optional()
     .nullable(),
+  sellerId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format"),
   phone: z.string().trim().min(1, "Customer phone is required"),
   name: z.string().trim().min(1, "Customer name is required"),
   email: z.string().trim().email("Invalid email").nullable().default(null),

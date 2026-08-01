@@ -127,10 +127,7 @@ const resolveCustomer = async (
   }
   return customer._id;
 };
-export const createOrder = async ({
-  sellerId,
-  input,
-}: ICreateOrderPayload) => {
+export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
   const {
     name,
     phone,
@@ -153,10 +150,10 @@ export const createOrder = async ({
     const variantIds = items.map((i) => new Types.ObjectId(i.variant_id));
     const variants = await ProductVariant.find({
       sellerId: sellerId,
-      is_active: true,
+      isActive: true,
       _id: { $in: variantIds },
     }).session(session);
-
+    console.log("variants", variants);
     if (variants.length < items.length) {
       throw new AppError("One or more variants not found or inactive", 404);
     }
@@ -166,10 +163,10 @@ export const createOrder = async ({
     const productIds = variants.map((v) => v.productId);
     const product = await Product.find({
       sellerId: sellerId,
-      is_active: true,
+      isActive: true,
       _id: { $in: productIds },
     }).session(session);
-
+    console.log("product", product);
     const productMap = new Map(product.map((p) => [p._id.toString(), p]));
     // 3 validate stock
     const orderItem = [];
@@ -205,7 +202,7 @@ export const createOrder = async ({
       const totalPrice = unitPrice * item.quantity - discountAmount;
       orderItem.push({
         total_price: totalPrice,
-        unit_price: unitPrice,
+        sellingPrice: unitPrice,
         quantity: item.quantity,
         sku: variant.sku,
         name: product.name,
@@ -457,7 +454,7 @@ export const getMyOrders = async (
     sellerId: new Types.ObjectId(sellerId),
     customer: new Types.ObjectId(customerId),
   };
-console.log(match)
+  console.log(match);
   if (order_status && order_status !== "all") {
     match.order_status = order_status;
   }
@@ -549,18 +546,31 @@ console.log(match)
 
 export const getMyOrderById = async (
   orderId: string,
-  customerId: Types.ObjectId,
-  sellerId: Types.ObjectId,
+  // customerId: Types.ObjectId,
+  // sellerId: Types.ObjectId,
 ) => {
   if (!Types.ObjectId.isValid(orderId)) {
     throw new AppError("Invalid order ID", 400);
   }
 
-  const order = await Order.findOne({
-    _id: new Types.ObjectId(orderId),
-    sellerId: sellerId,
-    customer: customerId, // ← ownership guard: other customers can't see this
-  }).lean();
+  const order = await Order.findOne({_id:new Types.ObjectId(orderId)})
+    .populate({
+      path: "items.product",
+      select: "name slug images",
+    })
+    .populate({
+      path: "items.variant",
+      select: "sku image attributes sellingPrice stock",
+    })
+    .populate({
+      path: "customer",
+      select: "name phone email",
+    })
+    .populate({
+      path: "sellerId",
+      select: "name storeName",
+    })
+    .lean();
 
   if (!order) {
     throw new AppError("Order not found", 404);

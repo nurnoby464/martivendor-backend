@@ -18,7 +18,7 @@ export interface IOrderItem {
   sku: string; // snapshot
   image:string | null;
   quantity: number;
-  buyingPrice: number;
+  sellingPrice: number;
   total_price: number; // quantity * unit_price
 }
 

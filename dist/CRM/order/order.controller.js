@@ -33,12 +33,12 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMyOrders = exports.getAllOrder = exports.createOrder = void 0;
+exports.getMyOrderById = exports.getMyOrders = exports.getAllOrder = exports.createOrder = void 0;
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const OrderServices = __importStar(require("./order.service"));
 exports.createOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const sellerId = req.company?._id;
+    const sellerId = req.body?.sellerId;
     if (!sellerId) {
         return ApiResponse_1.ApiResponse.error(res, "Created Order place failed", 400);
     }
@@ -83,5 +83,21 @@ exports.getMyOrders = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { page, limit, order_status, search } = req.validatedQuery;
     const { orders, total, statusCounts } = await OrderServices.getMyOrders(customerId, sellerId, req.validatedQuery);
     return ApiResponse_1.ApiResponse.paginated(res, "My Orders fetched successfully", orders, total, page, limit);
+});
+exports.getMyOrderById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    // const customerId = req.user.profileId as Types.ObjectId;
+    // const sellerId = req.user.sellerId as Types.ObjectId;
+    // if (!sellerId) {
+    //   return ApiResponse.error(res, "Company not found", 404);
+    // }
+    const { orderId } = req.params;
+    const order = await OrderServices.getMyOrderById(
+    // customerId,
+    // sellerId,
+    orderId);
+    if (!order) {
+        return ApiResponse_1.ApiResponse.error(res, "Order not found", 404);
+    }
+    return ApiResponse_1.ApiResponse.success(res, order, "My Order fetched successfully");
 });
 //# sourceMappingURL=order.controller.js.map

@@ -2,7 +2,10 @@ import { categoryParamsSchema } from "./../category/category.validation";
 import { Request } from "express";
 import { GetProductQuery } from "../product/product.validation";
 import Product from "../product/product.schema";
-import { GetProductParamsQuery } from "./public.validation";
+import {
+  GetProductParamsQuery,
+  GetProductQueryInput,
+} from "./public.validation";
 import mongoose, { Types } from "mongoose";
 import ProductVariant from "../product-variant/product-variant.schema";
 import Category from "../category/category.schema";
@@ -10,43 +13,32 @@ import { create } from "node:domain";
 import { ICategoryDocument } from "../category/category.interface";
 import { AppError } from "../../middlewares/appError";
 
-export const getProducts = async (payload: {
-  company_id: mongoose.Types.ObjectId;
-  page: number;
-  limit: number;
-  search?: string;
-  categoryId?: string;
-  vendorId?: string;
-  hasVariants?: boolean;
-  is_active?: boolean;
-  low_stock?: string;
-  sort_by: string;
-  sort_order: string;
-}) => {
+export const getProducts = async (payload: GetProductQueryInput) => {
   const {
-    company_id,
     page,
     limit,
     search,
     categoryId,
-    vendorId,
+    // vendor_id,
     hasVariants,
-    is_active,
-    low_stock,
-    sort_by,
-    sort_order,
+    isActive,
+    lowStock,
+    sortBy,
+    sortOrder,
+    productType,
+    tags,
+    discount,
+    hasDiscount,
   } = payload;
 
-  if (!company_id) throw new AppError("company_id is required", 400);
-  const filter: Record<string, unknown> = { company_id };
+  const filter: Record<string, unknown> = {};
 
-  if (is_active !== undefined) filter.is_active = is_active;
+  if (isActive !== undefined) filter.isActive = isActive;
   if (hasVariants !== undefined) filter.hasVariants = hasVariants;
   if (categoryId) {
     const allDescendantCategories = await Category.find({
-      company_id,
       path: new mongoose.Types.ObjectId(categoryId), // ✅ array contains match
-      is_active: true,
+      isActive: true,
     }).lean();
 
     const allCategoryIds = [
@@ -55,12 +47,17 @@ export const getProducts = async (payload: {
     ];
     filter.categoryId = { $in: allCategoryIds };
   }
-  if (vendorId) filter.vendorId = vendorId;
+  // if (vendor_id) filter.vendor_id = vendor_id;
 
-  // low stock filter — stock <= low_stock_alert
-  if (low_stock === "true") {
-    filter.$expr = { $lte: ["$stock", "$low_stock_alert"] };
+  // low stock filter — stock <= lowStockAlert
+  if (lowStock === "true") {
+    filter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
   }
+
+  if (productType) filter.productType = productType;
+  if (discount) filter.discount = discount;
+  if (hasDiscount) filter.hasDiscount = hasDiscount;
+  if (tags && tags?.length > 0) filter.tags = { $in: tags };
 
   if (search) {
     filter.$or = [
@@ -69,13 +66,13 @@ export const getProducts = async (payload: {
     ];
   }
 
-  const sortDir = sort_order === "asc" ? 1 : -1;
+  const sortDir = sortOrder === "asc" ? 1 : -1;
 
   const [products, total] = await Promise.all([
     Product.find(filter)
       .populate("categoryId", "name slug depth")
-      // .populate("vendorId", "name phone")
-      .sort({ [sort_by]: sortDir })
+      // .populate("vendor_id", "name phone")
+      .sort({ [sortBy]: sortDir })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
@@ -147,7 +144,7 @@ export const getProductById = async (payload: {
     variants = await ProductVariant.find({
       company_id: payload.company_id,
       product_id: payload.id,
-      is_active: true,
+      isActive: true,
     }).lean();
   }
 
@@ -191,7 +188,7 @@ export const searchCategories = async (payload: {
 
   const baseFilter: Record<string, unknown> = {
     company_id,
-    is_active: true,
+    isActive: true,
   };
 
   let matched: ICategoryDocument[];
@@ -212,7 +209,7 @@ export const searchCategories = async (payload: {
     // 2. fetch root + all descendants
     const descendantFilter: Record<string, unknown> = {
       company_id,
-      is_active: true,
+      isActive: true,
       $or: [{ _id: root._id }, { path: root._id }],
     };
 
@@ -256,7 +253,7 @@ export const searchCategories = async (payload: {
   // check hasChildren for all matched in ONE query
   const childDocs = await Category.find({
     company_id,
-    is_active: true,
+    isActive: true,
     parentId: { $in: matched.map((c) => c._id) },
   })
     .select("parentId")

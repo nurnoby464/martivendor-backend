@@ -93,7 +93,7 @@ app.use("/api/v1/product-variant", product_variant_route_1.ProductVariantRoute);
 app.use("/api/v1/sales", sales_route_1.SaleRouter);
 app.use("/api/v1/customer", customer_route_1.CustomerRouter);
 app.use('/api/v1/dev', fixIndexes_1.DevRouter);
-app.use('/api/v1/order', order_route_1.OrderRouter);
+app.use('/api/v1/orders', order_route_1.OrderRouter);
 app.use('/api/v1/invoices', invoice_route_1.InvoiceRouter);
 app.use('/api/v1/banners', banner_route_1.BannerRouter);
 // Health check

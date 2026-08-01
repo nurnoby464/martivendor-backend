@@ -7,6 +7,7 @@ import {
   productParamsSchema,
   productQuerySchema,
   productSlugParamsSchema,
+  productViewQuerySchema,
   updateProductSchema,
 } from "./product.validation";
 import {
@@ -34,7 +35,7 @@ router
     guard("super_admin", "seller", "admin", "staff", "seller_staff"),
     ProductController.createProduct,
   );
-
+router.route("/cart/view").get(validate({ query: productViewQuerySchema }), ProductController.getProductView);
 router
   .route("/slug/:slug")
   .get(

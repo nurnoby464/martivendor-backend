@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProduct = exports.updateProduct = exports.getProductBySlug = exports.getProductById = exports.getProducts = exports.createProduct = void 0;
+exports.getProductView = exports.deleteProduct = exports.updateProduct = exports.getProductBySlug = exports.getProductById = exports.getProducts = exports.createProduct = void 0;
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const ProductService = __importStar(require("./product.service"));
@@ -60,7 +60,7 @@ exports.createProduct = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 exports.getProducts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const query = req.validatedQuery;
-    console.log(query);
+    console.log("product controller query", query);
     const { products, total } = await ProductService.getProducts({
         sellerId: req.user.sellerId,
         ...query,
@@ -97,6 +97,10 @@ exports.deleteProduct = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         req,
     });
     return ApiResponse_1.ApiResponse.success(res, null, "Product deactivated successfully");
+});
+exports.getProductView = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const product = await ProductService.getProductView(req.validatedQuery);
+    return ApiResponse_1.ApiResponse.success(res, product, "Product details fetch successfully");
 });
 // ═══════════════════════════════════════════════════════════
 // VARIANT

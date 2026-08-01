@@ -8,6 +8,7 @@ declare const shippingAddressSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const createOrderBody: z.ZodObject<{
     userId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    sellerId: z.ZodString;
     phone: z.ZodString;
     name: z.ZodString;
     email: z.ZodDefault<z.ZodNullable<z.ZodString>>;

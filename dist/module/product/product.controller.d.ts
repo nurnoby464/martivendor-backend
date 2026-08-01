@@ -5,4 +5,5 @@ export declare const getProductById: (req: Request, res: Response, next: import(
 export declare const getProductBySlug: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const updateProduct: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const deleteProduct: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getProductView: (req: Request, res: Response, next: import("express").NextFunction) => void;
 //# sourceMappingURL=product.controller.d.ts.map

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProduct = exports.updateProduct = exports.getProductBySlug = exports.getProductById = exports.getProducts = void 0;
+exports.getProductView = exports.deleteProduct = exports.updateProduct = exports.getProductBySlug = exports.getProductById = exports.getProducts = void 0;
 exports.recalculateProductAggregates = recalculateProductAggregates;
 exports.createProduct = createProduct;
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -273,7 +273,8 @@ async function createProduct(ctx, input) {
 const getProducts = async (payload) => {
     const { sellerId, page, limit, search, categoryId, 
     // vendor_id,
-    hasVariants, isActive, low_stock, sortBy, sortOrder, productType, } = payload;
+    hasVariants, isActive, low_stock, sortBy, sortOrder, productType, tags, discount, hasDiscount, } = payload;
+    console.log("product services payload", payload);
     if (!sellerId)
         throw new appError_1.AppError("sellerId is required", 400);
     const filter = { sellerId };
@@ -300,6 +301,12 @@ const getProducts = async (payload) => {
     }
     if (productType)
         filter.productType = productType;
+    if (discount)
+        filter.discount = discount;
+    if (hasDiscount)
+        filter.hasDiscount = hasDiscount;
+    if (tags && tags?.length > 0)
+        filter.tags = { $in: tags };
     if (search) {
         filter.$or = [
             { name: { $regex: search, $options: "i" } },
@@ -479,4 +486,21 @@ const deleteProduct = async (payload) => {
     return product;
 };
 exports.deleteProduct = deleteProduct;
+const getProductView = async (payload) => {
+    const { productId, variantId } = payload;
+    const filter = {
+        productId: productId,
+        isActive: true,
+        stock: { $gt: 0 },
+    };
+    if (variantId)
+        filter._id = variantId;
+    const product = await product_variant_schema_1.default.findOne(filter)
+        .populate("productId", "name slug description images specification productType")
+        .lean();
+    if (!product)
+        throw new appError_1.AppError("Variant not found", 404);
+    return product;
+};
+exports.getProductView = getProductView;
 //# sourceMappingURL=product.service.js.map

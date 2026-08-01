@@ -102,7 +102,7 @@ app.use("/api/v1/product-variant", ProductVariantRoute);
 app.use("/api/v1/sales", SaleRouter);
 app.use("/api/v1/customer", CustomerRouter);
 app.use('/api/v1/dev', DevRouter);
-app.use('/api/v1/order', OrderRouter);
+app.use('/api/v1/orders', OrderRouter);
 app.use('/api/v1/invoices', InvoiceRouter);
 app.use('/api/v1/banners', BannerRouter);
 

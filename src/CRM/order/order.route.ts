@@ -16,7 +16,6 @@ import { guard } from "../../middlewares/guard";
 const router = express.Router();
 router.post(
   "/",
-  companyIdentifier,
   validate({ body: createOrderBody }),
   OrderController.createOrder,
 );
@@ -26,7 +25,6 @@ router.post(
 //   validate({ query: getOrderListQuery }),
 //   OrderController.getAllOrder,
 // );
-
 
 router.get(
   "/my-orders",
@@ -41,5 +39,10 @@ router.get(
   companyIdentifier,
   validate({ query: getOrderListQuery }),
   OrderController.getAllOrder,
+);
+router.get(
+  "/:orderId",
+  // validate({ query: getOrderListQuery }),
+  OrderController.getMyOrderById,
 );
 export const OrderRouter = router;

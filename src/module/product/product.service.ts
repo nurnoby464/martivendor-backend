@@ -10,7 +10,7 @@ import { auditLog } from "../../utils/auditLogger";
 import { AUDIT_ACTIONS } from "../audit/audit.interface";
 import { Request } from "express";
 import { compareSync } from "bcryptjs";
-import { CreateProductInput } from "./product.validation";
+import { CreateProductInput, GetProductViewQuery } from "./product.validation";
 import { sanitizeData } from "../../utils/sanitizeData";
 import { ProductTag, ProductType } from "./product.interface";
 
@@ -347,8 +347,8 @@ export const getProducts = async (payload: {
   sortOrder: string;
   productType: ProductType;
   tags: ProductTag;
-  discount:number;
-  hasDiscount:boolean;
+  discount: number;
+  hasDiscount: boolean;
 }) => {
   const {
     sellerId,
@@ -365,10 +365,9 @@ export const getProducts = async (payload: {
     productType,
     tags,
     discount,
-    hasDiscount
-
+    hasDiscount,
   } = payload;
-  console.log("product services payload", payload);
+
   if (!sellerId) throw new AppError("sellerId is required", 400);
   const filter: Record<string, unknown> = { sellerId };
 
@@ -609,5 +608,21 @@ export const deleteProduct = async (payload: {
     before: before,
     after: null,
   });
+  return product;
+};
+
+export const getProductView = async (payload: GetProductViewQuery) => {
+  const { productId, variantId } = payload;
+  const filter: Record<string, unknown> = {
+    productId: productId,
+    isActive: true,
+    stock: { $gt: 0 },
+  };
+  if (variantId) filter._id = variantId;
+
+  const product = await ProductVariant.findOne(filter)
+    .populate("productId", "name slug description images specification productType")
+    .lean();
+  if (!product) throw new AppError("Variant not found", 404);
   return product;
 };

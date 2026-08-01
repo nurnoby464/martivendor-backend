@@ -7,9 +7,8 @@ import { productQuerySchema } from "../product/product.validation";
 const router = express.Router();
 // ── /api/public/products ─────────────────────────────────────────
 router.get(
-  "/product",
+  "/products",
   validate({ query: productQuerySchema }),
-  companyIdentifier,
   PublicController.getProducts,
 );
 router.get("/category/tree",companyIdentifier, PublicController.getCategoryTree);

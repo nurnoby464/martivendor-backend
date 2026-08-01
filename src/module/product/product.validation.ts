@@ -71,7 +71,7 @@ export const productQuerySchema = z.object({
     .optional(),
   discount: z.coerce.number().min(0).max(100).optional(),
   hasDiscount: z
-    .enum(["true","false"])
+    .enum(["true", "false"])
     .transform((v) => (v === "true" ? true : false))
     .optional(),
 });
@@ -122,8 +122,21 @@ export const createProductSchema = z.object({
   image: z.string().url().optional(),
 });
 
+export const productViewQuerySchema = z.object({
+  productId: mongoIdField("Product ID"),
+  variantId: z
+    .string()
+    .trim()
+    .optional()
+    .refine(
+      (v) => !v || mongoose.Types.ObjectId.isValid(v),
+      "Invalid Variant ID",
+    ),
+});
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ListProductQuery = z.infer<typeof createProductSchema>;
 export type GetProductQuery = z.infer<typeof productQuerySchema>;
 export type GetProductSlugQuery = z.infer<typeof productSlugParamsSchema>;
+export type GetProductViewQuery = z.infer<typeof productViewQuerySchema>;

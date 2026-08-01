@@ -3,28 +3,14 @@ import * as PublicService from "./public.service";
 import { GetProductQuery } from "../product/product.validation";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { GetProductQueryInput } from "./public.validation";
 
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
-  const query = req.validatedQuery as {
-    page: number;
-    limit: number;
-    search?: string;
-    category_id?: string;
-    vendor_id?: string;
-    has_variants?: boolean;
-    is_active?: boolean;
-    low_stock?: string;
-    sort_by: string;
-    sort_order: string;
-  };
-  const company_id = req.company?._id;
-  if (!company_id) {
-    return ApiResponse.error(res, "Company identifier missing", 400);
-  }
-  const { products, total } = await PublicService.getProducts({
-    company_id,
-    ...query,
-  });
+  const query = req.validatedQuery as GetProductQueryInput;
+
+  const { products, total } = await PublicService.getProducts(
+    query,
+  );
 
   return ApiResponse.paginated(
     res,

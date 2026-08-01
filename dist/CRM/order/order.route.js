@@ -45,7 +45,7 @@ const companyIdentifier_1 = require("../../middlewares/companyIdentifier");
 const AuthenticateHelper_1 = require("../../middlewares/AuthenticateHelper");
 const guard_1 = require("../../middlewares/guard");
 const router = express_1.default.Router();
-router.post("/", companyIdentifier_1.companyIdentifier, (0, validate_1.validate)({ body: order_validation_1.createOrderBody }), OrderController.createOrder);
+router.post("/", (0, validate_1.validate)({ body: order_validation_1.createOrderBody }), OrderController.createOrder);
 // router.get(
 //   "/me",
 //   authenticate,
@@ -54,5 +54,8 @@ router.post("/", companyIdentifier_1.companyIdentifier, (0, validate_1.validate)
 // );
 router.get("/my-orders", AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("customer"), (0, validate_1.validate)({ query: order_validation_1.getMyOrdersQuerySchema }), OrderController.getMyOrders);
 router.get("/", companyIdentifier_1.companyIdentifier, (0, validate_1.validate)({ query: order_validation_1.getOrderListQuery }), OrderController.getAllOrder);
+router.get("/:orderId", 
+// validate({ query: getOrderListQuery }),
+OrderController.getMyOrderById);
 exports.OrderRouter = router;
 //# sourceMappingURL=order.route.js.map

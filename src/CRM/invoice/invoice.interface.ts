@@ -14,7 +14,7 @@ export interface IInvoiceItem {
   name: string;
   sku: string;
   quantity: number;
-  buyingPrice: number;
+  sellingPrice: number;
   total_price: number;
 }
 

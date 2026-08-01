@@ -120,7 +120,7 @@ const resolveCustomer = async (sellerId, name, phone, email, shipping_address, s
     }
     return customer._id;
 };
-const createOrder = async ({ sellerId, input, }) => {
+const createOrder = async ({ sellerId, input }) => {
     const { name, phone, userId, email, items, shipping_address, discount_amount, tax_amount, shipping_charge, paid_amount, payment_method, note, } = input;
     const session = await mongoose_1.default.startSession();
     try {
@@ -129,9 +129,10 @@ const createOrder = async ({ sellerId, input, }) => {
         const variantIds = items.map((i) => new mongoose_1.Types.ObjectId(i.variant_id));
         const variants = await product_variant_schema_1.default.find({
             sellerId: sellerId,
-            is_active: true,
+            isActive: true,
             _id: { $in: variantIds },
         }).session(session);
+        console.log("variants", variants);
         if (variants.length < items.length) {
             throw new appError_1.AppError("One or more variants not found or inactive", 404);
         }
@@ -140,9 +141,10 @@ const createOrder = async ({ sellerId, input, }) => {
         const productIds = variants.map((v) => v.productId);
         const product = await product_schema_1.default.find({
             sellerId: sellerId,
-            is_active: true,
+            isActive: true,
             _id: { $in: productIds },
         }).session(session);
+        console.log("product", product);
         const productMap = new Map(product.map((p) => [p._id.toString(), p]));
         // 3 validate stock
         const orderItem = [];
@@ -170,7 +172,7 @@ const createOrder = async ({ sellerId, input, }) => {
             const totalPrice = unitPrice * item.quantity - discountAmount;
             orderItem.push({
                 total_price: totalPrice,
-                unit_price: unitPrice,
+                sellingPrice: unitPrice,
                 quantity: item.quantity,
                 sku: variant.sku,
                 name: product.name,
@@ -455,15 +457,28 @@ exports.getMyOrders = getMyOrders;
 // ─── getMyOrderById ───────────────────────────────────────────────────────────
 // Returns a single order with full detail.
 // Ownership check: order.customer must match the requesting customerId.
-const getMyOrderById = async (orderId, customerId, sellerId) => {
+const getMyOrderById = async (orderId) => {
     if (!mongoose_1.Types.ObjectId.isValid(orderId)) {
         throw new appError_1.AppError("Invalid order ID", 400);
     }
-    const order = await order_schema_1.default.findOne({
-        _id: new mongoose_1.Types.ObjectId(orderId),
-        sellerId: sellerId,
-        customer: customerId, // ← ownership guard: other customers can't see this
-    }).lean();
+    const order = await order_schema_1.default.findOne({ _id: new mongoose_1.Types.ObjectId(orderId) })
+        .populate({
+        path: "items.product",
+        select: "name slug images",
+    })
+        .populate({
+        path: "items.variant",
+        select: "sku image attributes sellingPrice stock",
+    })
+        .populate({
+        path: "customer",
+        select: "name phone email",
+    })
+        .populate({
+        path: "sellerId",
+        select: "name storeName",
+    })
+        .lean();
     if (!order) {
         throw new appError_1.AppError("Order not found", 404);
     }

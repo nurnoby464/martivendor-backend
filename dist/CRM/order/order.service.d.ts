@@ -1,7 +1,7 @@
 import mongoose, { Types } from "mongoose";
 import { ICreateOrderPayload, IGetMyOrdersQuery } from "./order.interface";
 import { TGetOrderListQuery } from "./order.validation";
-export declare const createOrder: ({ sellerId, input, }: ICreateOrderPayload) => Promise<mongoose.Document<unknown, {}, import("./order.interface").IOrderDocument, {}, mongoose.DefaultSchemaOptions> & import("./order.interface").IOrderDocument & Required<{
+export declare const createOrder: ({ sellerId, input }: ICreateOrderPayload) => Promise<mongoose.Document<unknown, {}, import("./order.interface").IOrderDocument, {}, mongoose.DefaultSchemaOptions> & import("./order.interface").IOrderDocument & Required<{
     _id: Types.ObjectId;
 }> & {
     __v: number;
@@ -22,7 +22,7 @@ export declare const getMyOrders: (customerId: Types.ObjectId, sellerId: Types.O
     statusCounts: Record<string, number>;
     total: any;
 }>;
-export declare const getMyOrderById: (orderId: string, customerId: Types.ObjectId, sellerId: Types.ObjectId) => Promise<import("./order.interface").IOrderDocument & Required<{
+export declare const getMyOrderById: (orderId: string) => Promise<import("./order.interface").IOrderDocument & Required<{
     _id: Types.ObjectId;
 }> & {
     __v: number;
