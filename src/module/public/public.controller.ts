@@ -8,9 +8,7 @@ import { GetProductQueryInput } from "./public.validation";
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   const query = req.validatedQuery as GetProductQueryInput;
 
-  const { products, total } = await PublicService.getProducts(
-    query,
-  );
+  const { products, total } = await PublicService.getProducts(query);
 
   return ApiResponse.paginated(
     res,
@@ -68,12 +66,32 @@ export const getCategoryTree = asyncHandler(
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-    const company_id = req.company?._id;
-    if (!company_id) {
-      return ApiResponse.error(res, "Company identifier missing", 400);
-    }
+
     const { categories, total } = await PublicService.searchCategories({
-      company_id,
+      ...(search && { search }),
+      skip,
+      limit,
+    });
+
+    return ApiResponse.paginated(
+      res,
+      "successfully",
+      categories,
+      total,
+      page,
+      limit,
+    );
+  },
+);
+
+export const getCategoriesMenu = asyncHandler(
+  async (req: Request, res: Response) => {
+    const search = req.query.search as string | undefined;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const { categories, total } = await PublicService.getCategoriesMenu({
       ...(search && { search }),
       skip,
       limit,

@@ -1,11 +1,12 @@
 import { Model } from "mongoose";
 import Customer from "../CRM/customer/customer.schema";
 import Staff from "../CRM/staff/staff.schema";
-import { SellerStaff } from "../CRM/sellerStaff/staff.schema";
+import { SellerStaff } from "../CRM/sellerStaff/sellerStaff.schema";
 import { Seller } from "../module/seller/seller.schema";
 import { ISessionDocument } from "../module/auth/auth.interface";
 import { IUserDocument, ProfileType } from "../module/user/user.interface";
 import { ITokenPayload } from "./jwtHelper";
+import { customAlphabet } from "nanoid";
 type IMakeToken = {
   existing: IUserDocument;
   session: ISessionDocument;
@@ -129,3 +130,15 @@ export const makeLoginResponse = async (payload: IMakeLoginResponse) => {
 export const generateOPT = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+export function generateAsin(): string {
+  const nanoid = customAlphabet("23456789ABCDEFGHJKMNPQRSTUVWXYZ", 10);
+  return `T${nanoid()}`;
+}
+
+const ASIN_PATTERN = /-([T][23456789ABCDEFGHJKMNPQRSTUVWXYZ]{10})$/;
+
+export function extractAsin(combinedSlug: string): string | null {
+  const match = combinedSlug.match(ASIN_PATTERN);
+  return match ? match[1] : null;
+}

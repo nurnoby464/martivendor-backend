@@ -1,7 +1,7 @@
 import express from "express";
-import * as StaffController from "./staff.controller";
+import * as StaffController from "./sellerStaff.controller";
 import { validate } from "../../middlewares/validate";
-import { customerQuerySchema } from "./staff.validation";
+import { customerQuerySchema } from "./sellerStaff.validation";
 import { authenticate, verifySession } from "../../middlewares/AuthenticateHelper";
 import { saleAnAuthenticateAndUnauthenticated } from "../../middlewares/saleAuthenticateAndUnauthenticate";
 

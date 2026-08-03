@@ -11,8 +11,9 @@ router.get(
   validate({ query: productQuerySchema }),
   PublicController.getProducts,
 );
-router.get("/category/tree",companyIdentifier, PublicController.getCategoryTree);
-router.get("/category", companyIdentifier, PublicController.getAllCategories);
+router.get("/category/tree", PublicController.getCategoryTree);
+router.get("/categories/menu", PublicController.getCategoriesMenu);
+router.get("/category",  PublicController.getAllCategories);
 router.get("/product/:id", companyIdentifier, PublicController.getProductById);
 router.get("/db-test", PublicController.dbTest);
 export const PublicRoutes= router ;

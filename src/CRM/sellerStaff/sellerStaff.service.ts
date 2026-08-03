@@ -3,7 +3,7 @@ import { generateSaleCode } from "../../utils/generateSaleCode";
 import { AppError } from "../../middlewares/appError";
 import Product from "../../module/product/product.schema";
 import ProductVariant from "../../module/product-variant/product-variant.schema";
-import { GetCustomerQuery } from "./staff.validation";
+import { GetCustomerQuery } from "./sellerStaff.validation";
 import { useSkip } from "../../utils/useSkip";
 import Customer from "../customer/customer.schema";
 

@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
-import * as StaffServices from "./staff.service";
+import * as StaffServices from "./sellerStaff.service";
 import { Request, Response } from "express";
 import { AppError } from "../../middlewares/appError";
-import { GetCustomerQuery } from "./staff.validation";
+import { GetCustomerQuery } from "./sellerStaff.validation";
 
 export const getCustomerList = asyncHandler(async (req: Request, res: Response) => {
   const companyId = req.company?._id;

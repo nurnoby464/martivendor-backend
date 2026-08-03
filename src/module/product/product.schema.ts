@@ -1,5 +1,6 @@
 import { model, Schema } from "mongoose";
 import { IProduct, ProductTag, ProductType } from "./product.interface";
+import { generateAsin } from "../../utils/helper";
 
 // ── Counter for SKU sequence per seller ───────────────────────────────────────
 const ProductCounterSchema = new Schema(
@@ -176,6 +177,11 @@ const ProductSchema = new Schema<IProduct>(
       enum: Object.values(ProductTag),
       default: [],
     },
+    asin: {
+      type: String,
+      unique: true,
+      index: true,
+    },
 
     showOnHomepage: {
       type: Boolean,
@@ -203,7 +209,19 @@ ProductSchema.pre("save", async function () {
 
     this.sku = buildProductSku(this.name, counter.seq);
   }
+  if (this.isNew && !this.asin) {
+    let candidate = generateAsin();
 
+    // Ensure ASIN is unique
+    for (let i = 0; i < 5; i++) {
+      const existing = await model<IProduct>("Product").exists({
+        asin: candidate,
+      });
+      if (!existing) break;
+      candidate = generateAsin();
+    }
+    this.asin = candidate;
+  }
   // Always recalculate profit
   this.profit = parseFloat((this.sellingPrice - this.buyingPrice).toFixed(2));
 
@@ -223,7 +241,7 @@ ProductSchema.index({ sellerId: 1, categoryId: 1 });
 // ProductSchema.index({ sellerId: 1, vendorId: 1 });
 ProductSchema.index({ sellerId: 1, stock: 1 });
 ProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
-ProductSchema.index({ sellerId: 1, slug: 1 }, { unique: true });
+ProductSchema.index({ slug: 1 });
 ProductSchema.index({ sellerId: 1, showOnHomepage: 1 });
 
 const Product = model<IProduct>("Product", ProductSchema);

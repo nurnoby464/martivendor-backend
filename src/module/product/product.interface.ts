@@ -61,6 +61,7 @@ export interface IProduct {
 
   tags: ProductTag[];
   showOnHomepage: boolean;
+  asin:string;
 
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;

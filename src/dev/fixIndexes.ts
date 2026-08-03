@@ -42,6 +42,7 @@ import { ObjectId, Types } from "mongoose";
 // fix().catch(console.error);
 import express from "express";
 import { generateInvoiceNumber, generateOderNumber } from "../utils/healper";
+import { extractAsin, generateAsin } from "../utils/helper";
 
 const router = express.Router();
 router.post("/generateOrderNumber", async (req, res) => {
@@ -51,6 +52,15 @@ router.post("/generateOrderNumber", async (req, res) => {
 });
 router.post("/generateInvoiceNumber", async (req, res) => {
   const result = await generateInvoiceNumber();
+  res.json({ num: result });
+});
+router.post("/generateAsin", async (req, res) => {
+  const result = await generateAsin();
+  res.json({ num: result });
+});
+router.get("/extract", async (req, res) => {
+  const { combinedSlug } = req.query;
+  const result = extractAsin(combinedSlug as string);
   res.json({ num: result });
 });
 export const DevRouter = router;

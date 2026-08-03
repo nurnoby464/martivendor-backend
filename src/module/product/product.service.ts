@@ -13,6 +13,7 @@ import { compareSync } from "bcryptjs";
 import { CreateProductInput, GetProductViewQuery } from "./product.validation";
 import { sanitizeData } from "../../utils/sanitizeData";
 import { ProductTag, ProductType } from "./product.interface";
+import { extractAsin } from "../../utils/helper";
 
 // ─── helpers ─────────────────────────────────────────────
 const generateSlug = (name: string): string => {
@@ -186,6 +187,7 @@ export async function createProduct(
 
       // ---- Branch 2: create a brand-new product + its first variant ----
       const slug = await buildUniqueSlug(ctx.sellerId, input.name, session);
+      console.log(slug);
 
       const [product] = await Product.create(
         [
@@ -239,6 +241,7 @@ export async function createProduct(
       resultProductId = product._id;
     });
   } catch (err: any) {
+    console.log(err);
     if (err?.code === 11000) {
       throw new AppError("A product with this SKU or slug already exists", 409);
     }
@@ -453,10 +456,14 @@ export const getProductBySlug = async (payload: {
   slug: string;
   // sellerId: mongoose.Types.ObjectId;
 }) => {
-  const product = await Product.findOne({
-    slug: payload.slug,
-    // sellerId: payload.sellerId,
-  })
+  const asin = extractAsin(payload.slug);
+
+  const filter: Record<string, unknown> =
+    asin !== null && asin !== undefined && asin !== ""
+      ? { asin: asin }
+      : { slug: payload.slug };
+
+  const product = await Product.findOne(filter)
     .populate("categoryId", "name slug path depth")
     // .populate("vendor_id", "name phone email")
     .populate("createdBy", "name email")
@@ -621,7 +628,10 @@ export const getProductView = async (payload: GetProductViewQuery) => {
   if (variantId) filter._id = variantId;
 
   const product = await ProductVariant.findOne(filter)
-    .populate("productId", "name slug description images specification productType")
+    .populate(
+      "productId",
+      "name slug description images specification productType",
+    )
     .lean();
   if (!product) throw new AppError("Variant not found", 404);
   return product;

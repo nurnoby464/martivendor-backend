@@ -42,9 +42,9 @@ const staffSchema = new Schema<IStaffDocument>(
 );
 
 // ─── Indexes ──────────────────────────────────────────────
-staffSchema.index({ companyId: 1, userId: 1 }, { unique: true });
-staffSchema.index({ companyId: 1, phone: 1 },  { unique: true });
-staffSchema.index({ companyId: 1, email: 1 },  { unique: true, sparse: true });
+staffSchema.index({ sellerId: 1, userId: 1 }, { unique: true });
+staffSchema.index({ sellerId: 1, phone: 1 },  { unique: true });
+staffSchema.index({ sellerId: 1, email: 1 },  { unique: true, sparse: true });
 
 const Staff = model<IStaffDocument>("Staff", staffSchema);
 export default Staff;

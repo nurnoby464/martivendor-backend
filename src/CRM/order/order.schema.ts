@@ -84,7 +84,7 @@ const orderSchema = new Schema<IOrderDocument>(
 
 // indexes
 orderSchema.index({ sellerId: 1, order_number: 1 }, { unique: true });
-orderSchema.index({ sellerId: 1, customer_id: 1 });
+// orderSchema.index({ sellerId: 1});
 orderSchema.index({ sellerId: 1, order_status: 1 });
 orderSchema.index({ sellerId: 1, payment_status: 1 });
 orderSchema.index({ sellerId: 1, createdAt: -1 }); // recent orders list

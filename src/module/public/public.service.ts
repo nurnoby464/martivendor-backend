@@ -152,10 +152,7 @@ export const getProductById = async (payload: {
 };
 
 export const getAllCategories = async (req: Request) => {
-  const company_id = new Types.ObjectId(req.company?._id);
-  const categories = await Category.find({ company_id })
-    .sort({ createdAt: -1 })
-    .lean();
+  const categories = await Category.find({}).sort({ createdAt: -1 }).lean();
   return categories;
 };
 
@@ -179,15 +176,13 @@ type CategorySearchItem = {
 };
 
 export const searchCategories = async (payload: {
-  company_id: mongoose.Types.ObjectId;
   search?: string;
   skip: number;
   limit: number;
 }): Promise<{ categories: CategorySearchItem[]; total: number }> => {
-  const { company_id, search, skip, limit } = payload;
+  const { search, skip, limit } = payload;
 
   const baseFilter: Record<string, unknown> = {
-    company_id,
     isActive: true,
   };
 
@@ -208,7 +203,6 @@ export const searchCategories = async (payload: {
 
     // 2. fetch root + all descendants
     const descendantFilter: Record<string, unknown> = {
-      company_id,
       isActive: true,
       $or: [{ _id: root._id }, { path: root._id }],
     };
@@ -252,7 +246,6 @@ export const searchCategories = async (payload: {
 
   // check hasChildren for all matched in ONE query
   const childDocs = await Category.find({
-    company_id,
     isActive: true,
     parentId: { $in: matched.map((c) => c._id) },
   })
@@ -291,6 +284,113 @@ export const searchCategories = async (payload: {
       image: c.image ?? null,
     };
   });
+
+  return { categories, total };
+};
+
+export interface MergedCategoryItem {
+  slug: string;
+  name: string;
+  image: string | null;
+  sellerCount: number;
+  productCount: number;
+  hasChildren: boolean;
+}
+
+export const getCategoriesMenu = async (payload: {
+  search?: string;
+  skip: number;
+  limit: number;
+}): Promise<{ categories: MergedCategoryItem[]; total: number }> => {
+  const { search, skip, limit } = payload;
+
+  const matchStage: Record<string, unknown> = {
+    isActive: true,
+    parentId: null, // homepage rail = top-level only
+  };
+
+  if (search?.trim()) {
+    const regex = new RegExp(search.trim(), "i");
+    matchStage.$or = [{ name: regex }, { slug: regex }];
+  }
+
+  const pipeline: mongoose.PipelineStage[] = [
+    { $match: matchStage },
+
+    // group all sellers' identical top-level categories by slug
+    {
+      $group: {
+        _id: "$slug",
+        name: { $first: "$name" },
+        image: { $first: "$image" },
+        sellerCategoryIds: { $push: "$_id" },
+        sellerCount: { $sum: 1 },
+      },
+    },
+
+    // product count across ALL underlying seller category docs for this slug
+    {
+      $lookup: {
+        from: "products",
+        let: { catIds: "$sellerCategoryIds" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$categoryId", "$$catIds"] },
+              isActive: true,
+            },
+          },
+          { $count: "count" },
+        ],
+        as: "productStats",
+      },
+    },
+
+    // does ANY seller's version of this category have children?
+    {
+      $lookup: {
+        from: "categories",
+        let: { catIds: "$sellerCategoryIds" },
+        pipeline: [
+          {
+            $match: {
+              isActive: true,
+              $expr: { $in: ["$parentId", "$$catIds"] },
+            },
+          },
+          { $limit: 1 },
+        ],
+        as: "childProbe",
+      },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        slug: "$_id",
+        name: 1,
+        image: 1,
+        sellerCount: 1,
+        productCount: { $ifNull: [{ $first: "$productStats.count" }, 0] },
+        hasChildren: { $gt: [{ $size: "$childProbe" }, 0] },
+      },
+    },
+
+    { $sort: { name: 1 } },
+
+    // paginate the merged result set, get total in the same round-trip
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ];
+
+  const result = await Category.aggregate(pipeline);
+
+  const categories: MergedCategoryItem[] = result[0]?.data ?? [];
+  const total: number = result[0]?.totalCount?.[0]?.count ?? 0;
 
   return { categories, total };
 };

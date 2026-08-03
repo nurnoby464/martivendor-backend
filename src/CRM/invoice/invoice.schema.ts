@@ -80,11 +80,11 @@ const invoiceSchema = new Schema<IInvoiceDocument>(
 );
 
 // indexes
-invoiceSchema.index({ companyId: 1, invoiceNumber: 1 }, { unique: true });
-invoiceSchema.index({ companyId: 1, order: 1 }, { unique: true });
-invoiceSchema.index({ companyId: 1, customer: 1 });
-invoiceSchema.index({ companyId: 1, status: 1 });
-invoiceSchema.index({ companyId: 1, createdAt: -1 });
+invoiceSchema.index({ sellerId: 1, invoiceNumber: 1 }, { unique: true });
+invoiceSchema.index({ sellerId: 1, order: 1 }, { unique: true });
+invoiceSchema.index({ sellerId: 1, customer: 1 });
+invoiceSchema.index({ sellerId: 1, status: 1 });
+invoiceSchema.index({ sellerId: 1, createdAt: -1 });
 
 const Invoice = model<IInvoiceDocument>("Invoice", invoiceSchema);
 export default Invoice;
