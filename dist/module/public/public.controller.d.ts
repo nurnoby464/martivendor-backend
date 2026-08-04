@@ -4,4 +4,6 @@ export declare const dbTest: (req: Request, res: Response) => Promise<Response<a
 export declare const getProductById: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 export declare const getAllCategories: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 export declare const getCategoryTree: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getCategoriesMenu: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getPublicMergedCategories: (req: Request, res: Response, next: import("express").NextFunction) => void;
 //# sourceMappingURL=public.controller.d.ts.map

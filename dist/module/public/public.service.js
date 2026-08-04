@@ -1,61 +1,27 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchCategories = exports.getAllCategories = exports.getProductById = exports.dbTest = exports.getProducts = void 0;
+exports.getPublicMergedCategories = exports.getCategoriesMenu = exports.searchCategories = exports.getAllCategories = exports.getProductById = exports.dbTest = exports.getProducts = void 0;
 const product_schema_1 = __importDefault(require("../product/product.schema"));
-const mongoose_1 = __importStar(require("mongoose"));
+const mongoose_1 = __importDefault(require("mongoose"));
 const product_variant_schema_1 = __importDefault(require("../product-variant/product-variant.schema"));
 const category_schema_1 = __importDefault(require("../category/category.schema"));
 const appError_1 = require("../../middlewares/appError");
 const getProducts = async (payload) => {
-    const { company_id, page, limit, search, categoryId, vendorId, hasVariants, is_active, low_stock, sort_by, sort_order, } = payload;
-    if (!company_id)
-        throw new appError_1.AppError("company_id is required", 400);
-    const filter = { company_id };
-    if (is_active !== undefined)
-        filter.is_active = is_active;
+    const { page, limit, search, categoryId, 
+    // vendor_id,
+    hasVariants, isActive, lowStock, sortBy, sortOrder, productType, tags, discount, hasDiscount, } = payload;
+    const filter = {};
+    if (isActive !== undefined)
+        filter.isActive = isActive;
     if (hasVariants !== undefined)
         filter.hasVariants = hasVariants;
     if (categoryId) {
         const allDescendantCategories = await category_schema_1.default.find({
-            company_id,
             path: new mongoose_1.default.Types.ObjectId(categoryId), // ✅ array contains match
-            is_active: true,
+            isActive: true,
         }).lean();
         const allCategoryIds = [
             new mongoose_1.default.Types.ObjectId(categoryId),
@@ -63,24 +29,31 @@ const getProducts = async (payload) => {
         ];
         filter.categoryId = { $in: allCategoryIds };
     }
-    if (vendorId)
-        filter.vendorId = vendorId;
-    // low stock filter — stock <= low_stock_alert
-    if (low_stock === "true") {
-        filter.$expr = { $lte: ["$stock", "$low_stock_alert"] };
+    // if (vendor_id) filter.vendor_id = vendor_id;
+    // low stock filter — stock <= lowStockAlert
+    if (lowStock === "true") {
+        filter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
     }
+    if (productType)
+        filter.productType = productType;
+    if (discount)
+        filter.discount = discount;
+    if (hasDiscount)
+        filter.hasDiscount = hasDiscount;
+    if (tags && tags?.length > 0)
+        filter.tags = { $in: tags };
     if (search) {
         filter.$or = [
             { name: { $regex: search, $options: "i" } },
             { sku: { $regex: search, $options: "i" } },
         ];
     }
-    const sortDir = sort_order === "asc" ? 1 : -1;
+    const sortDir = sortOrder === "asc" ? 1 : -1;
     const [products, total] = await Promise.all([
         product_schema_1.default.find(filter)
             .populate("categoryId", "name slug depth")
-            // .populate("vendorId", "name phone")
-            .sort({ [sort_by]: sortDir })
+            // .populate("vendor_id", "name phone")
+            .sort({ [sortBy]: sortDir })
             .skip((page - 1) * limit)
             .limit(limit)
             .lean(),
@@ -139,25 +112,21 @@ const getProductById = async (payload) => {
         variants = await product_variant_schema_1.default.find({
             company_id: payload.company_id,
             product_id: payload.id,
-            is_active: true,
+            isActive: true,
         }).lean();
     }
     return { product, variants };
 };
 exports.getProductById = getProductById;
 const getAllCategories = async (req) => {
-    const company_id = new mongoose_1.Types.ObjectId(req.company?._id);
-    const categories = await category_schema_1.default.find({ company_id })
-        .sort({ createdAt: -1 })
-        .lean();
+    const categories = await category_schema_1.default.find({}).sort({ createdAt: -1 }).lean();
     return categories;
 };
 exports.getAllCategories = getAllCategories;
 const searchCategories = async (payload) => {
-    const { company_id, search, skip, limit } = payload;
+    const { search, skip, limit } = payload;
     const baseFilter = {
-        company_id,
-        is_active: true,
+        isActive: true,
     };
     let matched;
     let total;
@@ -174,8 +143,7 @@ const searchCategories = async (payload) => {
             return { categories: [], total: 0 };
         // 2. fetch root + all descendants
         const descendantFilter = {
-            company_id,
-            is_active: true,
+            isActive: true,
             $or: [{ _id: root._id }, { path: root._id }],
         };
         [matched, total] = await Promise.all([
@@ -214,8 +182,7 @@ const searchCategories = async (payload) => {
     ancestorDocs.forEach((a) => ancestorMap.set(a._id.toHexString(), a));
     // check hasChildren for all matched in ONE query
     const childDocs = await category_schema_1.default.find({
-        company_id,
-        is_active: true,
+        isActive: true,
         parentId: { $in: matched.map((c) => c._id) },
     })
         .select("parentId")
@@ -249,4 +216,183 @@ const searchCategories = async (payload) => {
     return { categories, total };
 };
 exports.searchCategories = searchCategories;
+const getCategoriesMenu = async (payload) => {
+    const { search, skip, limit } = payload;
+    const matchStage = {
+        isActive: true,
+        parentId: null, // homepage rail = top-level only
+    };
+    if (search?.trim()) {
+        const regex = new RegExp(search.trim(), "i");
+        matchStage.$or = [{ name: regex }, { slug: regex }];
+    }
+    const pipeline = [
+        { $match: matchStage },
+        // group all sellers' identical top-level categories by slug
+        {
+            $group: {
+                _id: "$slug",
+                name: { $first: "$name" },
+                image: { $first: "$image" },
+                sellerCategoryIds: { $push: "$_id" },
+                sellerCount: { $sum: 1 },
+            },
+        },
+        // product count across ALL underlying seller category docs for this slug
+        {
+            $lookup: {
+                from: "products",
+                let: { catIds: "$sellerCategoryIds" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $in: ["$categoryId", "$$catIds"] },
+                            isActive: true,
+                        },
+                    },
+                    { $count: "count" },
+                ],
+                as: "productStats",
+            },
+        },
+        // does ANY seller's version of this category have children?
+        {
+            $lookup: {
+                from: "categories",
+                let: { catIds: "$sellerCategoryIds" },
+                pipeline: [
+                    {
+                        $match: {
+                            isActive: true,
+                            $expr: { $in: ["$parentId", "$$catIds"] },
+                        },
+                    },
+                    { $limit: 1 },
+                ],
+                as: "childProbe",
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                slug: "$_id",
+                name: 1,
+                image: 1,
+                sellerCount: 1,
+                productCount: { $ifNull: [{ $first: "$productStats.count" }, 0] },
+                hasChildren: { $gt: [{ $size: "$childProbe" }, 0] },
+            },
+        },
+        { $sort: { name: 1 } },
+        // paginate the merged result set, get total in the same round-trip
+        {
+            $facet: {
+                data: [{ $skip: skip }, { $limit: limit }],
+                totalCount: [{ $count: "count" }],
+            },
+        },
+    ];
+    const result = await category_schema_1.default.aggregate(pipeline);
+    const categories = result[0]?.data ?? [];
+    const total = result[0]?.totalCount?.[0]?.count ?? 0;
+    return { categories, total };
+};
+exports.getCategoriesMenu = getCategoriesMenu;
+// reusable merge stage — dedupes any set of category docs by slugPath
+const mergeBySlugPath = (matchStage) => [
+    { $match: matchStage },
+    {
+        $group: {
+            _id: "$slugPath",
+            name: { $first: "$name" },
+            depth: { $first: "$depth" },
+            images: { $push: "$image" },
+            sellerIds: { $addToSet: "$sellerId" },
+        },
+    },
+    {
+        $addFields: {
+            slugPath: "$_id",
+            slug: { $arrayElemAt: ["$_id", -1] },
+            image: {
+                $first: {
+                    $filter: { input: "$images", cond: { $ne: ["$$this", null] } },
+                },
+            },
+            sellerCount: { $size: "$sellerIds" },
+        },
+    },
+    { $project: { images: 0, sellerIds: 0, _id: 0 } },
+];
+const getPublicMergedCategories = async (payload) => {
+    const { page, limit } = payload;
+    const skip = (page - 1) * limit;
+    // 1. merged root categories, paginated
+    const rootPipeline = [
+        ...mergeBySlugPath({ isActive: true, depth: 0 }),
+        { $sort: { sellerCount: -1, name: 1 } },
+        {
+            $facet: {
+                data: [{ $skip: skip }, { $limit: limit }],
+                meta: [{ $count: "total" }],
+            },
+        },
+    ];
+    const [rootResult] = await category_schema_1.default.aggregate(rootPipeline);
+    const roots = rootResult?.data ?? [];
+    const total = rootResult?.meta?.[0]?.total ?? 0;
+    if (!roots.length)
+        return { categories: [], total, page, limit };
+    const rootSlugs = roots.map((r) => r.slug);
+    // 2. merged descendants of ONLY those roots — any seller, matched
+    //    by first element of slugPath (their root slug)
+    const descendantPipeline = [
+        ...mergeBySlugPath({
+            isActive: true,
+            depth: { $gt: 0 },
+            "slugPath.0": { $in: rootSlugs },
+        }),
+        { $sort: { depth: 1, name: 1 } },
+    ];
+    const descendants = await category_schema_1.default.aggregate(descendantPipeline);
+    const allNodes = [...roots, ...descendants].map((c) => ({
+        slugPath: c.slugPath,
+        slug: c.slug,
+        name: c.name,
+        depth: c.depth,
+        parentSlugPath: c.slugPath.length > 1 ? c.slugPath.slice(0, -1) : null,
+        image: c.image ?? null,
+        sellerCount: c.sellerCount,
+        hasChildren: false,
+    }));
+    // hasChildren — in-memory, one pass, same trick as searchCategories
+    const parentKeySet = new Set(allNodes
+        .filter((n) => n.parentSlugPath)
+        .map((n) => n.parentSlugPath.join("/")));
+    allNodes.forEach((n) => {
+        n.hasChildren = parentKeySet.has(n.slugPath.join("/"));
+    });
+    // depth-first order, matching the flat-array contract your
+    // CategoryTree/buildCategoryTree already expects on the dashboard
+    const byParentKey = new Map();
+    allNodes.forEach((n) => {
+        if (!n.parentSlugPath)
+            return;
+        const key = n.parentSlugPath.join("/");
+        if (!byParentKey.has(key))
+            byParentKey.set(key, []);
+        byParentKey.get(key).push(n);
+    });
+    const nodeByKey = new Map(allNodes.map((n) => [n.slugPath.join("/"), n]));
+    const sorted = [];
+    const visit = (node) => {
+        sorted.push(node);
+        (byParentKey.get(node.slugPath.join("/")) ?? [])
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(visit);
+    };
+    roots.forEach((r) => visit(nodeByKey.get(r.slugPath.join("/"))));
+    return { categories: sorted, total, page, limit };
+};
+exports.getPublicMergedCategories = getPublicMergedCategories;
 //# sourceMappingURL=public.service.js.map

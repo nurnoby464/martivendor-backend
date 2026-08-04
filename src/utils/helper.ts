@@ -140,5 +140,5 @@ const ASIN_PATTERN = /-([T][23456789ABCDEFGHJKMNPQRSTUVWXYZ]{10})$/;
 
 export function extractAsin(combinedSlug: string): string | null {
   const match = combinedSlug.match(ASIN_PATTERN);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }

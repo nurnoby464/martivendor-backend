@@ -1,20 +1,9 @@
 import { Request } from "express";
 import { GetProductQuery } from "../product/product.validation";
+import { GetProductQueryInput } from "./public.validation";
 import mongoose, { Types } from "mongoose";
 import { ICategoryDocument } from "../category/category.interface";
-export declare const getProducts: (payload: {
-    company_id: mongoose.Types.ObjectId;
-    page: number;
-    limit: number;
-    search?: string;
-    categoryId?: string;
-    vendorId?: string;
-    hasVariants?: boolean;
-    is_active?: boolean;
-    low_stock?: string;
-    sort_by: string;
-    sort_order: string;
-}) => Promise<{
+export declare const getProducts: (payload: GetProductQueryInput) => Promise<{
     products: (import("../product/product.interface").IProduct & {
         _id: Types.ObjectId;
     } & {
@@ -66,13 +55,47 @@ type CategorySearchItem = {
     image: string | null;
 };
 export declare const searchCategories: (payload: {
-    company_id: mongoose.Types.ObjectId;
     search?: string;
     skip: number;
     limit: number;
 }) => Promise<{
     categories: CategorySearchItem[];
     total: number;
+}>;
+export interface MergedCategoryItem {
+    slug: string;
+    name: string;
+    image: string | null;
+    sellerCount: number;
+    productCount: number;
+    hasChildren: boolean;
+}
+export declare const getCategoriesMenu: (payload: {
+    search?: string;
+    skip: number;
+    limit: number;
+}) => Promise<{
+    categories: MergedCategoryItem[];
+    total: number;
+}>;
+export interface PublicCategoryNode {
+    slugPath: string[];
+    slug: string;
+    name: string;
+    depth: number;
+    parentSlugPath: string[] | null;
+    image: string | null;
+    sellerCount: number;
+    hasChildren: boolean;
+}
+export declare const getPublicMergedCategories: (payload: {
+    page: number;
+    limit: number;
+}) => Promise<{
+    categories: PublicCategoryNode[];
+    total: number;
+    page: number;
+    limit: number;
 }>;
 export {};
 //# sourceMappingURL=public.service.d.ts.map

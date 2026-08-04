@@ -16,6 +16,7 @@ const product_variant_schema_1 = __importDefault(require("../product-variant/pro
 const auditLogger_1 = require("../../utils/auditLogger");
 const audit_interface_1 = require("../audit/audit.interface");
 const product_interface_1 = require("./product.interface");
+const helper_1 = require("../../utils/helper");
 // ─── helpers ─────────────────────────────────────────────
 const generateSlug = (name) => {
     const slug = (0, slugify_1.default)(name, { lower: true, strict: true });
@@ -140,6 +141,7 @@ async function createProduct(ctx, input) {
             }
             // ---- Branch 2: create a brand-new product + its first variant ----
             const slug = await buildUniqueSlug(ctx.sellerId, input.name, session);
+            console.log(slug);
             const [product] = await product_schema_1.default.create([
                 {
                     sellerId: ctx.sellerId,
@@ -186,6 +188,7 @@ async function createProduct(ctx, input) {
         });
     }
     catch (err) {
+        console.log(err);
         if (err?.code === 11000) {
             throw new appError_1.AppError("A product with this SKU or slug already exists", 409);
         }
@@ -274,7 +277,6 @@ const getProducts = async (payload) => {
     const { sellerId, page, limit, search, categoryId, 
     // vendor_id,
     hasVariants, isActive, low_stock, sortBy, sortOrder, productType, tags, discount, hasDiscount, } = payload;
-    console.log("product services payload", payload);
     if (!sellerId)
         throw new appError_1.AppError("sellerId is required", 400);
     const filter = { sellerId };
@@ -352,10 +354,11 @@ const getProductById = async (payload) => {
 };
 exports.getProductById = getProductById;
 const getProductBySlug = async (payload) => {
-    const product = await product_schema_1.default.findOne({
-        slug: payload.slug,
-        // sellerId: payload.sellerId,
-    })
+    const asin = (0, helper_1.extractAsin)(payload.slug);
+    const filter = asin !== null && asin !== undefined && asin !== ""
+        ? { asin: asin }
+        : { slug: payload.slug };
+    const product = await product_schema_1.default.findOne(filter)
         .populate("categoryId", "name slug path depth")
         // .populate("vendor_id", "name phone email")
         .populate("createdBy", "name email")

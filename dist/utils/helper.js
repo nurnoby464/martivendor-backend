@@ -4,10 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateOPT = exports.makeLoginResponse = exports.profileModelMap = exports.makeToken = void 0;
+exports.generateAsin = generateAsin;
+exports.extractAsin = extractAsin;
 const customer_schema_1 = __importDefault(require("../CRM/customer/customer.schema"));
 const staff_schema_1 = __importDefault(require("../CRM/staff/staff.schema"));
-const staff_schema_2 = require("../CRM/sellerStaff/staff.schema");
+const sellerStaff_schema_1 = require("../CRM/sellerStaff/sellerStaff.schema");
 const seller_schema_1 = require("../module/seller/seller.schema");
+const nanoid_1 = require("nanoid");
 const makeToken = (payload) => {
     const { existing, session } = payload;
     const data = {
@@ -28,7 +31,7 @@ exports.profileModelMap = {
     Seller: seller_schema_1.Seller,
     Customer: customer_schema_1.default,
     Staff: staff_schema_1.default,
-    SellerStaff: staff_schema_2.SellerStaff,
+    SellerStaff: sellerStaff_schema_1.SellerStaff,
 };
 const makeLoginResponse = async (payload) => {
     const { user } = payload;
@@ -114,4 +117,13 @@ const generateOPT = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 exports.generateOPT = generateOPT;
+function generateAsin() {
+    const nanoid = (0, nanoid_1.customAlphabet)("23456789ABCDEFGHJKMNPQRSTUVWXYZ", 10);
+    return `T${nanoid()}`;
+}
+const ASIN_PATTERN = /-([T][23456789ABCDEFGHJKMNPQRSTUVWXYZ]{10})$/;
+function extractAsin(combinedSlug) {
+    const match = combinedSlug.match(ASIN_PATTERN);
+    return match?.[1] ?? null;
+}
 //# sourceMappingURL=helper.js.map

@@ -6,12 +6,136 @@ import {
   GetProductParamsQuery,
   GetProductQueryInput,
 } from "./public.validation";
-import mongoose, { Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import ProductVariant from "../product-variant/product-variant.schema";
 import Category from "../category/category.schema";
 import { create } from "node:domain";
 import { ICategoryDocument } from "../category/category.interface";
 import { AppError } from "../../middlewares/appError";
+import {
+  ProductsByCategorySlugQuery,
+  PublicCategoryNode,
+} from "./public.interface";
+
+// reuseable merge stage — dedupes any set of category docs by slugPath
+
+const mergeBySlugPath = (
+  matchStage: Record<string, unknown>,
+): PipelineStage[] => [
+  { $match: matchStage },
+  {
+    $group: {
+      _id: "$slugPath",
+      name: { $first: "$name" },
+      depth: { $first: "$depth" },
+      images: { $push: "$image" },
+      sellerIds: { $addToSet: "$sellerId" },
+    },
+  },
+  {
+    $addFields: {
+      slugPath: "$_id",
+      slug: { $arrayElemAt: ["$_id", -1] },
+      image: {
+        $first: {
+          $filter: { input: "$images", cond: { $ne: ["$$this", null] } },
+        },
+      },
+      sellerCount: { $size: "$sellerIds" },
+    },
+  },
+  { $project: { images: 0, sellerIds: 0, _id: 0 } },
+];
+
+export const getPublicMergedCategories = async (payload: {
+  page: number;
+  limit: number;
+}): Promise<{
+  categories: PublicCategoryNode[];
+  total: number;
+  page: number;
+  limit: number;
+}> => {
+  const { page, limit } = payload;
+  const skip = (page - 1) * limit;
+
+  // 1. merged root categories, paginated
+  const rootPipeline: PipelineStage[] = [
+    ...mergeBySlugPath({ isActive: true, depth: 0 }),
+    { $sort: { sellerCount: -1, name: 1 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        meta: [{ $count: "total" }],
+      },
+    },
+  ];
+
+  const [rootResult] = await Category.aggregate(rootPipeline);
+  const roots: any[] = rootResult?.data ?? [];
+  const total = rootResult?.meta?.[0]?.total ?? 0;
+
+  if (!roots.length) return { categories: [], total, page, limit };
+
+  const rootSlugs = roots.map((r) => r.slug);
+
+  // 2. merged descendants of ONLY those roots — any seller, matched
+  //    by first element of slugPath (their root slug)
+  const descendantPipeline: PipelineStage[] = [
+    ...mergeBySlugPath({
+      isActive: true,
+      depth: { $gt: 0 },
+      "slugPath.0": { $in: rootSlugs },
+    }),
+    { $sort: { depth: 1, name: 1 } },
+  ];
+
+  const descendants = await Category.aggregate(descendantPipeline);
+  const allNodes: PublicCategoryNode[] = [...roots, ...descendants].map(
+    (c) => ({
+      slugPath: c.slugPath,
+      slug: c.slug,
+      name: c.name,
+      depth: c.depth,
+      parentSlugPath: c.slugPath.length > 1 ? c.slugPath.slice(0, -1) : null,
+      image: c.image ?? null,
+      sellerCount: c.sellerCount,
+      hasChildren: false,
+    }),
+  );
+
+  // hasChildren — in-memory, one pass, same trick as searchCategories
+  const parentKeySet = new Set(
+    allNodes
+      .filter((n) => n.parentSlugPath)
+      .map((n) => n.parentSlugPath!.join("/")),
+  );
+  allNodes.forEach((n) => {
+    n.hasChildren = parentKeySet.has(n.slugPath.join("/"));
+  });
+
+  // depth-first order, matching the flat-array contract your
+  // CategoryTree/buildCategoryTree already expects on the dashboard
+  const byParentKey = new Map<string, PublicCategoryNode[]>();
+  allNodes.forEach((n) => {
+    if (!n.parentSlugPath) return;
+    const key = n.parentSlugPath.join("/");
+    if (!byParentKey.has(key)) byParentKey.set(key, []);
+    byParentKey.get(key)!.push(n);
+  });
+
+  const nodeByKey = new Map(allNodes.map((n) => [n.slugPath.join("/"), n]));
+  const sorted: PublicCategoryNode[] = [];
+  const visit = (node: PublicCategoryNode) => {
+    sorted.push(node);
+    (byParentKey.get(node.slugPath.join("/")) ?? [])
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(visit);
+  };
+  roots.forEach((r) => visit(nodeByKey.get(r.slugPath.join("/"))!));
+
+  return { categories: sorted, total, page, limit };
+};
 
 export const getProducts = async (payload: GetProductQueryInput) => {
   const {
@@ -29,6 +153,7 @@ export const getProducts = async (payload: GetProductQueryInput) => {
     tags,
     discount,
     hasDiscount,
+    categorySlug,
   } = payload;
 
   const filter: Record<string, unknown> = {};
@@ -59,6 +184,42 @@ export const getProducts = async (payload: GetProductQueryInput) => {
   if (hasDiscount) filter.hasDiscount = hasDiscount;
   if (tags && tags?.length > 0) filter.tags = { $in: tags };
 
+  if (categorySlug) {
+    const slugPathArr = categorySlug
+      .split("/")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const matchedCategories = await Category.find({
+      slugPath: slugPathArr,
+      isActive: true,
+    })
+      .select("_id")
+      .lean();
+    if (!matchedCategories || matchedCategories.length === 0) {
+      throw new AppError("Category not found", 404);
+    }
+
+    const matchedIds = matchedCategories.map((c) => c._id);
+
+    // Also pull in descendant categories (so "electronics" shows
+    // products from "mobile-phones", "laptops", etc. too)
+    const descendantCategories = await Category.find({
+      path: { $in: matchedIds },
+      isActive: true,
+    })
+      .select("_id")
+      .lean();
+ console.log("matchedIds", matchedIds);
+ console.log("descendantCategories", descendantCategories.map((c) => c._id));
+    const allCategoryIds = [
+      ...matchedIds,
+      ...descendantCategories.map((c) => c._id),
+    ];
+    console.log("allCategoryIds", allCategoryIds);
+
+    filter.categoryId = { $in: allCategoryIds };
+  }
+
   if (search) {
     filter.$or = [
       { name: { $regex: search, $options: "i" } },
@@ -70,7 +231,7 @@ export const getProducts = async (payload: GetProductQueryInput) => {
 
   const [products, total] = await Promise.all([
     Product.find(filter)
-      .populate("categoryId", "name slug depth")
+      .populate("categoryId", "name slug depth slugPath")
       // .populate("vendor_id", "name phone")
       .sort({ [sortBy]: sortDir })
       .skip((page - 1) * limit)
@@ -93,6 +254,7 @@ export const dbTest = async (req: Request, query: GetProductQuery) => {
     isActive,
     search,
     lowStock,
+    categorySlug,
   } = query;
   const filter: any = { company_id: "69db7c91dfc260658b4a384a" };
 
@@ -131,7 +293,7 @@ export const getProductById = async (payload: {
     _id: payload.id,
     company_id: payload.company_id,
   })
-    .populate("categoryId", "name slug path depth")
+    .populate("categoryId", "name slug path depth slugPath")
     // .populate("vendorId", "name phone email")
     .populate("createdBy", "name email")
     .lean();
@@ -393,4 +555,16 @@ export const getCategoriesMenu = async (payload: {
   const total: number = result[0]?.totalCount?.[0]?.count ?? 0;
 
   return { categories, total };
+};
+
+export const getProductsByCategorySlug = async (
+  payload: ProductsByCategorySlugQuery,
+) => {
+  const { slug, page, limit } = payload;
+  const existingCategory = await Category.findOne({
+    slug,
+    isActive: true,
+  }).lean();
+  if (!existingCategory) throw new AppError("Category not found", 404);
+  return existingCategory;
 };

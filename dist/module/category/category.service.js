@@ -9,13 +9,7 @@ const category_schema_1 = __importDefault(require("./category.schema"));
 const appError_1 = require("../../middlewares/appError");
 const auditLogger_1 = require("../../utils/auditLogger");
 const audit_interface_1 = require("../audit/audit.interface");
-// ─── helpers ─────────────────────────────────────────────
-const generateSlug = (name) => {
-    const slug = (0, slugify_1.default)(name, { lower: true, strict: true });
-    return slug || `category-${Date.now()}`;
-};
 const assertUniqSlug = async (slug, sellerId, excludeId) => {
-    console.log(slug);
     const filter = { sellerId, slug };
     if (excludeId)
         filter._id = { $ne: excludeId };
@@ -23,92 +17,123 @@ const assertUniqSlug = async (slug, sellerId, excludeId) => {
     if (exists)
         throw new appError_1.AppError(`Category "${slug}" already exists`, 409);
 };
+// ─── helpers ─────────────────────────────────────────────
+const generateSlug = (name) => {
+    const slug = (0, slugify_1.default)(name, { lower: true, strict: true });
+    return slug || `category-${Date.now()}`;
+};
 // ─── Create Category ─────────────────────────────────────
-// category.service.ts - Update createCategory
 const createCategory = async (payload) => {
-    const { sellerId, name, parentId, image, createdBy } = payload;
+    const { sellerId, name, parentId, image, createdBy, isActive } = payload;
     const slug = generateSlug(name);
-    // await assertUniqSlug(slug, sellerId);
-    const filter = { sellerId, slug, parentId };
-    const exists = await category_schema_1.default.findOne(filter).lean();
+    const normalizedParentId = parentId ?? null;
+    // duplicate check — scoped to sellerId + slug + parentId,
+    // matching the schema's unique index exactly
+    const exists = await category_schema_1.default.findOne({
+        sellerId,
+        slug,
+        parentId: normalizedParentId,
+    }).lean();
     if (exists)
         throw new appError_1.AppError(`Category "${slug}" already exists`, 409);
-    let path = [];
-    let depth = 0;
-    if (parentId) {
+    // validate parent, if provided
+    if (normalizedParentId) {
         const parent = await category_schema_1.default.findOne({
-            _id: parentId,
+            _id: normalizedParentId,
             sellerId,
         }).lean();
         if (!parent)
             throw new appError_1.AppError("Parent category not found", 404);
-        if (!parent.isActive)
+        if (!parent.isActive) {
             throw new appError_1.AppError("Parent category is inactive", 400);
-        // ✅ Array spread instead of string concatenation
-        path = [...parent.path, parent._id];
-        depth = parent.depth + 1;
+        }
     }
-    const category = await category_schema_1.default.create({
+    // path, depth, slugPath are computed automatically by the pre("save") hook —
+    // do not set them manually here
+    const category = new category_schema_1.default({
         sellerId,
         name,
         slug,
-        parentId: parentId ?? null,
-        path,
-        depth,
+        parentId: normalizedParentId,
         image: image ?? null,
         createdBy,
+        isActive: isActive ?? true,
     });
+    await category.save();
     return category;
 };
 exports.createCategory = createCategory;
-// export const getCategoryTree = async (payload: {
+// ─── Update Category (handles re-parenting) ──────────────
+// export const updateCategory = async (payload: {
+//   categoryId: string;
 //   sellerId: mongoose.Types.ObjectId;
-//   search?: string;
-// }): Promise<CategoryFlatItem[]> => {
-//   const { sellerId, search } = payload;
-//   let categories: LeanCategory[];
-//   if (search) {
-//     const matched = await Category.findOne({
+//   name?: string;
+//   parentId?: string | null;
+//   image?: string | null;
+//   isActive?: boolean;
+// }) => {
+//   const { categoryId, sellerId, name, parentId, image, isActive } = payload;
+//   const category = await Category.findOne({ _id: categoryId, sellerId });
+//   if (!category) throw new AppError("Category not found", 404);
+//   // prevent a category from becoming its own ancestor
+//   if (parentId !== undefined && parentId !== null) {
+//     if (parentId === categoryId) {
+//       throw new AppError("A category cannot be its own parent", 400);
+//     }
+//     const newParent = await Category.findOne({
+//       _id: parentId,
 //       sellerId,
-//       isActive: true,
-//       name: { $regex: search.trim(), $options: "i" },
-//     }).lean<LeanCategory>();
-//     if (!matched) return [];
-//     categories = await Category.find({
-//       sellerId,
-//       isActive: true,
-//       $or: [{ _id: matched._id }, { path: matched._id.toHexString() }],
-//     }).lean<LeanCategory[]>();
-//   } else {
-//     categories = await Category.find({ sellerId, isActive: true })
-//       .sort({ path: 1, name: 1 })
-//       .lean<LeanCategory[]>();
+//     }).lean();
+//     if (!newParent) throw new AppError("Parent category not found", 404);
+//     if (!newParent.isActive) {
+//       throw new AppError("Parent category is inactive", 400);
+//     }
+//     if (newParent.path.some((id) => id.equals(category._id))) {
+//       throw new AppError(
+//         "Cannot move a category under its own descendant",
+//         400,
+//       );
+//     }
 //   }
-//   // build id->name map for breadcrumb
-//   const nameMap = new Map<string, string>();
-//   categories.forEach((c) => nameMap.set(c._id.toHexString(), c.name));
-//   const getFullPath = (c: LeanCategory): string => {
-//     if (!c.path) return c.name;
-//     const ancestorNames = c.path
-//       .split(",")
-//       .map((id) => nameMap.get(id))
-//       .filter(Boolean);
-//     return [...ancestorNames, c.name].join(" > ");
-//   };
-//   return categories
-//     .sort((a, b) => {
-//       const pathA = a.path ? `${a.path},${a._id}` : a._id.toHexString();
-//       const pathB = b.path ? `${b.path},${b._id}` : b._id.toHexString();
-//       return pathA.localeCompare(pathB);
-//     })
-//     .map((c) => ({
-//       _id: c._id,
-//       name: c.name,
-//       fullPath: getFullPath(c),
-//       depth: c.depth,
-//       parentId: c.parentId,
-//     }));
+//   if (name !== undefined) {
+//     const newSlug = generateSlug(name);
+//     const normalizedParentId =
+//       parentId !== undefined ? parentId : category.parentId;
+//     const exists = await Category.findOne({
+//       sellerId,
+//       slug: newSlug,
+//       parentId: normalizedParentId,
+//       _id: { $ne: category._id },
+//     }).lean();
+//     if (exists) {
+//       throw new AppError(`Category "${newSlug}" already exists`, 409);
+//     }
+//     category.name = name;
+//     category.slug = newSlug;
+//   }
+//   if (parentId !== undefined) {
+//     category.parentId = parentId ? new mongoose.Types.ObjectId(parentId) : null;
+//   }
+//   if (image !== undefined) category.image = image;
+//   if (isActive !== undefined) category.isActive = isActive;
+//   // hook recomputes path/depth/slugPath since parentId/slug may have changed
+//   await category.save();
+//   // NOTE: if this category has children, their own path/depth/slugPath
+//   // are now stale and need a cascade update — see cascadeUpdateDescendants below
+//   await cascadeUpdateDescendants(category);
+//   return category;
 // };
+// ─── Cascade path/depth/slugPath to descendants after a re-parent ──
+async function cascadeUpdateDescendants(parent) {
+    const children = await category_schema_1.default.find({ parentId: parent._id });
+    for (const child of children) {
+        child.path = [...parent.path, parent._id];
+        child.depth = parent.depth + 1;
+        child.slugPath = [...parent.slugPath, child.slug];
+        await child.save(); // triggers hook again, but values already match — safe
+        await cascadeUpdateDescendants(child); // recurse
+    }
+}
 const getCategoryTree = async (payload) => {
     const { sellerId, query, skip, limit } = payload;
     const baseFilter = {

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductCounter = void 0;
 const mongoose_1 = require("mongoose");
 const product_interface_1 = require("./product.interface");
+const helper_1 = require("../../utils/helper");
 // ── Counter for SKU sequence per seller ───────────────────────────────────────
 const ProductCounterSchema = new mongoose_1.Schema({
     sellerId: { type: mongoose_1.Schema.Types.ObjectId, required: true },
@@ -144,6 +145,11 @@ const ProductSchema = new mongoose_1.Schema({
         enum: Object.values(product_interface_1.ProductTag),
         default: [],
     },
+    asin: {
+        type: String,
+        unique: true,
+        index: true,
+    },
     showOnHomepage: {
         type: Boolean,
         default: false,
@@ -161,6 +167,19 @@ ProductSchema.pre("save", async function () {
         const counter = await exports.ProductCounter.findOneAndUpdate({ sellerId: this.sellerId }, { $inc: { seq: 1 } }, { upsert: true, new: true });
         this.sku = buildProductSku(this.name, counter.seq);
     }
+    if (this.isNew && !this.asin) {
+        let candidate = (0, helper_1.generateAsin)();
+        // Ensure ASIN is unique
+        for (let i = 0; i < 5; i++) {
+            const existing = await (0, mongoose_1.model)("Product").exists({
+                asin: candidate,
+            });
+            if (!existing)
+                break;
+            candidate = (0, helper_1.generateAsin)();
+        }
+        this.asin = candidate;
+    }
     // Always recalculate profit
     this.profit = parseFloat((this.sellingPrice - this.buyingPrice).toFixed(2));
     this.profitMargin =
@@ -177,7 +196,7 @@ ProductSchema.index({ sellerId: 1, categoryId: 1 });
 // ProductSchema.index({ sellerId: 1, vendorId: 1 });
 ProductSchema.index({ sellerId: 1, stock: 1 });
 ProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
-ProductSchema.index({ sellerId: 1, slug: 1 }, { unique: true });
+ProductSchema.index({ slug: 1 });
 ProductSchema.index({ sellerId: 1, showOnHomepage: 1 });
 const Product = (0, mongoose_1.model)("Product", ProductSchema);
 exports.default = Product;

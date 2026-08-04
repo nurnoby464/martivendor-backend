@@ -21,6 +21,7 @@ export const productQuerySchema = z.object({
     .optional()
     .transform((v) => parseInt(v ?? "10")),
   search: z.string().trim().optional(),
+  categorySlug: z.string().trim().optional(),
   productType: z.enum(ProductType).optional(),
   categoryId: objectId.optional(),
   // vendor_id: objectId.optional(),

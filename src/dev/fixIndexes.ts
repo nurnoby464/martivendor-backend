@@ -1,4 +1,4 @@
-import { ObjectId, Types } from "mongoose";
+import { ObjectId, PipelineStage, Types } from "mongoose";
 // import dotenv from "dotenv";
 // dotenv.config();
 // import mongoose from "mongoose";
@@ -43,6 +43,7 @@ import { ObjectId, Types } from "mongoose";
 import express from "express";
 import { generateInvoiceNumber, generateOderNumber } from "../utils/healper";
 import { extractAsin, generateAsin } from "../utils/helper";
+import Category from "../module/category/category.schema";
 
 const router = express.Router();
 router.post("/generateOrderNumber", async (req, res) => {
@@ -63,4 +64,12 @@ router.get("/extract", async (req, res) => {
   const result = extractAsin(combinedSlug as string);
   res.json({ num: result });
 });
+
+router.get("/extract", async (req, res) => {
+  const { combinedSlug } = req.query;
+  const result = extractAsin(combinedSlug as string);
+  res.json({ num: result });
+});
+
+
 export const DevRouter = router;

@@ -53,6 +53,7 @@ export interface IProduct {
     isActive: boolean;
     tags: ProductTag[];
     showOnHomepage: boolean;
+    asin: string;
     createdBy: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;

@@ -7,8 +7,7 @@ export declare const createCategory: (payload: {
     parentId?: string | null;
     image?: string | null;
     createdBy: mongoose.Types.ObjectId;
-    isActive: boolean;
-    req: Request;
+    isActive?: boolean;
 }) => Promise<mongoose.Document<unknown, {}, ICategoryDocument, {}, mongoose.DefaultSchemaOptions> & ICategoryDocument & Required<{
     _id: mongoose.Types.ObjectId;
 }> & {

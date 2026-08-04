@@ -94,5 +94,7 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     image: any;
 }>;
 export declare const generateOPT: () => string;
+export declare function generateAsin(): string;
+export declare function extractAsin(combinedSlug: string): string | null;
 export {};
 //# sourceMappingURL=helper.d.ts.map

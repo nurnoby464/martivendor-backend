@@ -44,9 +44,10 @@ const validate_1 = require("../../middlewares/validate");
 const product_validation_1 = require("../product/product.validation");
 const router = express_1.default.Router();
 // ── /api/public/products ─────────────────────────────────────────
-router.get("/product", (0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), companyIdentifier_1.companyIdentifier, PublicController.getProducts);
-router.get("/category/tree", companyIdentifier_1.companyIdentifier, PublicController.getCategoryTree);
-router.get("/category", companyIdentifier_1.companyIdentifier, PublicController.getAllCategories);
+router.get("/products", (0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), PublicController.getProducts);
+router.get("/category/tree", PublicController.getCategoryTree);
+router.get("/categories/menu", PublicController.getPublicMergedCategories);
+router.get("/category", PublicController.getAllCategories);
 router.get("/product/:id", companyIdentifier_1.companyIdentifier, PublicController.getProductById);
 router.get("/db-test", PublicController.dbTest);
 exports.PublicRoutes = router;

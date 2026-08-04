@@ -5,6 +5,7 @@ export interface ICategory {
     slug: string;
     parentId: mongoose.Types.ObjectId | null;
     path: mongoose.Types.ObjectId[];
+    slugPath: string[];
     depth: number;
     image: string | null;
     isActive: boolean;

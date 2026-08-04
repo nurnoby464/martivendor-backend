@@ -33,9 +33,9 @@ const staffSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 // ─── Indexes ──────────────────────────────────────────────
-staffSchema.index({ companyId: 1, userId: 1 }, { unique: true });
-staffSchema.index({ companyId: 1, phone: 1 }, { unique: true });
-staffSchema.index({ companyId: 1, email: 1 }, { unique: true, sparse: true });
+staffSchema.index({ sellerId: 1, userId: 1 }, { unique: true });
+staffSchema.index({ sellerId: 1, phone: 1 }, { unique: true });
+staffSchema.index({ sellerId: 1, email: 1 }, { unique: true, sparse: true });
 const Staff = (0, mongoose_1.model)("Staff", staffSchema);
 exports.default = Staff;
 //# sourceMappingURL=staff.schema.js.map

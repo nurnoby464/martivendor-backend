@@ -61,11 +61,11 @@ const invoiceSchema = new mongoose_1.Schema({
     note: { type: String, default: null },
 }, { timestamps: true });
 // indexes
-invoiceSchema.index({ companyId: 1, invoiceNumber: 1 }, { unique: true });
-invoiceSchema.index({ companyId: 1, order: 1 }, { unique: true });
-invoiceSchema.index({ companyId: 1, customer: 1 });
-invoiceSchema.index({ companyId: 1, status: 1 });
-invoiceSchema.index({ companyId: 1, createdAt: -1 });
+invoiceSchema.index({ sellerId: 1, invoiceNumber: 1 }, { unique: true });
+invoiceSchema.index({ sellerId: 1, order: 1 }, { unique: true });
+invoiceSchema.index({ sellerId: 1, customer: 1 });
+invoiceSchema.index({ sellerId: 1, status: 1 });
+invoiceSchema.index({ sellerId: 1, createdAt: -1 });
 const Invoice = (0, mongoose_1.model)("Invoice", invoiceSchema);
 exports.default = Invoice;
 //# sourceMappingURL=invoice.schema.js.map
