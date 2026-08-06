@@ -10,7 +10,7 @@ const customer_schema_1 = __importDefault(require("../CRM/customer/customer.sche
 const staff_schema_1 = __importDefault(require("../CRM/staff/staff.schema"));
 const sellerStaff_schema_1 = require("../CRM/sellerStaff/sellerStaff.schema");
 const seller_schema_1 = require("../module/seller/seller.schema");
-const nanoid_1 = require("nanoid");
+const { customAlphabet } = require("nanoid");
 const makeToken = (payload) => {
     const { existing, session } = payload;
     const data = {
@@ -118,7 +118,7 @@ const generateOPT = () => {
 };
 exports.generateOPT = generateOPT;
 function generateAsin() {
-    const nanoid = (0, nanoid_1.customAlphabet)("23456789ABCDEFGHJKMNPQRSTUVWXYZ", 10);
+    const nanoid = customAlphabet("23456789ABCDEFGHJKMNPQRSTUVWXYZ", 10);
     return `T${nanoid()}`;
 }
 const ASIN_PATTERN = /-([T][23456789ABCDEFGHJKMNPQRSTUVWXYZ]{10})$/;

@@ -6,7 +6,7 @@ import { Seller } from "../module/seller/seller.schema";
 import { ISessionDocument } from "../module/auth/auth.interface";
 import { IUserDocument, ProfileType } from "../module/user/user.interface";
 import { ITokenPayload } from "./jwtHelper";
-import { customAlphabet } from "nanoid";
+const { customAlphabet } = require("nanoid");
 type IMakeToken = {
   existing: IUserDocument;
   session: ISessionDocument;
