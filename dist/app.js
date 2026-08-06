@@ -33,7 +33,7 @@ const banner_route_1 = require("./module/siteManagement/banner/banner.route");
 const app = (0, express_1.default)();
 const allowOrigin = [
     "http://localhost:3000",
-    "https://rupbaan-frontend-3b7f.vercel.app",
+    "https://multivendorforntend.vercel.app",
     "https://luzia-weld.vercel.app",
     "https://ankorabd.vercel.app",
     "https://ankorabd.com",
