@@ -89,6 +89,7 @@ app.use(cookieParser());
 
 // public route
 app.use("/api/v1/public", PublicRoutes);
+// how i give all dist
 
 // Routes
 app.use("/api/v1/auth", AuthRoutes);

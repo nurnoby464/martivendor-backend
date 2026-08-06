@@ -81,6 +81,7 @@ app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
 // public route
 app.use("/api/v1/public", public_route_1.PublicRoutes);
+// how i give all dist
 // Routes
 app.use("/api/v1/auth", auth_route_1.AuthRoutes);
 app.use("/api/v1/users", user_route_1.UsersRoute);
