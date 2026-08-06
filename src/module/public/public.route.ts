@@ -14,7 +14,4 @@ router.get(
 router.get("/category/tree", PublicController.getCategoryTree);
 router.get("/categories/menu", PublicController.getPublicMergedCategories);
 router.get("/category",  PublicController.getAllCategories);
-// router.get("/product-by-category-slug",  PublicController.getAllCategories);
-router.get("/product/:id", companyIdentifier, PublicController.getProductById);
-router.get("/db-test", PublicController.dbTest);
 export const PublicRoutes= router ;

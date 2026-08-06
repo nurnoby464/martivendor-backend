@@ -13,6 +13,8 @@ import { create } from "node:domain";
 import { ICategoryDocument } from "../category/category.interface";
 import { AppError } from "../../middlewares/appError";
 import {
+  AncestorItem,
+  CategorySearchItem,
   ProductsByCategorySlugQuery,
   PublicCategoryNode,
 } from "./public.interface";
@@ -209,8 +211,11 @@ export const getProducts = async (payload: GetProductQueryInput) => {
     })
       .select("_id")
       .lean();
- console.log("matchedIds", matchedIds);
- console.log("descendantCategories", descendantCategories.map((c) => c._id));
+    console.log("matchedIds", matchedIds);
+    console.log(
+      "descendantCategories",
+      descendantCategories.map((c) => c._id),
+    );
     const allCategoryIds = [
       ...matchedIds,
       ...descendantCategories.map((c) => c._id),
@@ -242,100 +247,13 @@ export const getProducts = async (payload: GetProductQueryInput) => {
 
   return { products, total };
 };
-export const dbTest = async (req: Request, query: GetProductQuery) => {
-  const {
-    // vendorId,
-    page,
-    categoryId,
-    limit,
-    sortBy,
-    sortOrder,
-    hasVariants,
-    isActive,
-    search,
-    lowStock,
-    categorySlug,
-  } = query;
-  const filter: any = { company_id: "69db7c91dfc260658b4a384a" };
-
-  // if (vendorId) filter.vendorId = vendorId;
-  if (categoryId) filter.categoryId = categoryId;
-  if (hasVariants !== undefined) filter.hasVariants = hasVariants;
-  if (isActive !== undefined) filter.isActive = isActive;
-  if (lowStock === "true")
-    filter.$expr = { $lte: ["$stock", "$low_stock_alert"] };
-  if (search) {
-    filter.name = { $regex: search, $options: "i" };
-    filter.selling_price = { $regex: search, $options: "i" };
-  }
-
-  const sortOptions: any = {};
-  sortOptions[sortBy ?? "createdAt"] = sortOrder === "asc" ? 1 : -1;
-  const skip = (page - 1) * limit;
-
-  const [products, total] = await Promise.all([
-    Product.find(filter)
-      .sort(sortOptions)
-      .select("-buying_price -profit -profit_margin -low_stock_alert")
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Product.countDocuments(filter),
-  ]);
-  return { products, total, page, limit };
-};
-
-export const getProductById = async (payload: {
-  id: string;
-  company_id: mongoose.Types.ObjectId;
-}) => {
-  const product = await Product.findOne({
-    _id: payload.id,
-    company_id: payload.company_id,
-  })
-    .populate("categoryId", "name slug path depth slugPath")
-    // .populate("vendorId", "name phone email")
-    .populate("createdBy", "name email")
-    .lean();
-
-  if (!product) throw new AppError("Product not found", 404);
-
-  // attach variants if hasVariants
-  let variants: any[] = [];
-  if (product.hasVariants) {
-    variants = await ProductVariant.find({
-      company_id: payload.company_id,
-      product_id: payload.id,
-      isActive: true,
-    }).lean();
-  }
-
-  return { product, variants };
-};
 
 export const getAllCategories = async (req: Request) => {
   const categories = await Category.find({}).sort({ createdAt: -1 }).lean();
   return categories;
 };
 
-type AncestorItem = {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  depth: number;
-};
 
-type CategorySearchItem = {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  slug: string;
-  fullPath: string;
-  parentId: mongoose.Types.ObjectId | null;
-  parentName: string | null;
-  ancestors: AncestorItem[];
-  depth: number;
-  hasChildren: boolean;
-  image: string | null;
-};
 
 export const searchCategories = async (payload: {
   search?: string;
@@ -448,123 +366,4 @@ export const searchCategories = async (payload: {
   });
 
   return { categories, total };
-};
-
-export interface MergedCategoryItem {
-  slug: string;
-  name: string;
-  image: string | null;
-  sellerCount: number;
-  productCount: number;
-  hasChildren: boolean;
-}
-
-export const getCategoriesMenu = async (payload: {
-  search?: string;
-  skip: number;
-  limit: number;
-}): Promise<{ categories: MergedCategoryItem[]; total: number }> => {
-  const { search, skip, limit } = payload;
-
-  const matchStage: Record<string, unknown> = {
-    isActive: true,
-    parentId: null, // homepage rail = top-level only
-  };
-
-  if (search?.trim()) {
-    const regex = new RegExp(search.trim(), "i");
-    matchStage.$or = [{ name: regex }, { slug: regex }];
-  }
-
-  const pipeline: mongoose.PipelineStage[] = [
-    { $match: matchStage },
-
-    // group all sellers' identical top-level categories by slug
-    {
-      $group: {
-        _id: "$slug",
-        name: { $first: "$name" },
-        image: { $first: "$image" },
-        sellerCategoryIds: { $push: "$_id" },
-        sellerCount: { $sum: 1 },
-      },
-    },
-
-    // product count across ALL underlying seller category docs for this slug
-    {
-      $lookup: {
-        from: "products",
-        let: { catIds: "$sellerCategoryIds" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $in: ["$categoryId", "$$catIds"] },
-              isActive: true,
-            },
-          },
-          { $count: "count" },
-        ],
-        as: "productStats",
-      },
-    },
-
-    // does ANY seller's version of this category have children?
-    {
-      $lookup: {
-        from: "categories",
-        let: { catIds: "$sellerCategoryIds" },
-        pipeline: [
-          {
-            $match: {
-              isActive: true,
-              $expr: { $in: ["$parentId", "$$catIds"] },
-            },
-          },
-          { $limit: 1 },
-        ],
-        as: "childProbe",
-      },
-    },
-
-    {
-      $project: {
-        _id: 0,
-        slug: "$_id",
-        name: 1,
-        image: 1,
-        sellerCount: 1,
-        productCount: { $ifNull: [{ $first: "$productStats.count" }, 0] },
-        hasChildren: { $gt: [{ $size: "$childProbe" }, 0] },
-      },
-    },
-
-    { $sort: { name: 1 } },
-
-    // paginate the merged result set, get total in the same round-trip
-    {
-      $facet: {
-        data: [{ $skip: skip }, { $limit: limit }],
-        totalCount: [{ $count: "count" }],
-      },
-    },
-  ];
-
-  const result = await Category.aggregate(pipeline);
-
-  const categories: MergedCategoryItem[] = result[0]?.data ?? [];
-  const total: number = result[0]?.totalCount?.[0]?.count ?? 0;
-
-  return { categories, total };
-};
-
-export const getProductsByCategorySlug = async (
-  payload: ProductsByCategorySlugQuery,
-) => {
-  const { slug, page, limit } = payload;
-  const existingCategory = await Category.findOne({
-    slug,
-    isActive: true,
-  }).lean();
-  if (!existingCategory) throw new AppError("Category not found", 404);
-  return existingCategory;
 };

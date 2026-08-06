@@ -1,6 +1,8 @@
 // // audit.interface.ts
 // import mongoose, { Document } from "mongoose";
 
+import mongoose from "mongoose";
+
 // export const AUDIT_ACTIONS = {
 //   // Auth
 //   LOGIN                : "LOGIN",
@@ -124,3 +126,22 @@ export interface ProductsByCategorySlugQuery {
   discount?: number;
   hasDiscount?: boolean;
 }
+
+export type AncestorItem = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  depth: number;
+};
+
+export type CategorySearchItem = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  slug: string;
+  fullPath: string;
+  parentId: mongoose.Types.ObjectId | null;
+  parentName: string | null;
+  ancestors: AncestorItem[];
+  depth: number;
+  hasChildren: boolean;
+  image: string | null;
+};

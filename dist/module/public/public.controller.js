@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPublicMergedCategories = exports.getCategoriesMenu = exports.getCategoryTree = exports.getAllCategories = exports.getProductById = exports.dbTest = exports.getProducts = void 0;
+exports.getPublicMergedCategories = exports.getCategoryTree = exports.getAllCategories = exports.getProducts = void 0;
 const PublicService = __importStar(require("./public.service"));
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
@@ -42,25 +42,6 @@ exports.getProducts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { products, total } = await PublicService.getProducts(query);
     return ApiResponse_1.ApiResponse.paginated(res, "Product", products, total, query.page, query.limit);
 });
-const dbTest = async (req, res) => {
-    const query = req.validatedQuery;
-    const { products, total, page, limit } = await PublicService.dbTest(req, query);
-    return ApiResponse_1.ApiResponse.paginated(res, "Products retrieved successfully", products, total, page, limit);
-};
-exports.dbTest = dbTest;
-const getProductById = async (req, res) => {
-    const id = req.params.id;
-    const company_id = req.company?._id;
-    if (!company_id) {
-        return ApiResponse_1.ApiResponse.error(res, "Company identifier missing", 400);
-    }
-    const products = await PublicService.getProductById({
-        id: req.params.id,
-        company_id,
-    });
-    return ApiResponse_1.ApiResponse.success(res, products, "Single product retrieved successfully");
-};
-exports.getProductById = getProductById;
 const getAllCategories = async (req, res) => {
     const categories = await PublicService.getAllCategories(req);
     return ApiResponse_1.ApiResponse.success(res, categories, "Categories retrieved successfully");
@@ -72,18 +53,6 @@ exports.getCategoryTree = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const limit = Number(req.query.limit) || 20;
     const skip = (page - 1) * limit;
     const { categories, total } = await PublicService.searchCategories({
-        ...(search && { search }),
-        skip,
-        limit,
-    });
-    return ApiResponse_1.ApiResponse.paginated(res, "successfully", categories, total, page, limit);
-});
-exports.getCategoriesMenu = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const search = req.query.search;
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
-    const { categories, total } = await PublicService.getCategoriesMenu({
         ...(search && { search }),
         skip,
         limit,

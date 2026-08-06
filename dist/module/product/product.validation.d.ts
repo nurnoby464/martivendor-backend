@@ -20,6 +20,7 @@ export declare const productQuerySchema: z.ZodObject<{
     page: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>;
     limit: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>;
     search: z.ZodOptional<z.ZodString>;
+    categorySlug: z.ZodOptional<z.ZodString>;
     productType: z.ZodOptional<z.ZodEnum<typeof ProductType>>;
     categoryId: z.ZodOptional<z.ZodString>;
     hasVariants: z.ZodPipe<z.ZodOptional<z.ZodEnum<{

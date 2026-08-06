@@ -39,7 +39,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublicRoutes = void 0;
 const express_1 = __importDefault(require("express"));
 const PublicController = __importStar(require("./public.controller"));
-const companyIdentifier_1 = require("../../middlewares/companyIdentifier");
 const validate_1 = require("../../middlewares/validate");
 const product_validation_1 = require("../product/product.validation");
 const router = express_1.default.Router();
@@ -48,7 +47,5 @@ router.get("/products", (0, validate_1.validate)({ query: product_validation_1.p
 router.get("/category/tree", PublicController.getCategoryTree);
 router.get("/categories/menu", PublicController.getPublicMergedCategories);
 router.get("/category", PublicController.getAllCategories);
-router.get("/product/:id", companyIdentifier_1.companyIdentifier, PublicController.getProductById);
-router.get("/db-test", PublicController.dbTest);
 exports.PublicRoutes = router;
 //# sourceMappingURL=public.route.js.map

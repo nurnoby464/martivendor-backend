@@ -48,6 +48,7 @@ exports.productQuerySchema = zod_1.z.object({
         .optional()
         .transform((v) => parseInt(v ?? "10")),
     search: zod_1.z.string().trim().optional(),
+    categorySlug: zod_1.z.string().trim().optional(),
     productType: zod_1.z.enum(product_interface_1.ProductType).optional(),
     categoryId: objectId.optional(),
     // vendor_id: objectId.optional(),
