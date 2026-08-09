@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPublicMergedCategories = exports.getCategoryTree = exports.getAllCategories = exports.getProducts = void 0;
+exports.getSuggestions = exports.getPublicMergedCategories = exports.getCategoryTree = exports.getAllCategories = exports.getProducts = void 0;
 const PublicService = __importStar(require("./public.service"));
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
@@ -70,5 +70,10 @@ exports.getPublicMergedCategories = (0, asyncHandler_1.asyncHandler)(async (req,
         limit,
     });
     return ApiResponse_1.ApiResponse.paginated(res, "successfully", categories, total, page, limit);
+});
+exports.getSuggestions = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const { search } = req.validatedQuery;
+    const result = await PublicService.getSuggestions(search);
+    return ApiResponse_1.ApiResponse.success(res, result, "successfully");
 });
 //# sourceMappingURL=public.controller.js.map

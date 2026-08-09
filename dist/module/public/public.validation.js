@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.productQuerySchema = exports.productParamsSchema = void 0;
+exports.productQuerySchema = exports.suggestionsSchema = exports.productParamsSchema = void 0;
 const zod_1 = require("zod");
 const mongoose_1 = __importDefault(require("mongoose"));
 const product_interface_1 = require("../product/product.interface");
@@ -14,6 +14,9 @@ const objectId = zod_1.z
 });
 exports.productParamsSchema = zod_1.z.object({
     id: objectId,
+});
+exports.suggestionsSchema = zod_1.z.object({
+    search: zod_1.z.string().trim(),
 });
 exports.productQuerySchema = zod_1.z.object({
     page: zod_1.z

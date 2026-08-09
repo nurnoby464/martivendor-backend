@@ -283,7 +283,7 @@ const registerSeller = async (input: RegisterSellerInput) => {
           _id: id,
           userId: user._id,
           isPlatform: false,
-          shopName,
+          name: shopName,
           slug,
         },
       ],
@@ -352,7 +352,7 @@ const verifySellerOPT = async (payload: IValidateOTPInput) => {
   const existingOTP = await Otp.findOne({
     userId: existingSeller.userId,
   }).lean();
-  console.log(existingOTP)
+  console.log(existingOTP);
   if (!existingOTP) throw new AppError("OTP not found", 404);
   if (existingOTP.expiresAt < new Date()) {
     throw new Error("OTP has expired");

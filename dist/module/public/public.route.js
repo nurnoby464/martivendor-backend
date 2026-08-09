@@ -41,9 +41,11 @@ const express_1 = __importDefault(require("express"));
 const PublicController = __importStar(require("./public.controller"));
 const validate_1 = require("../../middlewares/validate");
 const product_validation_1 = require("../product/product.validation");
+const public_validation_1 = require("./public.validation");
 const router = express_1.default.Router();
 // ── /api/public/products ─────────────────────────────────────────
 router.get("/products", (0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), PublicController.getProducts);
+router.get("/search/suggest", (0, validate_1.validate)({ query: public_validation_1.suggestionsSchema }), PublicController.getSuggestions);
 router.get("/category/tree", PublicController.getCategoryTree);
 router.get("/categories/menu", PublicController.getPublicMergedCategories);
 router.get("/category", PublicController.getAllCategories);

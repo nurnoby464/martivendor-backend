@@ -269,7 +269,7 @@ const registerSeller = async (input) => {
                 _id: id,
                 userId: user._id,
                 isPlatform: false,
-                shopName,
+                name: shopName,
                 slug,
             },
         ], { session });

@@ -18,6 +18,7 @@ import {
   ProductsByCategorySlugQuery,
   PublicCategoryNode,
 } from "./public.interface";
+import { Seller } from "../seller/seller.schema";
 
 // reuseable merge stage — dedupes any set of category docs by slugPath
 
@@ -191,12 +192,16 @@ export const getProducts = async (payload: GetProductQueryInput) => {
       .split("/")
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean);
+      console.log("categorySlug",categorySlug)
+      console.log("slugPathArr",slugPathArr)
     const matchedCategories = await Category.find({
-      slugPath: slugPathArr,
+      slugPath: {$in:slugPathArr},
       isActive: true,
     })
       .select("_id")
       .lean();
+
+      console.log(matchedCategories)
     if (!matchedCategories || matchedCategories.length === 0) {
       throw new AppError("Category not found", 404);
     }
@@ -211,16 +216,11 @@ export const getProducts = async (payload: GetProductQueryInput) => {
     })
       .select("_id")
       .lean();
-    console.log("matchedIds", matchedIds);
-    console.log(
-      "descendantCategories",
-      descendantCategories.map((c) => c._id),
-    );
+
     const allCategoryIds = [
       ...matchedIds,
       ...descendantCategories.map((c) => c._id),
     ];
-    console.log("allCategoryIds", allCategoryIds);
 
     filter.categoryId = { $in: allCategoryIds };
   }
@@ -244,7 +244,7 @@ export const getProducts = async (payload: GetProductQueryInput) => {
       .lean(),
     Product.countDocuments(filter),
   ]);
-
+  // console.log(products);
   return { products, total };
 };
 
@@ -252,8 +252,6 @@ export const getAllCategories = async (req: Request) => {
   const categories = await Category.find({}).sort({ createdAt: -1 }).lean();
   return categories;
 };
-
-
 
 export const searchCategories = async (payload: {
   search?: string;
@@ -366,4 +364,100 @@ export const searchCategories = async (payload: {
   });
 
   return { categories, total };
+};
+
+export const getSuggestions = async (search: string) => {
+  const trimmed = search?.trim();
+  if (!trimmed) throw new AppError("Search value is required", 400);
+
+  const filter = { name: { $regex: trimmed, $options: "i" }, isActive: true };
+
+  const [products, categories, sellersDoc] = await Promise.all([
+    Product.aggregate([
+      { $match: filter },
+      { $sort: { createdAt: 1 } },
+      {
+        $group: {
+          _id: "$slug",
+          name: { $first: "$name" },
+          image: { $first: { $arrayElemAt: ["$images", 0] } },
+          // minPrice: { $min: "$displayPriceMin" },
+          // maxPrice: { $min: "$displayPriceMax" },
+          // productType: { $addToSet: "$productType" },
+          // sellerCount: { $sum: 1 },
+          // productIds: { $push: "$_id" },
+        },
+      },
+      { $limit: 20 },
+      {
+        $project: {
+          _id: 0,
+          slug: "$_id",
+          name: 1,
+          image: 1,
+          // minPrice: 1,
+          // maxPrice: 1,
+          // productTypes: 1,
+          // sellerCount: 1,
+        },
+      },
+    ]),
+    Category.aggregate([
+      {
+        $match: {
+          name: { $regex: trimmed, $options: "i" },
+          isActive: true,
+        },
+      },
+      {
+        $group: {
+          _id: "$slug",
+          name: { $first: "$name" },
+          image: { $first: "$image" },
+        },
+      },
+      {
+        $addFields: {
+          _score: {
+            $switch: {
+              branches: [
+                // 1. Exact match (case-insensitive) — highest priority
+                {
+                  case: { $eq: [{ $toLower: "$name" }, trimmed.toLowerCase()] },
+                  then: 3,
+                },
+                // 2. Name starts with the query — "Phone Mount" beats "Mobile Phones"
+                {
+                  case: {
+                    $eq: [
+                      {
+                        $indexOfCP: [
+                          { $toLower: "$name" },
+                          trimmed.toLowerCase(),
+                        ],
+                      },
+                      0,
+                    ],
+                  },
+                  then: 2,
+                },
+              ],
+              // 3. Query appears somewhere in the middle — lowest priority
+              default: 1,
+            },
+          },
+        },
+      },
+      { $sort: { _score: -1, name: 1 } }, // score first, alphabetical as tiebreaker
+      { $limit: 20 },
+      { $project: { _id: 0, name: 1, image: 1, slug: "$_id" } }, // drop _score, don't leak it to client
+    ]),
+    Seller.find(filter).select("name slug logo -_id").lean(),
+  ]);
+  const sellers = sellersDoc.map(({ name, slug, logo }) => ({
+    name,
+    slug,
+    image: logo ?? null,
+  }));
+  return { categories, products, sellers };
 };

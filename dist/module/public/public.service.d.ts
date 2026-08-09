@@ -33,4 +33,13 @@ export declare const searchCategories: (payload: {
     categories: CategorySearchItem[];
     total: number;
 }>;
+export declare const getSuggestions: (search: string) => Promise<{
+    categories: any[];
+    products: any[];
+    sellers: {
+        name: string;
+        slug: string;
+        image: string | null;
+    }[];
+}>;
 //# sourceMappingURL=public.service.d.ts.map

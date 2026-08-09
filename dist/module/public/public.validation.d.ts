@@ -3,6 +3,9 @@ import { ProductTag, ProductType } from "../product/product.interface";
 export declare const productParamsSchema: z.ZodObject<{
     id: z.ZodString;
 }, z.core.$strip>;
+export declare const suggestionsSchema: z.ZodObject<{
+    search: z.ZodString;
+}, z.core.$strip>;
 export declare const productQuerySchema: z.ZodObject<{
     page: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>;
     limit: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>;
@@ -39,6 +42,7 @@ export declare const productQuerySchema: z.ZodObject<{
         false: "false";
     }>, z.ZodTransform<boolean, "true" | "false">>>;
 }, z.core.$strip>;
+export type SuggestionsSchemaQuery = z.infer<typeof suggestionsSchema>;
 export type GetProductParamsQuery = z.infer<typeof productParamsSchema>;
 export type GetProductQueryInput = z.infer<typeof productQuerySchema>;
 //# sourceMappingURL=public.validation.d.ts.map

@@ -16,7 +16,7 @@ export interface IMobileBankingDetails {
 export interface ISeller extends Document {
     userId: Types.ObjectId;
     isPlatform: boolean;
-    shopName: string;
+    name: string;
     slug: string;
     logo: string | null;
     banner: string | null;
@@ -48,6 +48,7 @@ export interface ISeller extends Document {
     totalSales: number;
     totalOrders: number;
     walletBalance: number;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

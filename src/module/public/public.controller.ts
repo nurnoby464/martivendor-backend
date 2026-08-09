@@ -3,7 +3,7 @@ import * as PublicService from "./public.service";
 import { GetProductQuery } from "../product/product.validation";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { GetProductQueryInput } from "./public.validation";
+import { GetProductQueryInput, SuggestionsSchemaQuery } from "./public.validation";
 import { ProductsByCategorySlugQuery } from "./public.interface";
 
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
@@ -53,7 +53,6 @@ export const getCategoryTree = asyncHandler(
   },
 );
 
-
 export const getPublicMergedCategories = asyncHandler(
   async (req: Request, res: Response) => {
     const search = req.query.search as string | undefined;
@@ -79,4 +78,12 @@ export const getPublicMergedCategories = asyncHandler(
     );
   },
 );
+export const getSuggestions = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { search } = req.validatedQuery as SuggestionsSchemaQuery;
 
+    const result = await PublicService.getSuggestions(search);
+
+    return ApiResponse.success(res, result, "successfully");
+  },
+);

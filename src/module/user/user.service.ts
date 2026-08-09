@@ -470,7 +470,15 @@ export const createSuperAdmin = async (payload: CreateSuperAdminInput) => {
     );
     if (!newUser) throw new AppError("super admin create failed", 400);
     const [newSeller] = await Seller.create(
-      [{ _id: id, userId: newUser._id, isPlatform: true, shopName, slug }],
+      [
+        {
+          _id: id,
+          userId: newUser._id,
+          isPlatform: true,
+          name: shopName,
+          slug,
+        },
+      ],
       { session },
     );
     if (!newSeller) throw new AppError("seller crated failed", 400);

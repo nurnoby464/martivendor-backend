@@ -62,7 +62,7 @@ const makeLoginResponse = async (payload) => {
         return {
             ...base,
             profileType: "Seller",
-            shopName: profile?.shopName ?? null,
+            shopName: profile?.name ?? null,
             isPlatform: profile?.isPlatform ?? true,
             commissionRate: profile?.commissionRate ?? 0,
         };
@@ -72,7 +72,7 @@ const makeLoginResponse = async (payload) => {
         return {
             ...base,
             profileType: "Seller",
-            shopName: profile?.shopName ?? null,
+            shopName: profile?.name ?? null,
             slug: profile?.slug ?? null,
             status: profile?.status ?? null,
             kycStatus: profile?.kyc?.status ?? null,

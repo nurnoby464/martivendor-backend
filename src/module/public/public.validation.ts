@@ -10,6 +10,9 @@ const objectId = z
 export const productParamsSchema = z.object({
   id: objectId,
 });
+export const suggestionsSchema = z.object({
+  search: z.string().trim(),
+});
 
 export const productQuerySchema = z.object({
   page: z
@@ -50,5 +53,6 @@ export const productQuerySchema = z.object({
     .optional(),
 });
 
+export type SuggestionsSchemaQuery = z.infer<typeof suggestionsSchema>;
 export type GetProductParamsQuery = z.infer<typeof productParamsSchema>;
 export type GetProductQueryInput = z.infer<typeof productQuerySchema>;

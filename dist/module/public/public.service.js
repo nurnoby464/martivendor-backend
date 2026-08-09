@@ -3,11 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchCategories = exports.getAllCategories = exports.getProducts = exports.getPublicMergedCategories = void 0;
+exports.getSuggestions = exports.searchCategories = exports.getAllCategories = exports.getProducts = exports.getPublicMergedCategories = void 0;
 const product_schema_1 = __importDefault(require("../product/product.schema"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const category_schema_1 = __importDefault(require("../category/category.schema"));
 const appError_1 = require("../../middlewares/appError");
+const seller_schema_1 = require("../seller/seller.schema");
 // reuseable merge stage — dedupes any set of category docs by slugPath
 const mergeBySlugPath = (matchStage) => [
     { $match: matchStage },
@@ -143,12 +144,15 @@ const getProducts = async (payload) => {
             .split("/")
             .map((s) => s.trim().toLowerCase())
             .filter(Boolean);
+        console.log("categorySlug", categorySlug);
+        console.log("slugPathArr", slugPathArr);
         const matchedCategories = await category_schema_1.default.find({
-            slugPath: slugPathArr,
+            slugPath: { $in: slugPathArr },
             isActive: true,
         })
             .select("_id")
             .lean();
+        console.log(matchedCategories);
         if (!matchedCategories || matchedCategories.length === 0) {
             throw new appError_1.AppError("Category not found", 404);
         }
@@ -161,13 +165,10 @@ const getProducts = async (payload) => {
         })
             .select("_id")
             .lean();
-        console.log("matchedIds", matchedIds);
-        console.log("descendantCategories", descendantCategories.map((c) => c._id));
         const allCategoryIds = [
             ...matchedIds,
             ...descendantCategories.map((c) => c._id),
         ];
-        console.log("allCategoryIds", allCategoryIds);
         filter.categoryId = { $in: allCategoryIds };
     }
     if (search) {
@@ -187,6 +188,7 @@ const getProducts = async (payload) => {
             .lean(),
         product_schema_1.default.countDocuments(filter),
     ]);
+    // console.log(products);
     return { products, total };
 };
 exports.getProducts = getProducts;
@@ -288,4 +290,99 @@ const searchCategories = async (payload) => {
     return { categories, total };
 };
 exports.searchCategories = searchCategories;
+const getSuggestions = async (search) => {
+    const trimmed = search?.trim();
+    if (!trimmed)
+        throw new appError_1.AppError("Search value is required", 400);
+    const filter = { name: { $regex: trimmed, $options: "i" }, isActive: true };
+    const [products, categories, sellersDoc] = await Promise.all([
+        product_schema_1.default.aggregate([
+            { $match: filter },
+            { $sort: { createdAt: 1 } },
+            {
+                $group: {
+                    _id: "$slug",
+                    name: { $first: "$name" },
+                    image: { $first: { $arrayElemAt: ["$images", 0] } },
+                    // minPrice: { $min: "$displayPriceMin" },
+                    // maxPrice: { $min: "$displayPriceMax" },
+                    // productType: { $addToSet: "$productType" },
+                    // sellerCount: { $sum: 1 },
+                    // productIds: { $push: "$_id" },
+                },
+            },
+            { $limit: 20 },
+            {
+                $project: {
+                    _id: 0,
+                    slug: "$_id",
+                    name: 1,
+                    image: 1,
+                    // minPrice: 1,
+                    // maxPrice: 1,
+                    // productTypes: 1,
+                    // sellerCount: 1,
+                },
+            },
+        ]),
+        category_schema_1.default.aggregate([
+            {
+                $match: {
+                    name: { $regex: trimmed, $options: "i" },
+                    isActive: true,
+                },
+            },
+            {
+                $group: {
+                    _id: "$slug",
+                    name: { $first: "$name" },
+                    image: { $first: "$image" },
+                },
+            },
+            {
+                $addFields: {
+                    _score: {
+                        $switch: {
+                            branches: [
+                                // 1. Exact match (case-insensitive) — highest priority
+                                {
+                                    case: { $eq: [{ $toLower: "$name" }, trimmed.toLowerCase()] },
+                                    then: 3,
+                                },
+                                // 2. Name starts with the query — "Phone Mount" beats "Mobile Phones"
+                                {
+                                    case: {
+                                        $eq: [
+                                            {
+                                                $indexOfCP: [
+                                                    { $toLower: "$name" },
+                                                    trimmed.toLowerCase(),
+                                                ],
+                                            },
+                                            0,
+                                        ],
+                                    },
+                                    then: 2,
+                                },
+                            ],
+                            // 3. Query appears somewhere in the middle — lowest priority
+                            default: 1,
+                        },
+                    },
+                },
+            },
+            { $sort: { _score: -1, name: 1 } }, // score first, alphabetical as tiebreaker
+            { $limit: 20 },
+            { $project: { _id: 0, name: 1, image: 1, slug: "$_id" } }, // drop _score, don't leak it to client
+        ]),
+        seller_schema_1.Seller.find(filter).select("name slug logo -_id").lean(),
+    ]);
+    const sellers = sellersDoc.map(({ name, slug, logo }) => ({
+        name,
+        slug,
+        image: logo ?? null,
+    }));
+    return { categories, products, sellers };
+};
+exports.getSuggestions = getSuggestions;
 //# sourceMappingURL=public.service.js.map
