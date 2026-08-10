@@ -176,6 +176,14 @@ export async function createProduct(
           );
           if (!variant) throw new AppError("Variant creation failed", 500);
 
+          if (input.image) {
+            await Product.updateOne(
+              { _id: product._id },
+              { $addToSet: { images: input.image } },
+              { session },
+            );
+          }
+
           await recalculateProductAggregates(product._id, session);
 
           resultProductId = product._id;

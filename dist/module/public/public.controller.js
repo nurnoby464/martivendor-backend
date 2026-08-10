@@ -33,14 +33,19 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSuggestions = exports.getPublicMergedCategories = exports.getCategoryTree = exports.getAllCategories = exports.getProducts = void 0;
+exports.getSuggestions = exports.getPublicMergedCategories = exports.getCategoryTree = exports.getAllCategories = exports.getProductFilterCategories = exports.getProducts = void 0;
 const PublicService = __importStar(require("./public.service"));
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 exports.getProducts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const query = req.validatedQuery;
-    const { products, total } = await PublicService.getProducts(query);
-    return ApiResponse_1.ApiResponse.paginated(res, "Product", products, total, query.page, query.limit);
+    const { products, total, categories } = await PublicService.getProducts(query);
+    return ApiResponse_1.ApiResponse.paginated(res, "Product", products, total, query.page, query.limit, { categories });
+});
+exports.getProductFilterCategories = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const query = req.validatedQuery;
+    const categories = await PublicService.getProductFilterCategories(query);
+    return ApiResponse_1.ApiResponse.success(res, categories, "Product filer categories fetched successfully");
 });
 const getAllCategories = async (req, res) => {
     const categories = await PublicService.getAllCategories(req);

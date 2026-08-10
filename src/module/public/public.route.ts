@@ -13,6 +13,11 @@ router.get(
   PublicController.getProducts,
 );
 router.get(
+  "/product-filter-categories",
+  validate({ query: productQuerySchema }),
+  PublicController.getProductFilterCategories,
+);
+router.get(
   "/search/suggest",
   validate({ query: suggestionsSchema }),
   PublicController.getSuggestions,

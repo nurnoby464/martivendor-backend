@@ -3,13 +3,17 @@ import * as PublicService from "./public.service";
 import { GetProductQuery } from "../product/product.validation";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { GetProductQueryInput, SuggestionsSchemaQuery } from "./public.validation";
+import {
+  GetProductQueryInput,
+  SuggestionsSchemaQuery,
+} from "./public.validation";
 import { ProductsByCategorySlugQuery } from "./public.interface";
 
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   const query = req.validatedQuery as GetProductQueryInput;
 
-  const { products, total } = await PublicService.getProducts(query);
+  const { products, total, categories } =
+    await PublicService.getProducts(query);
 
   return ApiResponse.paginated(
     res,
@@ -18,8 +22,23 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     total,
     query.page,
     query.limit,
+    { categories },
   );
 });
+
+export const getProductFilterCategories = asyncHandler(
+  async (req: Request, res: Response) => {
+    const query = req.validatedQuery as GetProductQueryInput;
+
+    const categories = await PublicService.getProductFilterCategories(query);
+
+    return ApiResponse.success(
+      res,
+      categories,
+      "Product filer categories fetched successfully",
+    );
+  },
+);
 
 export const getAllCategories = async (req: Request, res: Response) => {
   const categories = await PublicService.getAllCategories(req);

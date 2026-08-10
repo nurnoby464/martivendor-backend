@@ -19,7 +19,9 @@ export declare const getProducts: (payload: GetProductQueryInput) => Promise<{
         __v: number;
     })[];
     total: number;
+    categories: any[];
 }>;
+export declare const getProductFilterCategories: (payload: GetProductQueryInput) => Promise<any[]>;
 export declare const getAllCategories: (req: Request) => Promise<(ICategoryDocument & Required<{
     _id: Types.ObjectId;
 }> & {
