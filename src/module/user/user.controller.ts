@@ -4,7 +4,7 @@ import * as UserService from "./user.service";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { AppError } from "../../middlewares/appError";
 import { CompanyQueryInput } from "../seller/seller.validation";
-import { UserStatsInput } from "./user.validation";
+import { UserDetailsParams, UserStatsInput } from "./user.validation";
 
 // ─── POST /users ──────────────────────────────────────────
 export const create = asyncHandler(async (req: Request, res: Response) => {
@@ -125,5 +125,12 @@ export const createSuperAdmin = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await UserService.createSuperAdmin(req.body);
     return ApiResponse.created(res, result, "Super admin created successfully");
+  },
+);
+
+export const getUserDetails = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await UserService.getUserDetails(req.validatedQuery as UserDetailsParams);
+    return ApiResponse.success(res, result, "User details fetched successfully");
   },
 );

@@ -3,6 +3,7 @@ import { validate } from "../../middlewares/validate";
 import {
   createUserSchema,
   superAdminSchema,
+  userDetailsQuerySchema,
   userStatsQuerySchema,
 } from "./user.validation";
 import * as UserController from "./user.controller";
@@ -46,6 +47,12 @@ router.get(
   guard("super_admin"), // only super_admin sees all companies
   validate({ query: userStatsQuerySchema }),
   UserController.getUserStats,
+);
+router.get(
+  "/details/",
+  guard("super_admin"), // only super_admin sees all companies
+  validate({ query: userDetailsQuerySchema }),
+  UserController.getUserDetails,
 );
 
 router.get(

@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { ParsedQs } from "qs";
 import { IUserDocument } from "./user.interface";
-import { CreateNewCompanyInput, CreateSuperAdminInput, CreateUserInput, UserStatsInput } from "./user.validation";
+import { CreateNewCompanyInput, CreateSuperAdminInput, CreateUserInput, UserDetailsParams, UserStatsInput } from "./user.validation";
 import { ITokenPayload } from "../../utils/jwtHelper";
 import { Request } from "express";
 import { CompanyQueryInput, UpdateCompanyInput } from "../seller/seller.validation";
@@ -73,5 +73,6 @@ export declare const createSuperAdmin: (payload: CreateSuperAdminInput) => Promi
 } & {
     id: string;
 }>;
+export declare const getUserDetails: (payload: UserDetailsParams) => Promise<any>;
 export {};
 //# sourceMappingURL=user.service.d.ts.map

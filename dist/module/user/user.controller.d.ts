@@ -11,4 +11,5 @@ export declare const getCompanyById: (req: Request, res: Response, next: import(
 export declare const updateCompany: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const deleteCompany: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const createSuperAdmin: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getUserDetails: (req: Request, res: Response, next: import("express").NextFunction) => void;
 //# sourceMappingURL=user.controller.d.ts.map

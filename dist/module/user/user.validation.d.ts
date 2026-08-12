@@ -60,7 +60,30 @@ export declare const userStatsQuerySchema: z.ZodObject<{
         inactive: "inactive";
         suspended: "suspended";
     }>>;
+    role: z.ZodOptional<z.ZodEnum<{
+        report: "report";
+        sales: "sales";
+        inventory: "inventory";
+        site_management: "site_management";
+        account: "account";
+        admin: "admin";
+        super_admin: "super_admin";
+        seller: "seller";
+        staff: "staff";
+        seller_staff: "seller_staff";
+        customer: "customer";
+    }>>;
 }, z.core.$strip>;
+export declare const userDetailsQuerySchema: z.ZodObject<{
+    profileType: z.ZodEnum<{
+        Seller: "Seller";
+        Customer: "Customer";
+        Staff: "Staff";
+        SellerStaff: "SellerStaff";
+    }>;
+    profileId: z.ZodString;
+}, z.core.$strip>;
+export type UserDetailsParams = z.infer<typeof userDetailsQuerySchema>;
 export type UserStatsInput = z.infer<typeof userStatsQuerySchema>;
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema>;
 export type RegisterSellerInput = z.infer<typeof registerSellerSchema>;

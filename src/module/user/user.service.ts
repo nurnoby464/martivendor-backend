@@ -7,6 +7,7 @@ import {
   CreateNewCompanyInput,
   CreateSuperAdminInput,
   CreateUserInput,
+  UserDetailsParams,
   UserStatsInput,
 } from "./user.validation";
 import { ITokenPayload } from "../../utils/jwtHelper";
@@ -23,6 +24,7 @@ import { Seller } from "../seller/seller.schema";
 import { ISale } from "../../CRM/sales/sales.interface";
 import { ISeller } from "../seller/seller.interface";
 import { useSkip } from "../../utils/useSkip";
+import { profileModelMap } from "../../utils/helper";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -313,12 +315,15 @@ export const getAllCompanies = async (query: CompanyQueryInput) => {
   };
 };
 export const getUserStats = async (query: UserStatsInput) => {
-  const { page, limit, search, status, sortOrder, sortBy } = query;
+  const { page, limit, search, status, sortOrder, sortBy, role } = query;
   // ── build filter ────────────────────────────────────────
   const filter: Record<string, unknown> = {};
   if (search) {
     const regex = new RegExp(search.trim(), "i");
     filter.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+  }
+  if (role) {
+    filter.role = role;
   }
 
   const [result, total] = await Promise.all([
@@ -358,7 +363,7 @@ export const getUserStats = async (query: UserStatsInput) => {
                       name: 1,
                       slug: 1,
                       image: 1,
-                      status:1,
+                      status: 1,
                       banner: 1,
                       description: 1,
                     },
@@ -373,7 +378,15 @@ export const getUserStats = async (query: UserStatsInput) => {
                 localField: "profileId",
                 foreignField: "_id",
                 pipeline: [
-                  { $project: { _id: 1, name: 1, email: 1, phone: 1 , status:1,} },
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1,
+                      status: 1,
+                    },
+                  },
                 ],
                 as: "customerProfile",
               },
@@ -394,7 +407,7 @@ export const getUserStats = async (query: UserStatsInput) => {
                       department: 1,
                       designation: 1,
                       isActive: 1,
-                       status:1,
+                      status: 1,
                     },
                   },
                 ],
@@ -417,7 +430,7 @@ export const getUserStats = async (query: UserStatsInput) => {
                       department: 1,
                       designation: 1,
                       isActive: 1,
-                       status:1,
+                      status: 1,
                     },
                   },
                 ],
@@ -457,6 +470,8 @@ export const getUserStats = async (query: UserStatsInput) => {
                 name: 1,
                 email: 1,
                 emailVerified: 1,
+                profileId: 1,
+                profileType: 1,
                 phone: 1,
                 role: 1,
                 sellerId: 1,
@@ -663,4 +678,12 @@ export const createSuperAdmin = async (payload: CreateSuperAdminInput) => {
   } finally {
     await session.endSession();
   }
+};
+export const getUserDetails = async (payload: UserDetailsParams) => {
+  const { profileId, profileType } = payload;
+
+  const ProfileModel = profileModelMap[profileType];
+  const result = await ProfileModel.findById(profileId).lean();
+
+  return result;
 };

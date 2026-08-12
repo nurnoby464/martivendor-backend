@@ -574,3 +574,7 @@ export const editProductVariant = async (req: Request) => {
     await session.endSession();
   }
 };
+
+export const getMyInventory = async () => {
+  const filter: Record<string, unknown> = {};
+};

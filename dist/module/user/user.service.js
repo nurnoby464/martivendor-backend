@@ -3,12 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSuperAdmin = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getUserStats = exports.getAllCompanies = exports.createCompany = exports.toggleUserStatus = exports.deleteUser = exports.listUsers = exports.getUserById = exports.createUser = void 0;
+exports.getUserDetails = exports.createSuperAdmin = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getUserStats = exports.getAllCompanies = exports.createCompany = exports.toggleUserStatus = exports.deleteUser = exports.listUsers = exports.getUserById = exports.createUser = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const appError_1 = require("../../middlewares/appError");
 const user_schema_1 = __importDefault(require("./user.schema"));
 const seller_schema_1 = require("../seller/seller.schema");
 const useSkip_1 = require("../../utils/useSkip");
+const helper_1 = require("../../utils/helper");
 // ─── Helpers ──────────────────────────────────────────────
 function assertValidObjectId(id, label = "ID") {
     if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
@@ -250,12 +251,15 @@ const getAllCompanies = async (query) => {
 };
 exports.getAllCompanies = getAllCompanies;
 const getUserStats = async (query) => {
-    const { page, limit, search, status, sortOrder, sortBy } = query;
+    const { page, limit, search, status, sortOrder, sortBy, role } = query;
     // ── build filter ────────────────────────────────────────
     const filter = {};
     if (search) {
         const regex = new RegExp(search.trim(), "i");
         filter.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+    }
+    if (role) {
+        filter.role = role;
     }
     const [result, total] = await Promise.all([
         user_schema_1.default.aggregate([
@@ -294,6 +298,7 @@ const getUserStats = async (query) => {
                                             name: 1,
                                             slug: 1,
                                             image: 1,
+                                            status: 1,
                                             banner: 1,
                                             description: 1,
                                         },
@@ -308,7 +313,15 @@ const getUserStats = async (query) => {
                                 localField: "profileId",
                                 foreignField: "_id",
                                 pipeline: [
-                                    { $project: { _id: 1, name: 1, email: 1, phone: 1 } },
+                                    {
+                                        $project: {
+                                            _id: 1,
+                                            name: 1,
+                                            email: 1,
+                                            phone: 1,
+                                            status: 1,
+                                        },
+                                    },
                                 ],
                                 as: "customerProfile",
                             },
@@ -329,6 +342,7 @@ const getUserStats = async (query) => {
                                             department: 1,
                                             designation: 1,
                                             isActive: 1,
+                                            status: 1,
                                         },
                                     },
                                 ],
@@ -351,6 +365,7 @@ const getUserStats = async (query) => {
                                             department: 1,
                                             designation: 1,
                                             isActive: 1,
+                                            status: 1,
                                         },
                                     },
                                 ],
@@ -388,6 +403,9 @@ const getUserStats = async (query) => {
                             $project: {
                                 name: 1,
                                 email: 1,
+                                emailVerified: 1,
+                                profileId: 1,
+                                profileType: 1,
                                 phone: 1,
                                 role: 1,
                                 sellerId: 1,
@@ -583,4 +601,11 @@ const createSuperAdmin = async (payload) => {
     }
 };
 exports.createSuperAdmin = createSuperAdmin;
+const getUserDetails = async (payload) => {
+    const { profileId, profileType } = payload;
+    const ProfileModel = helper_1.profileModelMap[profileType];
+    const result = await ProfileModel.findById(profileId).lean();
+    return result;
+};
+exports.getUserDetails = getUserDetails;
 //# sourceMappingURL=user.service.js.map

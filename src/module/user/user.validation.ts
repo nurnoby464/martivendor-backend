@@ -77,15 +77,37 @@ export const userStatsQuerySchema = z.object({
     .string()
     .optional()
     .transform((v) => Math.min(parseInt(v ?? "10"), 200)),
-  sortBy: z.enum(["createdAt", "name", "email", "phone", "role", "updatedAt"]).default("createdAt"),
+  sortBy: z
+    .enum(["createdAt", "name", "email", "phone", "role", "updatedAt"])
+    .default("createdAt"),
   sortOrder: z
     .string()
     .optional()
     .transform((v) => (v === "asc" ? 1 : -1)),
   search: z.string().trim().optional(),
   status: z.enum(["active", "inactive", "suspended"]).optional(),
+  role: z
+    .enum([
+      "super_admin",
+      "seller",
+      "admin",
+      "staff",
+      "seller_staff",
+      "account",
+      "site_management",
+      "inventory",
+      "sales",
+      "report",
+      "customer",
+    ])
+    .optional(),
+});
+export const userDetailsQuerySchema = z.object({
+  profileType: z.enum(["Seller", "Customer", "Staff", "SellerStaff"]),
+  profileId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid Profile id"),
 });
 
+export type UserDetailsParams = z.infer<typeof userDetailsQuerySchema>;
 export type UserStatsInput = z.infer<typeof userStatsQuerySchema>;
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema>;
 export type RegisterSellerInput = z.infer<typeof registerSellerSchema>;
