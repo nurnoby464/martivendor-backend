@@ -18,7 +18,7 @@ const sellerSchema = new mongoose_1.Schema({
         lowercase: true,
         trim: true,
     },
-    logo: { type: String, default: null },
+    image: { type: String, default: null },
     banner: { type: String, default: null },
     description: { type: String, default: null },
     kyc: {

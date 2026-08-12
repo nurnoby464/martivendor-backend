@@ -4,6 +4,7 @@ import * as UserService from "./user.service";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { AppError } from "../../middlewares/appError";
 import { CompanyQueryInput } from "../seller/seller.validation";
+import { UserStatsInput } from "./user.validation";
 
 // ─── POST /users ──────────────────────────────────────────
 export const create = asyncHandler(async (req: Request, res: Response) => {
@@ -73,6 +74,22 @@ export const getAllCompanies = asyncHandler(
       req.validatedQuery as CompanyQueryInput,
     );
     return ApiResponse.success(res, result, "Companies fetched successfully");
+  },
+);
+export const getUserStats = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { stats, users, total, page, limit } = await UserService.getUserStats(
+      req.validatedQuery as UserStatsInput,
+    );
+    return ApiResponse.paginated(
+      res,
+      "users stats fetched successfully",
+      users,
+      total,
+      page,
+      limit,
+      { stats },
+    );
   },
 );
 

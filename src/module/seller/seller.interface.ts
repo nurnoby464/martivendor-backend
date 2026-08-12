@@ -30,7 +30,7 @@ export interface ISeller extends Document {
  
   name: string;
   slug: string;
-  logo: string | null;
+  image: string | null;
   banner: string | null;
   description: string | null;
  

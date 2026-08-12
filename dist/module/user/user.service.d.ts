@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { ParsedQs } from "qs";
 import { IUserDocument } from "./user.interface";
-import { CreateNewCompanyInput, CreateSuperAdminInput, CreateUserInput } from "./user.validation";
+import { CreateNewCompanyInput, CreateSuperAdminInput, CreateUserInput, UserStatsInput } from "./user.validation";
 import { ITokenPayload } from "../../utils/jwtHelper";
 import { Request } from "express";
 import { CompanyQueryInput, UpdateCompanyInput } from "../seller/seller.validation";
@@ -51,6 +51,13 @@ export declare const getAllCompanies: (query: CompanyQueryInput) => Promise<{
         hasNext: boolean;
         hasPrev: boolean;
     };
+}>;
+export declare const getUserStats: (query: UserStatsInput) => Promise<{
+    stats: any;
+    users: any;
+    total: number;
+    page: number;
+    limit: number;
 }>;
 export declare const getCompanyById: (sellerId: string, req: Request) => Promise<ISeller & Required<{
     _id: mongoose.Types.ObjectId;

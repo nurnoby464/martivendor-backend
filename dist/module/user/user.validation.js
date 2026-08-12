@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.superAdminSchema = exports.checkoutSchema = exports.registerSellerSchema = exports.registerCustomerSchema = exports.createUserSchema = void 0;
+exports.userStatsQuerySchema = exports.superAdminSchema = exports.checkoutSchema = exports.registerSellerSchema = exports.registerCustomerSchema = exports.createUserSchema = void 0;
 const zod_1 = require("zod");
 exports.createUserSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(2, "Name must be at least 2 characters"),
@@ -66,5 +66,22 @@ exports.superAdminSchema = zod_1.z.object({
         .optional(),
     email: zod_1.z.string().trim().toLowerCase().pipe(zod_1.z.email("Enter a valid email")),
     password: zod_1.z.string().min(8, "Password must be at least 8 characters"),
+});
+exports.userStatsQuerySchema = zod_1.z.object({
+    page: zod_1.z
+        .string()
+        .optional()
+        .transform((v) => parseInt(v ?? "1")),
+    limit: zod_1.z
+        .string()
+        .optional()
+        .transform((v) => Math.min(parseInt(v ?? "10"), 200)),
+    sortBy: zod_1.z.enum(["createdAt", "name", "email", "phone", "role", "updatedAt"]).default("createdAt"),
+    sortOrder: zod_1.z
+        .string()
+        .optional()
+        .transform((v) => (v === "asc" ? 1 : -1)),
+    search: zod_1.z.string().trim().optional(),
+    status: zod_1.z.enum(["active", "inactive", "suspended"]).optional(),
 });
 //# sourceMappingURL=user.validation.js.map

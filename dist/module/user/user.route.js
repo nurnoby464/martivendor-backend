@@ -54,6 +54,8 @@ router.post("/", (0, validate_1.validate)({ body: user_validation_1.createUserSc
 // ─── GET /users ───────────────────────────────────────────
 router.get("/company/", (0, guard_1.guard)("super_admin"), // only super_admin sees all companies
 (0, validate_1.validate)({ query: seller_validation_1.companyQuerySchema }), UserController.getAllCompanies);
+router.get("/stats/", (0, guard_1.guard)("super_admin"), // only super_admin sees all companies
+(0, validate_1.validate)({ query: user_validation_1.userStatsQuerySchema }), UserController.getUserStats);
 router.get("/company/:id", (0, guard_1.guard)("super_admin", "admin"), // super_admin sees any, admin sees own
 (0, validate_1.validate)({ params: seller_validation_1.companyParamsSchema }), UserController.getCompanyById);
 router.get("/", (0, guard_1.guard)("super_admin", "admin"), UserController.list);

@@ -47,7 +47,7 @@ export declare const updateCompanySchema: z.ZodObject<{
     companyNavName: z.ZodOptional<z.ZodString>;
     phone: z.ZodOptional<z.ZodString>;
     address: z.ZodOptional<z.ZodString>;
-    logo: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     domain: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     subdomain: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodOptional<z.ZodEnum<{

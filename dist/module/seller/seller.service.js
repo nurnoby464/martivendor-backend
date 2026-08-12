@@ -283,8 +283,8 @@ const updateMyCompany = async (companyId, data) => {
     if (data.companyNavName !== undefined)
         update.companyNavName = data.companyNavName;
     // logo: only update if a non-empty URL was provided
-    if (data.logo && data.logo.trim() !== "") {
-        update.logo = data.logo;
+    if (data.image && data.image.trim() !== "") {
+        update.image = data.image;
     }
     const updated = await seller_schema_1.Seller.findByIdAndUpdate(companyId, { $set: update }, { returnDocument: "after", runValidators: true }).lean();
     return updated;

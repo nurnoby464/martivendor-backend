@@ -18,7 +18,7 @@ export interface ISeller extends Document {
     isPlatform: boolean;
     name: string;
     slug: string;
-    logo: string | null;
+    image: string | null;
     banner: string | null;
     description: string | null;
     kyc: {

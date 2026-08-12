@@ -23,7 +23,7 @@ const sellerSchema = new Schema<ISeller>(
       lowercase: true,
       trim: true,
     },
-    logo: { type: String, default: null },
+    image: { type: String, default: null },
     banner: { type: String, default: null },
     description: { type: String, default: null },
 

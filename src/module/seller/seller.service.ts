@@ -293,8 +293,8 @@ const updateMyCompany = async (
     update.companyNavName = data.companyNavName;
 
   // logo: only update if a non-empty URL was provided
-  if (data.logo && data.logo.trim() !== "") {
-    update.logo = data.logo;
+  if (data.image && data.image.trim() !== "") {
+    update.image = data.image;
   }
 
   const updated = await Seller.findByIdAndUpdate(

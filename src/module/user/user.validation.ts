@@ -68,6 +68,25 @@ export const superAdminSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+export const userStatsQuerySchema = z.object({
+  page: z
+    .string()
+    .optional()
+    .transform((v) => parseInt(v ?? "1")),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => Math.min(parseInt(v ?? "10"), 200)),
+  sortBy: z.enum(["createdAt", "name", "email", "phone", "role", "updatedAt"]).default("createdAt"),
+  sortOrder: z
+    .string()
+    .optional()
+    .transform((v) => (v === "asc" ? 1 : -1)),
+  search: z.string().trim().optional(),
+  status: z.enum(["active", "inactive", "suspended"]).optional(),
+});
+
+export type UserStatsInput = z.infer<typeof userStatsQuerySchema>;
 export type RegisterCustomerInput = z.infer<typeof registerCustomerSchema>;
 export type RegisterSellerInput = z.infer<typeof registerSellerSchema>;
 // ─── Derive the type from the schema ─────────────────────

@@ -621,10 +621,10 @@ export const getSuggestions = async (search: string) => {
     ]),
     Seller.find(filter).select("name slug logo -_id").lean(),
   ]);
-  const sellers = sellersDoc.map(({ name, slug, logo }) => ({
+  const sellers = sellersDoc.map(({ name, slug, image }) => ({
     name,
     slug,
-    image: logo ?? null,
+    image
   }));
   return { categories, products, sellers };
 };
