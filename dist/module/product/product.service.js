@@ -132,6 +132,9 @@ async function createProduct(ctx, input) {
                     ], { session });
                     if (!variant)
                         throw new appError_1.AppError("Variant creation failed", 500);
+                    if (input.image) {
+                        await product_schema_1.default.updateOne({ _id: product._id }, { $addToSet: { images: input.image } }, { session });
+                    }
                     await recalculateProductAggregates(product._id, session);
                     resultProductId = product._id;
                     return;

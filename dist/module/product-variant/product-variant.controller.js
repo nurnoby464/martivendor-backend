@@ -36,11 +36,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.editProductVariant = exports.getAllProductWithVariant = exports.deleteVariant = exports.updateVariant = exports.getVariantById = exports.getVariants = exports.createVariant = void 0;
+exports.getMyInventory = exports.editProductVariant = exports.getAllProductWithVariant = exports.deleteVariant = exports.updateVariant = exports.getVariantById = exports.getVariants = exports.createVariant = void 0;
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const ProductVariantServices = __importStar(require("./product-variant.service"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const appError_1 = require("../../middlewares/appError");
 exports.createVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const sellerId = new mongoose_1.default.Types.ObjectId(req.user.sellerId);
     const variant = await ProductVariantServices.createVariant({
@@ -83,5 +84,13 @@ exports.getAllProductWithVariant = (0, asyncHandler_1.asyncHandler)(async (req, 
 exports.editProductVariant = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const result = await ProductVariantServices.editProductVariant(req);
     return ApiResponse_1.ApiResponse.success(res, result, "Variant updated successfully");
+});
+exports.getMyInventory = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
+        throw new appError_1.AppError("unauthorized access. You have't seller Id", 403);
+    }
+    const { data, page, limit, totalCount } = await ProductVariantServices.getMyInventory(sellerId, req.validatedQuery);
+    return ApiResponse_1.ApiResponse.paginated(res, "My inventory get  successfully", data, totalCount, page, limit);
 });
 //# sourceMappingURL=product-variant.controller.js.map

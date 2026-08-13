@@ -1,6 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { Request } from "express";
-import { CreateVariantInput, UpdateVariantInput } from "./product-variant.validation";
+import { CreateVariantInput, IMyInventoryQuery, UpdateVariantInput } from "./product-variant.validation";
 interface IGetProductVariant {
     req: Request;
 }
@@ -68,6 +68,12 @@ export declare const editProductVariant: (req: Request) => Promise<mongoose.Docu
     __v: number;
 } & {
     id: string;
+}>;
+export declare const getMyInventory: (sellerId: Types.ObjectId, query: IMyInventoryQuery) => Promise<{
+    data: any;
+    totalCount: any;
+    page: number;
+    limit: number;
 }>;
 export {};
 //# sourceMappingURL=product-variant.service.d.ts.map

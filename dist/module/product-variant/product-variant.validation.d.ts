@@ -52,6 +52,24 @@ export declare const editProductVariantSchema: z.ZodObject<{
     previousImage: z.ZodString;
     alertStock: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>;
+export declare const myInventoryQuerySchema: z.ZodObject<{
+    search: z.ZodOptional<z.ZodString>;
+    sortBy: z.ZodDefault<z.ZodEnum<{
+        name: "name";
+        createdAt: "createdAt";
+        updatedAt: "updatedAt";
+        stock: "stock";
+        price: "price";
+    }>>;
+    sortOrder: z.ZodDefault<z.ZodPipe<z.ZodEnum<{
+        asc: "asc";
+        desc: "desc";
+    }>, z.ZodTransform<1 | -1, "asc" | "desc">>>;
+    page: z.ZodDefault<z.ZodPipe<z.ZodString, z.ZodTransform<number, string>>>;
+    limit: z.ZodDefault<z.ZodPipe<z.ZodString, z.ZodTransform<number, string>>>;
+    categorySlug: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type IMyInventoryQuery = z.infer<typeof myInventoryQuerySchema>;
 export type EditProductVariantInput = z.infer<typeof editProductVariantSchema>;
 export type CreateVariantInput = z.infer<typeof createVariantSchema>;
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;

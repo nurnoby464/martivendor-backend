@@ -3,11 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSuperAdmin = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getAllCompanies = exports.createCompany = exports.toggleUserStatus = exports.deleteUser = exports.listUsers = exports.getUserById = exports.createUser = void 0;
+exports.getUserDetails = exports.createSuperAdmin = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getUserStats = exports.getAllCompanies = exports.createCompany = exports.toggleUserStatus = exports.deleteUser = exports.listUsers = exports.getUserById = exports.createUser = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const appError_1 = require("../../middlewares/appError");
 const user_schema_1 = __importDefault(require("./user.schema"));
 const seller_schema_1 = require("../seller/seller.schema");
+const useSkip_1 = require("../../utils/useSkip");
+const helper_1 = require("../../utils/helper");
 // ─── Helpers ──────────────────────────────────────────────
 function assertValidObjectId(id, label = "ID") {
     if (!mongoose_1.default.Types.ObjectId.isValid(id)) {
@@ -248,6 +250,187 @@ const getAllCompanies = async (query) => {
     };
 };
 exports.getAllCompanies = getAllCompanies;
+const getUserStats = async (query) => {
+    const { page, limit, search, status, sortOrder, sortBy, role } = query;
+    // ── build filter ────────────────────────────────────────
+    const filter = {};
+    if (search) {
+        const regex = new RegExp(search.trim(), "i");
+        filter.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+    }
+    if (role) {
+        filter.role = role;
+    }
+    const [result, total] = await Promise.all([
+        user_schema_1.default.aggregate([
+            {
+                $facet: {
+                    stats: [
+                        {
+                            $group: {
+                                _id: "$role",
+                                userCount: { $sum: 1 },
+                            },
+                        },
+                        {
+                            $project: {
+                                _id: 0,
+                                role: "$_id",
+                                userCount: 1,
+                            },
+                        },
+                    ],
+                    users: [
+                        { $match: filter },
+                        { $sort: { [sortBy]: sortOrder } },
+                        { $skip: (0, useSkip_1.useSkip)({ page, limit }) },
+                        { $limit: limit },
+                        {
+                            $lookup: {
+                                from: "sellers",
+                                localField: "profileId",
+                                foreignField: "_id",
+                                pipeline: [
+                                    {
+                                        $project: {
+                                            _id: 1,
+                                            isPlatform: 1,
+                                            name: 1,
+                                            slug: 1,
+                                            image: 1,
+                                            status: 1,
+                                            banner: 1,
+                                            description: 1,
+                                        },
+                                    },
+                                ],
+                                as: "sellerProfile",
+                            },
+                        },
+                        {
+                            $lookup: {
+                                from: "customers",
+                                localField: "profileId",
+                                foreignField: "_id",
+                                pipeline: [
+                                    {
+                                        $project: {
+                                            _id: 1,
+                                            name: 1,
+                                            email: 1,
+                                            phone: 1,
+                                            status: 1,
+                                        },
+                                    },
+                                ],
+                                as: "customerProfile",
+                            },
+                        },
+                        {
+                            $lookup: {
+                                from: "staffs",
+                                localField: "profileId",
+                                foreignField: "_id",
+                                pipeline: [
+                                    {
+                                        $project: {
+                                            _id: 1,
+                                            name: 1,
+                                            email: 1,
+                                            phone: 1,
+                                            image: 1,
+                                            department: 1,
+                                            designation: 1,
+                                            isActive: 1,
+                                            status: 1,
+                                        },
+                                    },
+                                ],
+                                as: "staffProfile",
+                            },
+                        },
+                        {
+                            $lookup: {
+                                from: "sellerstaffs",
+                                localField: "profileId",
+                                foreignField: "_id",
+                                pipeline: [
+                                    {
+                                        $project: {
+                                            _id: 1,
+                                            name: 1,
+                                            email: 1,
+                                            phone: 1,
+                                            image: 1,
+                                            department: 1,
+                                            designation: 1,
+                                            isActive: 1,
+                                            status: 1,
+                                        },
+                                    },
+                                ],
+                                as: "sellerStaffProfile",
+                            },
+                        },
+                        {
+                            $addFields: {
+                                profile: {
+                                    $switch: {
+                                        branches: [
+                                            {
+                                                case: { $eq: ["$profileType", "Seller"] },
+                                                then: { $arrayElemAt: ["$sellerProfile", 0] },
+                                            },
+                                            {
+                                                case: { $eq: ["$profileType", "Customer"] },
+                                                then: { $arrayElemAt: ["$customerProfile", 0] },
+                                            },
+                                            {
+                                                case: { $eq: ["$profileType", "Staff"] },
+                                                then: { $arrayElemAt: ["$staffProfile", 0] },
+                                            },
+                                            {
+                                                case: { $eq: ["$profileType", "SellerStaff"] },
+                                                then: { $arrayElemAt: ["$sellerStaffProfile", 0] },
+                                            },
+                                        ],
+                                        default: null,
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            $project: {
+                                name: 1,
+                                email: 1,
+                                emailVerified: 1,
+                                profileId: 1,
+                                profileType: 1,
+                                phone: 1,
+                                role: 1,
+                                sellerId: 1,
+                                isActive: 1,
+                                lastLogin: 1,
+                                profile: 1,
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                $project: {
+                    stats: 1,
+                    users: 1,
+                },
+            },
+        ]),
+        user_schema_1.default.countDocuments(filter),
+    ]);
+    const stats = result?.[0]?.stats;
+    const users = result?.[0]?.users;
+    return { stats, users, total, page, limit };
+};
+exports.getUserStats = getUserStats;
 const getCompanyById = async (sellerId, req) => {
     const filter = {
         _id: new mongoose_1.default.Types.ObjectId(sellerId),
@@ -395,7 +578,15 @@ const createSuperAdmin = async (payload) => {
         ], { session });
         if (!newUser)
             throw new appError_1.AppError("super admin create failed", 400);
-        const [newSeller] = await seller_schema_1.Seller.create([{ _id: id, userId: newUser._id, isPlatform: true, shopName, slug }], { session });
+        const [newSeller] = await seller_schema_1.Seller.create([
+            {
+                _id: id,
+                userId: newUser._id,
+                isPlatform: true,
+                name: shopName,
+                slug,
+            },
+        ], { session });
         if (!newSeller)
             throw new appError_1.AppError("seller crated failed", 400);
         await session.commitTransaction();
@@ -410,4 +601,11 @@ const createSuperAdmin = async (payload) => {
     }
 };
 exports.createSuperAdmin = createSuperAdmin;
+const getUserDetails = async (payload) => {
+    const { profileId, profileType } = payload;
+    const ProfileModel = helper_1.profileModelMap[profileType];
+    const result = await ProfileModel.findById(profileId).lean();
+    return result;
+};
+exports.getUserDetails = getUserDetails;
 //# sourceMappingURL=user.service.js.map

@@ -3,11 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Seller = void 0;
 const mongoose_1 = require("mongoose");
 const sellerSchema = new mongoose_1.Schema({
-    userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+    userId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        unique: true,
+    },
     isPlatform: { type: Boolean, default: false },
-    shopName: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    logo: { type: String, default: null },
+    name: { type: String, required: true, trim: true },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+    },
+    image: { type: String, default: null },
     banner: { type: String, default: null },
     description: { type: String, default: null },
     kyc: {
@@ -25,7 +36,11 @@ const sellerSchema = new mongoose_1.Schema({
         rejectionReason: { type: String, default: null },
     },
     payout: {
-        preferredMethod: { type: String, enum: ["bank", "bkash", "nagad", "rocket"], default: null },
+        preferredMethod: {
+            type: String,
+            enum: ["bank", "bkash", "nagad", "rocket"],
+            default: null,
+        },
         bank: {
             type: new mongoose_1.Schema({
                 accountName: String,
@@ -45,7 +60,12 @@ const sellerSchema = new mongoose_1.Schema({
         },
     },
     commissionRate: { type: Number, required: true, default: 10 },
-    status: { type: String, enum: ["pending", "approved", "rejected", "suspended"], default: "pending", index: true },
+    status: {
+        type: String,
+        enum: ["pending", "approved", "rejected", "suspended"],
+        default: "pending",
+        index: true,
+    },
     rejectionReason: { type: String, default: null },
     approvedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", default: null },
     approvedAt: { type: Date, default: null },
@@ -56,6 +76,7 @@ const sellerSchema = new mongoose_1.Schema({
     totalSales: { type: Number, default: 0 },
     totalOrders: { type: Number, default: 0 },
     walletBalance: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 sellerSchema.index({ status: 1, isPlatform: 1 });
 // partial unique index: enforces at most ONE isPlatform:true doc,

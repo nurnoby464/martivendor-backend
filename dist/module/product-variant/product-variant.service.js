@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.editProductVariant = exports.getAllProductWithVariant = exports.deleteVariant = exports.updateVariant = exports.getVariantById = exports.getVariants = exports.createVariant = void 0;
+exports.getMyInventory = exports.editProductVariant = exports.getAllProductWithVariant = exports.deleteVariant = exports.updateVariant = exports.getVariantById = exports.getVariants = exports.createVariant = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const product_schema_1 = __importDefault(require("../product/product.schema"));
 const product_variant_schema_1 = __importDefault(require("../product-variant/product-variant.schema"));
@@ -541,4 +541,137 @@ const editProductVariant = async (req) => {
     }
 };
 exports.editProductVariant = editProductVariant;
+const getMyInventory = async (sellerId, query) => {
+    const { search, sortBy, sortOrder, page, limit } = query;
+    console.log("sellerId", sellerId);
+    const SORT_FIELD_MAP = {
+        name: "name",
+        price: "displayPriceMin",
+        stock: "totalStock",
+        createdAt: "createdAt",
+        updatedAt: "updatedAt",
+    };
+    const sortField = SORT_FIELD_MAP[sortBy ?? "createdAt"] ?? "createdAt";
+    const filter = {
+        sellerId: new mongoose_1.default.Types.ObjectId(sellerId),
+    };
+    console.log("filter", filter);
+    const result = await product_variant_schema_1.default.aggregate([
+        { $match: filter },
+        {
+            $group: {
+                _id: "$productId",
+                variants: { $push: "$$ROOT" },
+                totalStock: { $sum: "$stock" },
+                variantCount: { $sum: 1 },
+            },
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "_id",
+                foreignField: "_id",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "categories",
+                            localField: "categoryId",
+                            foreignField: "_id",
+                            pipeline: [
+                                { $project: { name: 1, slug: 1, image: 1, slugPath: 1 } },
+                            ],
+                            as: "category",
+                        },
+                    },
+                    {
+                        $set: {
+                            category: { $arrayElemAt: ["$category", 0] },
+                            variants: "$variants",
+                        },
+                    },
+                    {
+                        $project: {
+                            name: 1,
+                            slug: 1,
+                            slugPath: 1,
+                            description: 1,
+                            // categoryId: 1,
+                            category: 1,
+                            productType: 1,
+                            specification: 1,
+                            images: 1,
+                            isActive: 1,
+                            displayPriceMin: 1,
+                            displayPriceMax: 1,
+                            asin: 1,
+                            sku: 1,
+                            showOnHomepage: 1,
+                            tags: 1,
+                            hasDiscount: 1,
+                            variants: 1,
+                        },
+                    },
+                ],
+                as: "product",
+            },
+        },
+        {
+            $set: {
+                product: {
+                    $mergeObjects: [
+                        { $arrayElemAt: ["$product", 0] },
+                        {
+                            variants: "$variants",
+                            totalStock: "$totalStock",
+                            variantCount: "$variantCount",
+                        },
+                    ],
+                },
+            },
+        },
+        // {
+        //   $project: {
+        //     _id: 0,
+        //     product: 1,
+        //   },
+        // },
+        {
+            $replaceRoot: { newRoot: "$product" },
+        },
+        ...(search
+            ? [
+                {
+                    $match: {
+                        $or: [
+                            { name: { $regex: search.trim(), $options: "i" } },
+                            { slug: { $regex: search.trim(), $options: "i" } },
+                            { "category.name": { $regex: search.trim(), $options: "i" } },
+                            { "category.slug": { $regex: search.trim(), $options: "i" } },
+                        ],
+                    },
+                },
+            ]
+            : []),
+        {
+            $facet: {
+                data: [
+                    { $sort: { [sortField]: sortOrder } },
+                    { $skip: (0, useSkip_1.useSkip)({ page, limit }) },
+                    { $limit: limit },
+                ],
+                totalCount: [{ $count: "count" }],
+            },
+        },
+        {
+            $set: {
+                totalCount: {
+                    $ifNull: [{ $arrayElemAt: ["$totalCount.count", 0] }, 0],
+                },
+            },
+        },
+    ]);
+    const { data, totalCount } = result[0] ?? { data: [], totalCount: 0 };
+    return { data, totalCount, page, limit };
+};
+exports.getMyInventory = getMyInventory;
 //# sourceMappingURL=product-variant.service.js.map

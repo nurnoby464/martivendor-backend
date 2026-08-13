@@ -28,9 +28,9 @@ export interface ISeller extends Document {
   // commissionRate is forced to 0 for this record (see pre-save hook below).
   isPlatform: boolean;
  
-  shopName: string;
+  name: string;
   slug: string;
-  logo: string | null;
+  image: string | null;
   banner: string | null;
   description: string | null;
  
@@ -61,6 +61,7 @@ export interface ISeller extends Document {
   totalSales: number;
   totalOrders: number;
   walletBalance: number; // available earnings not yet paid out
+  isActive:boolean;
  
   createdAt: Date;
   updatedAt: Date;

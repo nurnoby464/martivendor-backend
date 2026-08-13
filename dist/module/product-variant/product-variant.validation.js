@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.editProductVariantSchema = exports.productVariantQuerySchema = exports.productVariantParamsSchema = exports.variantParamsSchema = exports.updateVariantSchema = exports.createVariantSchema = void 0;
+exports.myInventoryQuerySchema = exports.editProductVariantSchema = exports.productVariantQuerySchema = exports.productVariantParamsSchema = exports.variantParamsSchema = exports.updateVariantSchema = exports.createVariantSchema = void 0;
 const zod_1 = require("zod");
 const mongoId = zod_1.z
     .string()
@@ -73,5 +73,24 @@ exports.editProductVariantSchema = zod_1.z.object({
         .nonnegative("Alert stock cannot be negative")
         .max(999999, "Alert stock cannot exceed 999,999")
         .optional(),
+});
+exports.myInventoryQuerySchema = zod_1.z.object({
+    search: zod_1.z.string().optional(),
+    sortBy: zod_1.z
+        .enum(["name", "stock", "createdAt", "updatedAt", "price"])
+        .default("createdAt"),
+    sortOrder: zod_1.z
+        .enum(["asc", "desc"])
+        .transform((v) => (v === "asc" ? 1 : v == "desc" ? -1 : -1))
+        .default(-1),
+    page: zod_1.z
+        .string()
+        .transform((v) => parseInt(v ?? "1"))
+        .default(1),
+    limit: zod_1.z
+        .string()
+        .transform((v) => Math.min(parseInt(v ?? "10"), 200))
+        .default(10),
+    categorySlug: zod_1.z.string().optional(),
 });
 //# sourceMappingURL=product-variant.validation.js.map

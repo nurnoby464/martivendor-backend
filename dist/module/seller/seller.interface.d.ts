@@ -16,9 +16,9 @@ export interface IMobileBankingDetails {
 export interface ISeller extends Document {
     userId: Types.ObjectId;
     isPlatform: boolean;
-    shopName: string;
+    name: string;
     slug: string;
-    logo: string | null;
+    image: string | null;
     banner: string | null;
     description: string | null;
     kyc: {
@@ -48,6 +48,7 @@ export interface ISeller extends Document {
     totalSales: number;
     totalOrders: number;
     walletBalance: number;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

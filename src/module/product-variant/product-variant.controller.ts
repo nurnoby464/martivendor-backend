@@ -5,8 +5,10 @@ import * as ProductVariantServices from "./product-variant.service";
 import mongoose from "mongoose";
 import {
   CreateVariantInput,
+  IMyInventoryQuery,
   UpdateVariantInput,
 } from "./product-variant.validation";
+import { AppError } from "../../middlewares/appError";
 
 export const createVariant = asyncHandler(
   async (req: Request, res: Response) => {
@@ -88,5 +90,26 @@ export const editProductVariant = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await ProductVariantServices.editProductVariant(req);
     return ApiResponse.success(res, result, "Variant updated successfully");
+  },
+);
+export const getMyInventory = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = req.user.sellerId;
+    if (!sellerId) {
+      throw new AppError("unauthorized access. You have't seller Id", 403);
+    }
+    const { data, page, limit, totalCount } =
+      await ProductVariantServices.getMyInventory(
+        sellerId,
+        req.validatedQuery as IMyInventoryQuery,
+      );
+    return ApiResponse.paginated(
+      res,
+      "My inventory get  successfully",
+      data,
+      totalCount,
+      page,
+      limit,
+    );
   },
 );

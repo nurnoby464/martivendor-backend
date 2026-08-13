@@ -7,6 +7,8 @@ import {
   CreateNewCompanyInput,
   CreateSuperAdminInput,
   CreateUserInput,
+  UserDetailsParams,
+  UserStatsInput,
 } from "./user.validation";
 import { ITokenPayload } from "../../utils/jwtHelper";
 import { Request } from "express";
@@ -21,6 +23,8 @@ import { sanitizeData } from "../../utils/sanitizeData";
 import { Seller } from "../seller/seller.schema";
 import { ISale } from "../../CRM/sales/sales.interface";
 import { ISeller } from "../seller/seller.interface";
+import { useSkip } from "../../utils/useSkip";
+import { profileModelMap } from "../../utils/helper";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -310,6 +314,190 @@ export const getAllCompanies = async (query: CompanyQueryInput) => {
     },
   };
 };
+export const getUserStats = async (query: UserStatsInput) => {
+  const { page, limit, search, status, sortOrder, sortBy, role } = query;
+  // ── build filter ────────────────────────────────────────
+  const filter: Record<string, unknown> = {};
+  if (search) {
+    const regex = new RegExp(search.trim(), "i");
+    filter.$or = [{ name: regex }, { email: regex }, { phone: regex }];
+  }
+  if (role) {
+    filter.role = role;
+  }
+
+  const [result, total] = await Promise.all([
+    User.aggregate([
+      {
+        $facet: {
+          stats: [
+            {
+              $group: {
+                _id: "$role",
+                userCount: { $sum: 1 },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                role: "$_id",
+                userCount: 1,
+              },
+            },
+          ],
+          users: [
+            { $match: filter },
+            { $sort: { [sortBy]: sortOrder } },
+            { $skip: useSkip({ page, limit }) },
+            { $limit: limit },
+            {
+              $lookup: {
+                from: "sellers",
+                localField: "profileId",
+                foreignField: "_id",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      isPlatform: 1,
+                      name: 1,
+                      slug: 1,
+                      image: 1,
+                      status: 1,
+                      banner: 1,
+                      description: 1,
+                    },
+                  },
+                ],
+                as: "sellerProfile",
+              },
+            },
+            {
+              $lookup: {
+                from: "customers",
+                localField: "profileId",
+                foreignField: "_id",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1,
+                      status: 1,
+                    },
+                  },
+                ],
+                as: "customerProfile",
+              },
+            },
+            {
+              $lookup: {
+                from: "staffs",
+                localField: "profileId",
+                foreignField: "_id",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1,
+                      image: 1,
+                      department: 1,
+                      designation: 1,
+                      isActive: 1,
+                      status: 1,
+                    },
+                  },
+                ],
+                as: "staffProfile",
+              },
+            },
+            {
+              $lookup: {
+                from: "sellerstaffs",
+                localField: "profileId",
+                foreignField: "_id",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1,
+                      image: 1,
+                      department: 1,
+                      designation: 1,
+                      isActive: 1,
+                      status: 1,
+                    },
+                  },
+                ],
+                as: "sellerStaffProfile",
+              },
+            },
+            {
+              $addFields: {
+                profile: {
+                  $switch: {
+                    branches: [
+                      {
+                        case: { $eq: ["$profileType", "Seller"] },
+                        then: { $arrayElemAt: ["$sellerProfile", 0] },
+                      },
+                      {
+                        case: { $eq: ["$profileType", "Customer"] },
+                        then: { $arrayElemAt: ["$customerProfile", 0] },
+                      },
+                      {
+                        case: { $eq: ["$profileType", "Staff"] },
+                        then: { $arrayElemAt: ["$staffProfile", 0] },
+                      },
+                      {
+                        case: { $eq: ["$profileType", "SellerStaff"] },
+                        then: { $arrayElemAt: ["$sellerStaffProfile", 0] },
+                      },
+                    ],
+                    default: null,
+                  },
+                },
+              },
+            },
+
+            {
+              $project: {
+                name: 1,
+                email: 1,
+                emailVerified: 1,
+                profileId: 1,
+                profileType: 1,
+                phone: 1,
+                role: 1,
+                sellerId: 1,
+                isActive: 1,
+                lastLogin: 1,
+                profile: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          stats: 1,
+          users: 1,
+        },
+      },
+    ]),
+    User.countDocuments(filter),
+  ]);
+
+  const stats = result?.[0]?.stats;
+  const users = result?.[0]?.users;
+
+  return { stats, users, total, page, limit };
+};
 
 export const getCompanyById = async (sellerId: string, req: Request) => {
   const filter: Record<string, unknown> = {
@@ -470,7 +658,15 @@ export const createSuperAdmin = async (payload: CreateSuperAdminInput) => {
     );
     if (!newUser) throw new AppError("super admin create failed", 400);
     const [newSeller] = await Seller.create(
-      [{ _id: id, userId: newUser._id, isPlatform: true, shopName, slug }],
+      [
+        {
+          _id: id,
+          userId: newUser._id,
+          isPlatform: true,
+          name: shopName,
+          slug,
+        },
+      ],
       { session },
     );
     if (!newSeller) throw new AppError("seller crated failed", 400);
@@ -482,4 +678,12 @@ export const createSuperAdmin = async (payload: CreateSuperAdminInput) => {
   } finally {
     await session.endSession();
   }
+};
+export const getUserDetails = async (payload: UserDetailsParams) => {
+  const { profileId, profileType } = payload;
+
+  const ProfileModel = profileModelMap[profileType];
+  const result = await ProfileModel.findById(profileId).lean();
+
+  return result;
 };

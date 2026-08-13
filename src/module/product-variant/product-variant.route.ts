@@ -9,6 +9,7 @@ import * as ProductVariantController from "./product-variant.controller";
 import {
   createVariantSchema,
   editProductVariantSchema,
+  myInventoryQuerySchema,
   productVariantParamsSchema,
   productVariantQuerySchema,
   updateVariantSchema,
@@ -24,6 +25,15 @@ variantRouter
     authenticate,
     verifySession,
     ProductVariantController.getAllProductWithVariant,
+  );
+variantRouter
+  .route("/my-inventory")
+  .get(
+    authenticate,
+    verifySession,
+    guard("super_admin","seller","seller_staff","staff"),
+    validate({ query: myInventoryQuerySchema }),
+    ProductVariantController.getMyInventory,
   );
 
 variantRouter

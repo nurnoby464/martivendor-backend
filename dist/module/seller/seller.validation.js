@@ -95,7 +95,7 @@ exports.updateCompanySchema = zod_1.default.object({
     companyNavName: zod_1.default.string().trim().min(2).max(200).optional(),
     phone: zod_1.default.string().trim().min(7).max(20).optional(),
     address: zod_1.default.string().trim().min(5).max(500).optional(),
-    logo: zod_1.default.string().url("Logo must be a valid URL").nullable().optional(),
+    image: zod_1.default.string().url("Logo must be a valid URL").nullable().optional(),
     domain: zod_1.default
         .string()
         .trim()

@@ -10,6 +10,7 @@ import { sanitizeData } from "../../utils/sanitizeData";
 import {
   CreateVariantInput,
   EditProductVariantInput,
+  IMyInventoryQuery,
   UpdateVariantInput,
 } from "./product-variant.validation";
 import { useSkip } from "../../utils/useSkip";
@@ -573,4 +574,142 @@ export const editProductVariant = async (req: Request) => {
   } finally {
     await session.endSession();
   }
+};
+export const getMyInventory = async (
+  sellerId: Types.ObjectId,
+  query: IMyInventoryQuery,
+) => {
+  const { search, sortBy, sortOrder, page, limit } = query;
+  console.log("sellerId", sellerId);
+  const SORT_FIELD_MAP: Record<string, string> = {
+    name: "name",
+    price: "displayPriceMin",
+    stock: "totalStock",
+    createdAt: "createdAt",
+    updatedAt: "updatedAt",
+  };
+  const sortField = SORT_FIELD_MAP[sortBy ?? "createdAt"] ?? "createdAt";
+
+  const filter = {
+    sellerId: new mongoose.Types.ObjectId(sellerId),
+  };
+  console.log("filter", filter);
+  const result = await ProductVariant.aggregate([
+    { $match: filter },
+
+    {
+      $group: {
+        _id: "$productId",
+        variants: { $push: "$$ROOT" },
+        totalStock: { $sum: "$stock" },
+        variantCount: { $sum: 1 },
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "_id",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $lookup: {
+              from: "categories",
+              localField: "categoryId",
+              foreignField: "_id",
+              pipeline: [
+                { $project: { name: 1, slug: 1, image: 1, slugPath: 1 } },
+              ],
+              as: "category",
+            },
+          },
+          {
+            $set: {
+              category: { $arrayElemAt: ["$category", 0] },
+              variants: "$variants",
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              slug: 1,
+              slugPath: 1,
+              description: 1,
+              // categoryId: 1,
+              category: 1,
+              productType: 1,
+              specification: 1,
+              images: 1,
+              isActive: 1,
+              displayPriceMin: 1,
+              displayPriceMax: 1,
+              asin: 1,
+              sku: 1,
+              showOnHomepage: 1,
+              tags: 1,
+              hasDiscount: 1,
+              variants: 1,
+            },
+          },
+        ],
+        as: "product",
+      },
+    },
+    {
+      $set: {
+        product: {
+          $mergeObjects: [
+            { $arrayElemAt: ["$product", 0] },
+            {
+              variants: "$variants",
+              totalStock: "$totalStock",
+              variantCount: "$variantCount",
+            },
+          ],
+        },
+      },
+    },
+    // {
+    //   $project: {
+    //     _id: 0,
+    //     product: 1,
+    //   },
+    // },
+    {
+      $replaceRoot: { newRoot: "$product" },
+    },
+    ...(search
+      ? [
+          {
+            $match: {
+              $or: [
+                { name: { $regex: search.trim(), $options: "i" } },
+                { slug: { $regex: search.trim(), $options: "i" } },
+                { "category.name": { $regex: search.trim(), $options: "i" } },
+                { "category.slug": { $regex: search.trim(), $options: "i" } },
+              ],
+            },
+          },
+        ]
+      : []),
+    {
+      $facet: {
+        data: [
+          { $sort: { [sortField]: sortOrder } },
+          { $skip: useSkip({ page, limit }) },
+          { $limit: limit },
+        ],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+    {
+      $set: {
+        totalCount: {
+          $ifNull: [{ $arrayElemAt: ["$totalCount.count", 0] }, 0],
+        },
+      },
+    },
+  ]);
+  const { data, totalCount } = result[0] ?? { data: [], totalCount: 0 };
+
+  return { data, totalCount, page, limit };
 };

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { optional, z } from "zod";
 
 const mongoId = z
   .string()
@@ -82,6 +82,27 @@ export const editProductVariantSchema = z.object({
     .optional(),
 });
 
+export const myInventoryQuerySchema = z.object({
+  search: z.string().optional(),
+  sortBy: z
+    .enum(["name", "stock", "createdAt", "updatedAt", "price"])
+    .default("createdAt"),
+  sortOrder: z
+    .enum(["asc", "desc"])
+    .transform((v) => (v === "asc" ? 1 : v == "desc" ? -1 : -1))
+    .default(-1),
+  page: z
+    .string()
+    .transform((v) => parseInt(v ?? "1"))
+    .default(1),
+  limit: z
+    .string()
+    .transform((v) => Math.min(parseInt(v ?? "10"), 200))
+    .default(10),
+  categorySlug: z.string().optional(),
+});
+
+export type IMyInventoryQuery = z.infer<typeof myInventoryQuerySchema>;
 export type EditProductVariantInput = z.infer<typeof editProductVariantSchema>;
 export type CreateVariantInput = z.infer<typeof createVariantSchema>;
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;

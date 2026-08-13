@@ -3,11 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchCategories = exports.getAllCategories = exports.getProducts = exports.getPublicMergedCategories = void 0;
+exports.getSuggestions = exports.searchCategories = exports.getAllCategories = exports.getProductFilterCategories = exports.getProducts = exports.getPublicMergedCategories = void 0;
 const product_schema_1 = __importDefault(require("../product/product.schema"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const category_schema_1 = __importDefault(require("../category/category.schema"));
 const appError_1 = require("../../middlewares/appError");
+const seller_schema_1 = require("../seller/seller.schema");
 // reuseable merge stage — dedupes any set of category docs by slugPath
 const mergeBySlugPath = (matchStage) => [
     { $match: matchStage },
@@ -109,42 +110,36 @@ const getProducts = async (payload) => {
     const { page, limit, search, categoryId, 
     // vendor_id,
     hasVariants, isActive, lowStock, sortBy, sortOrder, productType, tags, discount, hasDiscount, categorySlug, } = payload;
-    const filter = {};
+    const baseFilter = {};
     if (isActive !== undefined)
-        filter.isActive = isActive;
+        baseFilter.isActive = isActive;
     if (hasVariants !== undefined)
-        filter.hasVariants = hasVariants;
-    if (categoryId) {
-        const allDescendantCategories = await category_schema_1.default.find({
-            path: new mongoose_1.default.Types.ObjectId(categoryId), // ✅ array contains match
-            isActive: true,
-        }).lean();
-        const allCategoryIds = [
-            new mongoose_1.default.Types.ObjectId(categoryId),
-            ...allDescendantCategories.map((c) => c._id),
-        ];
-        filter.categoryId = { $in: allCategoryIds };
-    }
-    // if (vendor_id) filter.vendor_id = vendor_id;
-    // low stock filter — stock <= lowStockAlert
+        baseFilter.hasVariants = hasVariants;
     if (lowStock === "true") {
-        filter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
+        baseFilter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
     }
     if (productType)
-        filter.productType = productType;
+        baseFilter.productType = productType;
     if (discount)
-        filter.discount = discount;
+        baseFilter.discount = discount;
     if (hasDiscount)
-        filter.hasDiscount = hasDiscount;
+        baseFilter.hasDiscount = hasDiscount;
     if (tags && tags?.length > 0)
-        filter.tags = { $in: tags };
+        baseFilter.tags = { $in: tags };
+    if (search) {
+        baseFilter.$or = [
+            { name: { $regex: search, $options: "i" } },
+            { sku: { $regex: search, $options: "i" } },
+        ];
+    }
+    const filter = { ...baseFilter };
     if (categorySlug) {
         const slugPathArr = categorySlug
             .split("/")
             .map((s) => s.trim().toLowerCase())
             .filter(Boolean);
         const matchedCategories = await category_schema_1.default.find({
-            slugPath: slugPathArr,
+            slugPath: { $in: slugPathArr },
             isActive: true,
         })
             .select("_id")
@@ -161,23 +156,25 @@ const getProducts = async (payload) => {
         })
             .select("_id")
             .lean();
-        console.log("matchedIds", matchedIds);
-        console.log("descendantCategories", descendantCategories.map((c) => c._id));
         const allCategoryIds = [
             ...matchedIds,
             ...descendantCategories.map((c) => c._id),
         ];
-        console.log("allCategoryIds", allCategoryIds);
         filter.categoryId = { $in: allCategoryIds };
     }
-    if (search) {
-        filter.$or = [
-            { name: { $regex: search, $options: "i" } },
-            { sku: { $regex: search, $options: "i" } },
+    if (categoryId) {
+        const allDescendantCategories = await category_schema_1.default.find({
+            path: new mongoose_1.default.Types.ObjectId(categoryId), // ✅ array contains match
+            isActive: true,
+        }).lean();
+        const allCategoryIds = [
+            new mongoose_1.default.Types.ObjectId(categoryId),
+            ...allDescendantCategories.map((c) => c._id),
         ];
+        filter.categoryId = { $in: allCategoryIds };
     }
     const sortDir = sortOrder === "asc" ? 1 : -1;
-    const [products, total] = await Promise.all([
+    const [products, total, categories] = await Promise.all([
         product_schema_1.default.find(filter)
             .populate("categoryId", "name slug depth slugPath")
             // .populate("vendor_id", "name phone")
@@ -186,10 +183,153 @@ const getProducts = async (payload) => {
             .limit(limit)
             .lean(),
         product_schema_1.default.countDocuments(filter),
+        product_schema_1.default.aggregate([
+            {
+                $match: baseFilter,
+            },
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "categoryId",
+                    foreignField: "_id",
+                    as: "category",
+                },
+            },
+            { $unwind: "$category" },
+            { $match: { "category.isActive": true } },
+            {
+                $group: {
+                    _id: "$category.slug",
+                    categoryId: { $first: "$category._id" },
+                    name: { $first: "$category.name" },
+                    slugPath: { $first: "$category.slugPath" },
+                    depth: { $first: "$category.depth" },
+                    productCount: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    _id: "$categoryId",
+                    name: 1,
+                    slug: "$_id",
+                    slugPath: 1,
+                    depth: 1,
+                    productCount: 1,
+                },
+            },
+            { $sort: { productCount: -1, name: 1 } },
+        ]),
     ]);
-    return { products, total };
+    return { products, total, categories };
 };
 exports.getProducts = getProducts;
+const getProductFilterCategories = async (payload) => {
+    const { page, limit, search, categoryId, 
+    // vendor_id,
+    hasVariants, isActive, lowStock, sortBy, sortOrder, productType, tags, discount, hasDiscount, categorySlug, } = payload;
+    const baseFilter = {};
+    if (isActive !== undefined)
+        baseFilter.isActive = isActive;
+    if (hasVariants !== undefined)
+        baseFilter.hasVariants = hasVariants;
+    if (lowStock === "true") {
+        baseFilter.$expr = { $lte: ["$stock", "$lowStockAlert"] };
+    }
+    if (productType)
+        baseFilter.productType = productType;
+    if (discount)
+        baseFilter.discount = discount;
+    if (hasDiscount)
+        baseFilter.hasDiscount = hasDiscount;
+    if (tags && tags?.length > 0)
+        baseFilter.tags = { $in: tags };
+    if (search) {
+        baseFilter.$or = [
+            { name: { $regex: search, $options: "i" } },
+            { sku: { $regex: search, $options: "i" } },
+        ];
+    }
+    const filter = { ...baseFilter };
+    if (categorySlug) {
+        const slugPathArr = categorySlug
+            .split("/")
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean);
+        const matchedCategories = await category_schema_1.default.find({
+            slugPath: { $in: slugPathArr },
+            isActive: true,
+        })
+            .select("_id")
+            .lean();
+        if (!matchedCategories || matchedCategories.length === 0) {
+            throw new appError_1.AppError("Category not found", 404);
+        }
+        const matchedIds = matchedCategories.map((c) => c._id);
+        // Also pull in descendant categories (so "electronics" shows
+        // products from "mobile-phones", "laptops", etc. too)
+        const descendantCategories = await category_schema_1.default.find({
+            path: { $in: matchedIds },
+            isActive: true,
+        })
+            .select("_id")
+            .lean();
+        const allCategoryIds = [
+            ...matchedIds,
+            ...descendantCategories.map((c) => c._id),
+        ];
+        filter.categoryId = { $in: allCategoryIds };
+    }
+    if (categoryId) {
+        const allDescendantCategories = await category_schema_1.default.find({
+            path: new mongoose_1.default.Types.ObjectId(categoryId), // ✅ array contains match
+            isActive: true,
+        }).lean();
+        const allCategoryIds = [
+            new mongoose_1.default.Types.ObjectId(categoryId),
+            ...allDescendantCategories.map((c) => c._id),
+        ];
+        filter.categoryId = { $in: allCategoryIds };
+    }
+    const sortDir = sortOrder === "asc" ? 1 : -1;
+    const categories = await product_schema_1.default.aggregate([
+        {
+            $match: baseFilter,
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "categoryId",
+                foreignField: "_id",
+                as: "category",
+            },
+        },
+        { $unwind: "$category" },
+        { $match: { "category.isActive": true } },
+        {
+            $group: {
+                _id: "$category.slug",
+                categoryId: { $first: "$category._id" },
+                name: { $first: "$category.name" },
+                slugPath: { $first: "$category.slugPath" },
+                depth: { $first: "$category.depth" },
+                productCount: { $sum: 1 },
+            },
+        },
+        {
+            $project: {
+                _id: "$categoryId",
+                name: 1,
+                slug: "$_id",
+                slugPath: 1,
+                depth: 1,
+                productCount: 1,
+            },
+        },
+        { $sort: { [sortBy]: sortDir } },
+    ]);
+    return categories;
+};
+exports.getProductFilterCategories = getProductFilterCategories;
 const getAllCategories = async (req) => {
     const categories = await category_schema_1.default.find({}).sort({ createdAt: -1 }).lean();
     return categories;
@@ -288,4 +428,99 @@ const searchCategories = async (payload) => {
     return { categories, total };
 };
 exports.searchCategories = searchCategories;
+const getSuggestions = async (search) => {
+    const trimmed = search?.trim();
+    if (!trimmed)
+        throw new appError_1.AppError("Search value is required", 400);
+    const filter = { name: { $regex: trimmed, $options: "i" }, isActive: true };
+    const [products, categories, sellersDoc] = await Promise.all([
+        product_schema_1.default.aggregate([
+            { $match: filter },
+            { $sort: { createdAt: 1 } },
+            {
+                $group: {
+                    _id: "$slug",
+                    name: { $first: "$name" },
+                    image: { $first: { $arrayElemAt: ["$images", 0] } },
+                    // minPrice: { $min: "$displayPriceMin" },
+                    // maxPrice: { $min: "$displayPriceMax" },
+                    // productType: { $addToSet: "$productType" },
+                    // sellerCount: { $sum: 1 },
+                    // productIds: { $push: "$_id" },
+                },
+            },
+            { $limit: 20 },
+            {
+                $project: {
+                    _id: 0,
+                    slug: "$_id",
+                    name: 1,
+                    image: 1,
+                    // minPrice: 1,
+                    // maxPrice: 1,
+                    // productTypes: 1,
+                    // sellerCount: 1,
+                },
+            },
+        ]),
+        category_schema_1.default.aggregate([
+            {
+                $match: {
+                    name: { $regex: trimmed, $options: "i" },
+                    isActive: true,
+                },
+            },
+            {
+                $group: {
+                    _id: "$slug",
+                    name: { $first: "$name" },
+                    image: { $first: "$image" },
+                },
+            },
+            {
+                $addFields: {
+                    _score: {
+                        $switch: {
+                            branches: [
+                                // 1. Exact match (case-insensitive) — highest priority
+                                {
+                                    case: { $eq: [{ $toLower: "$name" }, trimmed.toLowerCase()] },
+                                    then: 3,
+                                },
+                                // 2. Name starts with the query — "Phone Mount" beats "Mobile Phones"
+                                {
+                                    case: {
+                                        $eq: [
+                                            {
+                                                $indexOfCP: [
+                                                    { $toLower: "$name" },
+                                                    trimmed.toLowerCase(),
+                                                ],
+                                            },
+                                            0,
+                                        ],
+                                    },
+                                    then: 2,
+                                },
+                            ],
+                            // 3. Query appears somewhere in the middle — lowest priority
+                            default: 1,
+                        },
+                    },
+                },
+            },
+            { $sort: { _score: -1, name: 1 } }, // score first, alphabetical as tiebreaker
+            { $limit: 20 },
+            { $project: { _id: 0, name: 1, image: 1, slug: "$_id" } }, // drop _score, don't leak it to client
+        ]),
+        seller_schema_1.Seller.find(filter).select("name slug logo -_id").lean(),
+    ]);
+    const sellers = sellersDoc.map(({ name, slug, image }) => ({
+        name,
+        slug,
+        image
+    }));
+    return { categories, products, sellers };
+};
+exports.getSuggestions = getSuggestions;
 //# sourceMappingURL=public.service.js.map

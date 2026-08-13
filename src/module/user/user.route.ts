@@ -1,6 +1,11 @@
 import express from "express";
 import { validate } from "../../middlewares/validate";
-import { createUserSchema, superAdminSchema } from "./user.validation";
+import {
+  createUserSchema,
+  superAdminSchema,
+  userDetailsQuerySchema,
+  userStatsQuerySchema,
+} from "./user.validation";
 import * as UserController from "./user.controller";
 import {
   authenticate,
@@ -36,6 +41,18 @@ router.get(
   guard("super_admin"), // only super_admin sees all companies
   validate({ query: companyQuerySchema }),
   UserController.getAllCompanies,
+);
+router.get(
+  "/stats/",
+  guard("super_admin"), // only super_admin sees all companies
+  validate({ query: userStatsQuerySchema }),
+  UserController.getUserStats,
+);
+router.get(
+  "/details/",
+  guard("super_admin"), // only super_admin sees all companies
+  validate({ query: userDetailsQuerySchema }),
+  UserController.getUserDetails,
 );
 
 router.get(
