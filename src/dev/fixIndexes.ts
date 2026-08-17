@@ -44,6 +44,8 @@ import express from "express";
 import { generateInvoiceNumber, generateOderNumber } from "../utils/healper";
 import { extractAsin, generateAsin } from "../utils/helper";
 import Category from "../module/category/category.schema";
+import Product from "../module/product/product.schema";
+import { Seller } from "../module/seller/seller.schema";
 
 const router = express.Router();
 router.post("/generateOrderNumber", async (req, res) => {
@@ -70,6 +72,21 @@ router.get("/extract", async (req, res) => {
   const result = extractAsin(combinedSlug as string);
   res.json({ num: result });
 });
-
+router.put("/make-product-lower-name", async (req, res) => {
+  const result = await Product.updateMany(
+    {},
+    [{ $set: { nameLower: { $toLower: "$name" } } }],
+    { updatePipeline: true }, // ← tells Mongoose "yes, this array is an aggregation pipeline"
+  );
+  res.json({ num: result });
+});
+router.put("/make-seller-lower-name", async (req, res) => {
+  const result = await Category.updateMany(
+    {},
+    [{ $set: { nameLower: { $toLower: "$name" } } }],
+    { updatePipeline: true }, // ← tells Mongoose "yes, this array is an aggregation pipeline"
+  );
+  res.json({ num: result });
+});
 
 export const DevRouter = router;

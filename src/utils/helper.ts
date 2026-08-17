@@ -142,3 +142,7 @@ export function extractAsin(combinedSlug: string): string | null {
   const match = combinedSlug.match(ASIN_PATTERN);
   return match?.[1] ?? null;
 }
+
+export function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

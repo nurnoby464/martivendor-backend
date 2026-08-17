@@ -33,6 +33,7 @@ export interface IProduct {
   // vendorId: mongoose.Types.ObjectId;
 
   name: string;
+  nameLower: string;
   slug: string;
   productType: ProductType;
   description: string | null;

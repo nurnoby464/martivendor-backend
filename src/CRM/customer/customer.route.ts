@@ -15,7 +15,7 @@ router.get(
   authenticate,
   saleAnAuthenticateAndUnauthenticated,
   verifySession,
-  guard("super_admin", "account", "sales", "admin"),
+  guard("super_admin", "account", "sales", "admin","seller","seller_staff","staff"),
   validate({ query: customerQuerySchema }),
   CustomerController.getCustomerList,
 );

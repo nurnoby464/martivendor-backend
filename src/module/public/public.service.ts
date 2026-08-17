@@ -19,6 +19,7 @@ import {
   PublicCategoryNode,
 } from "./public.interface";
 import { Seller } from "../seller/seller.schema";
+import { escapeRegex } from "../../utils/helper";
 
 // reuseable merge stage — dedupes any set of category docs by slugPath
 
@@ -409,7 +410,7 @@ export const getProductFilterCategories = async (
         productCount: 1,
       },
     },
-    { $sort: {[sortBy]: sortDir } },
+    { $sort: { [sortBy]: sortDir } },
   ]);
 
   return categories;
@@ -535,19 +536,22 @@ export const searchCategories = async (payload: {
 
 export const getSuggestions = async (search: string) => {
   const trimmed = search?.trim();
+  console.log("trimmed", trimmed);
+  const prefix = `^${escapeRegex(trimmed.toLowerCase())}`;
+  console.log("prefix", prefix);
   if (!trimmed) throw new AppError("Search value is required", 400);
 
-  const filter = { name: { $regex: trimmed, $options: "i" }, isActive: true };
+  const filter = { nameLower: { $regex: prefix }, isActive: true };
 
-  const [products, categories, sellersDoc] = await Promise.all([
+  const [products, categories, sellers] = await Promise.all([
     Product.aggregate([
-      { $match: filter },
+      { $match: { isActive: true, nameLower: { $regex: prefix } } },
       { $sort: { createdAt: 1 } },
       {
         $group: {
           _id: "$slug",
           name: { $first: "$name" },
-          image: { $first: { $arrayElemAt: ["$images", 0] } },
+          // image: { $first: { $arrayElemAt: ["$images", 0] } },
           // minPrice: { $min: "$displayPriceMin" },
           // maxPrice: { $min: "$displayPriceMax" },
           // productType: { $addToSet: "$productType" },
@@ -561,7 +565,7 @@ export const getSuggestions = async (search: string) => {
           _id: 0,
           slug: "$_id",
           name: 1,
-          image: 1,
+          // image: 1,
           // minPrice: 1,
           // maxPrice: 1,
           // productTypes: 1,
@@ -570,17 +574,12 @@ export const getSuggestions = async (search: string) => {
       },
     ]),
     Category.aggregate([
-      {
-        $match: {
-          name: { $regex: trimmed, $options: "i" },
-          isActive: true,
-        },
-      },
+      { $match: { isActive: true, nameLower: { $regex: prefix } } },
       {
         $group: {
           _id: "$slug",
           name: { $first: "$name" },
-          image: { $first: "$image" },
+          // image: { $first: "$image" },
         },
       },
       {
@@ -617,14 +616,17 @@ export const getSuggestions = async (search: string) => {
       },
       { $sort: { _score: -1, name: 1 } }, // score first, alphabetical as tiebreaker
       { $limit: 20 },
-      { $project: { _id: 0, name: 1, image: 1, slug: "$_id" } }, // drop _score, don't leak it to client
+      {
+        $project: {
+          _id: 0,
+          name: 1,
+          //  image: 1,
+          slug: "$_id",
+        },
+      }, // drop _score, don't leak it to client
     ]),
-    Seller.find(filter).select("name slug logo -_id").lean(),
+    Seller.find({ isActive: true, nameLower: { $regex: prefix } }).select("name slug  -_id").lean(),
   ]);
-  const sellers = sellersDoc.map(({ name, slug, image }) => ({
-    name,
-    slug,
-    image
-  }));
+
   return { categories, products, sellers };
 };

@@ -52,6 +52,10 @@ const ProductSchema = new Schema<IProduct>(
       minlength: [2, "Name must be at least 2 characters"],
       maxlength: [200, "Name cannot exceed 200 characters"],
     },
+    nameLower: {
+      type: String,
+      index: true,
+    },
 
     slug: {
       type: String,
@@ -199,6 +203,9 @@ const ProductSchema = new Schema<IProduct>(
 
 // ── Auto-generate SKU & calculate profit ──────────────────────────────────────
 ProductSchema.pre("save", async function () {
+  if (this.isModified("name")) {
+    this.nameLower = this.name.toLowerCase();
+  }
   // Auto SKU only on new documents without a manually provided SKU
   if (this.isNew && !this.sku) {
     const counter = await ProductCounter.findOneAndUpdate(
@@ -243,6 +250,8 @@ ProductSchema.index({ sellerId: 1, stock: 1 });
 ProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
 ProductSchema.index({ slug: 1 });
 ProductSchema.index({ sellerId: 1, showOnHomepage: 1 });
+ProductSchema.index({ isActive: 1, nameLower: 1 });
+
 
 const Product = model<IProduct>("Product", ProductSchema);
 

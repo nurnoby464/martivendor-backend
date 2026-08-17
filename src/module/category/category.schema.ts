@@ -15,6 +15,10 @@ const CategorySchema = new Schema<ICategoryDocument>(
       minlength: [2, "Min 2 characters"],
       maxlength: [100, "Max 100 characters"],
     },
+    nameLower: {
+      type: String,
+      index: true,
+    },
     slug: {
       type: String,
       required: true,
@@ -64,6 +68,9 @@ const CategorySchema = new Schema<ICategoryDocument>(
 // a migration script, or the Mongo shell — so these derived fields
 // can never be forgotten or set incorrectly by hand.
 CategorySchema.pre("save", async function () {
+  if (this.isModified("name")) {
+    this.nameLower = this.name.toLowerCase();
+  }
   const CategoryModel = this.constructor as typeof Category;
 
   if (!this.parentId) {
@@ -87,7 +94,6 @@ CategorySchema.pre("save", async function () {
     this.depth = (parent.depth ?? 0) + 1;
     this.slugPath = [...(parent.slugPath ?? [parent.slug]), this.slug];
   }
-
 });
 
 // ─── Indexes (field names corrected to match schema: parentId, not parent_id) ──
@@ -96,6 +102,7 @@ CategorySchema.index({ sellerId: 1, slug: 1, parentId: 1 }, { unique: true });
 CategorySchema.index({ sellerId: 1, path: 1 });
 CategorySchema.index({ sellerId: 1, depth: 1 });
 CategorySchema.index({ slug: 1, parentId: 1 }); // supports public/homepage root grouping
+CategorySchema.index({ isActive: 1, nameLower: 1 });
 
 const Category = model<ICategoryDocument>("Category", CategorySchema);
 export default Category;

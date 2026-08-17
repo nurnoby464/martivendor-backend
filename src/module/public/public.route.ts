@@ -5,7 +5,17 @@ import { companyIdentifier } from "../../middlewares/companyIdentifier";
 import { validate } from "../../middlewares/validate";
 import { productQuerySchema } from "../product/product.validation";
 import { suggestionsSchema } from "./public.validation";
+import rateLimit from "express-rate-limit";
+import { success } from "zod";
 const router = express.Router();
+
+const suggestLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, slow down." },
+});
 // ── /api/public/products ─────────────────────────────────────────
 router.get(
   "/products",
@@ -20,6 +30,7 @@ router.get(
 router.get(
   "/search/suggest",
   validate({ query: suggestionsSchema }),
+  suggestLimiter,
   PublicController.getSuggestions,
 );
 router.get("/category/tree", PublicController.getCategoryTree);
