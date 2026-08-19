@@ -27,7 +27,12 @@ export const generateInvoiceNumber = async (): Promise<string> => {
 
 export const calculateDiscount = (data: ICalculateDiscount): number => {
   const { sellingPrice, quantity, discountType, discountValue } = data;
+
   if (!discountType || !discountValue) return 0;
-  if (discountType === "flat") return discountValue * quantity;
-  return Math.round((sellingPrice * discountValue) / 100) * quantity;
+
+  if (discountType === "flat") {
+    return discountValue * quantity;
+  }
+
+  return (sellingPrice * discountValue) / 100 * quantity;
 };

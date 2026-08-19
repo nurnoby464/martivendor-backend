@@ -21,12 +21,12 @@ export interface ISaleItem {
   sku: string;
   image: string | null;
   quantity: number;
-  unitPrice: number;
+  buyingPrice: number;
   sellingPrice: number;
   discountType: DiscountType;
   discountValue: number;
-  discount_amount: number;
-  subtotal: number;
+  discountAmount: number;
+  lineTotal: number;
 }
 
 export interface ICustomerSnapshot {
@@ -44,6 +44,9 @@ export interface ISale {
   items: ISaleItem[];
 
   grossAmount: number;
+  posDiscountType: DiscountType;
+  posDiscountValue: number;
+  posDiscountAmount: number;
   discountTotal: number;
   netAmount: number;
   paidAmount: number;

@@ -647,6 +647,7 @@ export const getMyInventory = async (
               showOnHomepage: 1,
               tags: 1,
               hasDiscount: 1,
+              discount:1,
               variants: 1,
             },
           },

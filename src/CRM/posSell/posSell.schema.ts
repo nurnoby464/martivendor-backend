@@ -22,12 +22,12 @@ const saleItemSchema = new Schema<ISaleItem>({
   sku: { type: String, required: true },
   image: { type: String, default: null },
   quantity: { type: Number, required: true, min: [1, "Minimum order one"] },
-  unitPrice: { type: Number, required: true },
+  buyingPrice: { type: Number, required: true },
   sellingPrice: { type: Number, required: true },
   discountType: { type: String, enum: ["flat", "percentage"], default: null },
   discountValue: { type: Number, default: 0 },
-  discount_amount: { type: Number, default: 0 },
-  subtotal: { type: Number, required: true },
+  discountAmount: { type: Number, default: 0 },
+  lineTotal: { type: Number, required: true },
 });
 
 const customerSnapshotsSchema = new Schema<ICustomerSnapshot>({
@@ -66,6 +66,13 @@ const saleSchema = new Schema<ISaleDocument>(
     },
 
     grossAmount: { type: Number, required: true },
+    posDiscountType: {
+      type: String,
+      enum: ["flat", "percentage"],
+      default: null,
+    },
+    posDiscountValue: { type: Number, default: 0 },
+    posDiscountAmount: { type: Number, default: 0 },
     discountTotal: { type: Number, default: 0 },
     netAmount: { type: Number, required: true },
     paidAmount: { type: Number, default: 0 },
