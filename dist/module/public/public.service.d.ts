@@ -38,10 +38,10 @@ export declare const searchCategories: (payload: {
 export declare const getSuggestions: (search: string) => Promise<{
     categories: any[];
     products: any[];
-    sellers: {
-        name: string;
-        slug: string;
-        image: string | null;
-    }[];
+    sellers: (import("../seller/seller.interface").ISeller & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    })[];
 }>;
 //# sourceMappingURL=public.service.d.ts.map

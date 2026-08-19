@@ -14,11 +14,11 @@ export declare const createSaleSchema: z.ZodObject<{
         discountValue: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strip>>;
     paymentMethod: z.ZodEnum<{
+        credit: "credit";
         cash: "cash";
         cash_on_delivery: "cash_on_delivery";
         card: "card";
         mobile_banking: "mobile_banking";
-        credit: "credit";
     }>;
     paidAmount: z.ZodDefault<z.ZodNumber>;
     note: z.ZodNullable<z.ZodOptional<z.ZodString>>;

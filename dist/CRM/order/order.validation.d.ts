@@ -28,12 +28,12 @@ export declare const createOrderBody: z.ZodObject<{
     shipping_charge: z.ZodDefault<z.ZodNumber>;
     paid_amount: z.ZodDefault<z.ZodNumber>;
     payment_method: z.ZodDefault<z.ZodNullable<z.ZodEnum<{
+        credit: "credit";
         cash: "cash";
+        online: "online";
         cash_on_delivery: "cash_on_delivery";
         card: "card";
         mobile_banking: "mobile_banking";
-        credit: "credit";
-        online: "online";
     }>>>;
     note: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
@@ -43,10 +43,10 @@ export declare const updateOrderStatusParam: z.ZodObject<{
 export declare const updateOrderStatusBody: z.ZodObject<{
     order_status: z.ZodEnum<{
         pending: "pending";
-        cancelled: "cancelled";
         processing: "processing";
         shipped: "shipped";
         delivered: "delivered";
+        cancelled: "cancelled";
     }>;
 }, z.core.$strip>;
 export declare const updatePaymentParam: z.ZodObject<{
@@ -56,9 +56,9 @@ export declare const updatePaymentBody: z.ZodObject<{
     paid_amount: z.ZodNumber;
     payment_method: z.ZodEnum<{
         cash: "cash";
+        online: "online";
         card: "card";
         mobile_banking: "mobile_banking";
-        online: "online";
     }>;
 }, z.core.$strip>;
 export declare const getOrderListQuery: z.ZodObject<{
@@ -66,10 +66,10 @@ export declare const getOrderListQuery: z.ZodObject<{
     limit: z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>;
     orderStatus: z.ZodOptional<z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>, z.ZodEnum<{
         pending: "pending";
-        cancelled: "cancelled";
         processing: "processing";
         shipped: "shipped";
         delivered: "delivered";
+        cancelled: "cancelled";
     }>>>;
     paymentStatus: z.ZodOptional<z.ZodEnum<{
         partial: "partial";
@@ -96,11 +96,11 @@ export declare const getMyOrdersQuerySchema: z.ZodObject<{
     limit: z.ZodPipe<z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>, z.ZodNumber>;
     order_status: z.ZodOptional<z.ZodEnum<{
         pending: "pending";
-        cancelled: "cancelled";
+        all: "all";
         processing: "processing";
         shipped: "shipped";
         delivered: "delivered";
-        all: "all";
+        cancelled: "cancelled";
     }>>;
     search: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;

@@ -4,7 +4,7 @@ import {
   ISale,
   ISaleDocument,
   ISaleItem,
-} from "./sales.interface";
+} from "./posSell.interface";
 
 const saleItemSchema = new Schema<ISaleItem>({
   productId: {
@@ -109,5 +109,5 @@ saleSchema.index({ sellerId: 1, saleDate: -1 });
 saleSchema.index({ sellerId: 1, paymentStatus: 1 });
 saleSchema.index({ sellerId: 1, status: 1 });
 
-const Sale = model<ISaleDocument>("Sale", saleSchema);
-export default Sale;
+const PosSale = model<ISaleDocument>("PosSale", saleSchema);
+export default PosSale;

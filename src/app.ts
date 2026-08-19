@@ -17,7 +17,7 @@ import { ProductRoutes } from "./module/product/product.route";
 import { PurchaseRoute } from "./module/purchase/purchase.route";
 import { ProductVariantRoute } from "./module/product-variant/product-variant.route";
 import { AppError } from "./middlewares/appError";
-import { SaleRouter } from "./CRM/sales/sales.route";
+import { SaleRouter } from "./CRM/posSell/posSell.route";
 import { CustomerRouter } from "./CRM/customer/customer.route";
 import { DevRouter } from "./dev/fixIndexes";
 import { OrderRouter } from "./CRM/order/order.route";

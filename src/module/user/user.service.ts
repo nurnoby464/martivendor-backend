@@ -21,7 +21,7 @@ import {
 import Session from "../auth/auth.schema";
 import { sanitizeData } from "../../utils/sanitizeData";
 import { Seller } from "../seller/seller.schema";
-import { ISale } from "../../CRM/sales/sales.interface";
+import { ISale } from "../../CRM/posSell/posSell.interface";
 import { ISeller } from "../seller/seller.interface";
 import { useSkip } from "../../utils/useSkip";
 import { profileModelMap } from "../../utils/helper";

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateSaleCode = void 0;
-const sales_schema_1 = __importDefault(require("../CRM/sales/sales.schema"));
+const sales_schema_1 = __importDefault(require("../CRM/posSell/sales.schema"));
 const generateSaleCode = async (companyId) => {
     const today = new Date();
     const datePart = today.toISOString().slice(0, 10).replace(/-/g, "");

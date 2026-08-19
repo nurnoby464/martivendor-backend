@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
-import * as SaleServices from "./sales.service";
+import * as SaleServices from "./posSell.service";
 import { Request, Response } from "express";
 import { create } from "node:domain";
 

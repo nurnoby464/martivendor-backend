@@ -19,9 +19,9 @@ export declare const ProductCounter: import("mongoose").Model<{
     _id: import("mongoose").Types.ObjectId;
 } & {
     __v: number;
-}, "id"> & {
+}, "id"> & import("mongoose").HydratedDocumentOverrides<{
     id: string;
-}, Schema<any, import("mongoose").Model<any, any, any, any, any, any, any>, {}, {}, {}, {}, {
+}>, Schema<any, import("mongoose").Model<any, any, any, any, any, any, any>, {}, {}, {}, {}, {
     collection: string;
 }, {
     sellerId: import("mongoose").Types.ObjectId;
@@ -31,18 +31,18 @@ export declare const ProductCounter: import("mongoose").Model<{
     seq: number;
 }, {
     id: string;
-}, import("mongoose").MergeType<import("mongoose").DefaultSchemaOptions, {
+}, Omit<import("mongoose").DefaultSchemaOptions, "collection"> & {
     collection: string;
-}>> & Omit<{
+}> & Omit<{
     sellerId: import("mongoose").Types.ObjectId;
     seq: number;
 } & {
     _id: import("mongoose").Types.ObjectId;
 } & {
     __v: number;
-}, "id"> & {
+}, "id"> & import("mongoose").HydratedDocumentOverrides<{
     id: string;
-}, unknown, {
+}>, unknown, {
     sellerId: import("mongoose").Types.ObjectId;
     seq: number;
 } & {

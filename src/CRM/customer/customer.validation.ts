@@ -40,6 +40,7 @@ export const customerQuerySchema = z.object({
     .optional()
     .transform((v) => parseInt(v ?? "10")),
   search: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
 
   is_active: z
     .enum(["true", "false"])

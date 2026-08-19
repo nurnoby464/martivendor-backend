@@ -17,6 +17,7 @@ export interface ISeller extends Document {
     userId: Types.ObjectId;
     isPlatform: boolean;
     name: string;
+    nameLower: string;
     slug: string;
     image: string | null;
     banner: string | null;

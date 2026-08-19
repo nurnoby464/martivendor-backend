@@ -1,12 +1,13 @@
 import mongoose, { Types } from "mongoose";
 import { generateSaleCode } from "../../utils/generateSaleCode";
-import { CreateSaleInput } from "./sales.validation";
+import { CreateSaleInput } from "./posSell.validation";
 import { AppError } from "../../middlewares/appError";
 import Product from "../../module/product/product.schema";
 import ProductVariant from "../../module/product-variant/product-variant.schema";
-import Sale from "./sales.schema";
+import Sale from "./posSell.schema";
 import Customer from "../customer/customer.schema";
 import { calculateDiscount } from "../../utils/healper";
+import PosSale from "./posSell.schema";
 
 type CalculatedItem = {
   productId: mongoose.Types.ObjectId;
@@ -45,19 +46,13 @@ const resolveCustomer = async (
   session: mongoose.ClientSession,
   customerName?: string,
   customerPhone?: string,
-  customerId?: string,
 ): Promise<Types.ObjectId | null> => {
-  let existing = null;
+  let existing = await Customer.findOne({
+    sellerId,
+    phone: "customerPhone",
+  }).session(session);
 
-  if (customerId || customerPhone) {
-    existing = await Customer.findOne({
-      sellerId,
-      $or: [
-        ...(sellerId ? [{ _id: new Types.ObjectId(sellerId) }] : []),
-        ...(customerPhone ? [{ phone: customerPhone }] : []),
-      ],
-    }).session(session);
-  }
+  
 
   if (existing) {
     await Customer.updateOne({ _id: existing._id }, [
@@ -123,18 +118,19 @@ const resolveCustomer = async (
 // ─── Main Service ─────────────────────────────────────────
 
 export const createSale = async (payload: ICreateSalePayload) => {
-  const { sellerId, createdBy, input,createdByType } = payload;
+  const { sellerId, createdBy, input, createdByType } = payload;
   const {
     customerName,
     customerPhone,
     customerEmail,
     customerId: customer_id,
+    customer,
     items,
     paymentMethod,
     paidAmount,
     note,
   } = input;
-
+console.log(input)
   // 1. block online payments
   if (paymentMethod === "card" || paymentMethod === "mobile_banking") {
     throw new AppError(
@@ -148,15 +144,15 @@ export const createSale = async (payload: ICreateSalePayload) => {
   try {
     session.startTransaction();
 
-    const companyObjectId = new Types.ObjectId(sellerId);
+    const sellerObjectId = new Types.ObjectId(sellerId);
 
     // 2. load all products in one query
     const productIds = items.map((i) => new Types.ObjectId(i.productId));
 
     const products = await Product.find({
       _id: { $in: productIds },
-      sellerId: companyObjectId,
-      is_active: true,
+      sellerId: sellerObjectId,
+      isActive: true,
     }).session(session);
 
     // check all products found
@@ -173,8 +169,8 @@ export const createSale = async (payload: ICreateSalePayload) => {
 
     const variants = await ProductVariant.find({
       _id: { $in: variantIds },
-      sellerId: companyObjectId,
-      is_active: true,
+      sellerId: sellerObjectId,
+      isActive: true,
     }).session(session);
 
     if (variants.length !== items.length) {
@@ -267,13 +263,12 @@ export const createSale = async (payload: ICreateSalePayload) => {
 
     // 7. resolve or create customer
     const customerId = await resolveCustomer(
-      companyObjectId,
+      sellerObjectId,
       netAmount,
       effectivePaid,
       session,
-      customerName,
-      customerPhone,
-      customer_id,
+      customer?.name,
+      customer?.phone,
     );
 
     // 8. deduct stock for each variant
@@ -281,7 +276,7 @@ export const createSale = async (payload: ICreateSalePayload) => {
       await ProductVariant.updateOne(
         {
           _id: item.variantId,
-          sellerId: companyObjectId,
+          sellerId: sellerObjectId,
         },
         { $inc: { stock: -item.quantity } },
         { session },
@@ -292,10 +287,10 @@ export const createSale = async (payload: ICreateSalePayload) => {
     const saleCode = await generateSaleCode(sellerId);
 
     // 10. create sale
-    const [sale] = await Sale.create(
+    const [sale] = await PosSale.create(
       [
         {
-          sellerId: companyObjectId,
+          sellerId: sellerObjectId,
           saleCode,
           ...(customerName &&
             customerPhone && {

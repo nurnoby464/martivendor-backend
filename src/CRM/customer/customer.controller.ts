@@ -8,16 +8,16 @@ import { GetCustomerQuery } from "./customer.validation";
 
 export const getCustomerList = asyncHandler(
   async (req: Request, res: Response) => {
-    const companyId = new Types.ObjectId(req.user.sellerId!);
+    const sellerId = req.user.sellerId;
 
-    if (!companyId) {
+    if (!sellerId) {
       throw new AppError("Company not found", 404);
     }
 
     const { customers, total, page, limit } =
       await CustomerServices.getCustomerList(
         req.validatedQuery as GetCustomerQuery,
-        companyId,
+        sellerId,
       );
     return ApiResponse.paginated(
       res,

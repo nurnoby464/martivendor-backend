@@ -42,11 +42,19 @@ const PublicController = __importStar(require("./public.controller"));
 const validate_1 = require("../../middlewares/validate");
 const product_validation_1 = require("../product/product.validation");
 const public_validation_1 = require("./public.validation");
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const router = express_1.default.Router();
+const suggestLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 60_000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Too many requests, slow down." },
+});
 // ── /api/public/products ─────────────────────────────────────────
 router.get("/products", (0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), PublicController.getProducts);
 router.get("/product-filter-categories", (0, validate_1.validate)({ query: product_validation_1.productQuerySchema }), PublicController.getProductFilterCategories);
-router.get("/search/suggest", (0, validate_1.validate)({ query: public_validation_1.suggestionsSchema }), PublicController.getSuggestions);
+router.get("/search/suggest", (0, validate_1.validate)({ query: public_validation_1.suggestionsSchema }), suggestLimiter, PublicController.getSuggestions);
 router.get("/category/tree", PublicController.getCategoryTree);
 router.get("/categories/menu", PublicController.getPublicMergedCategories);
 router.get("/category", PublicController.getAllCategories);

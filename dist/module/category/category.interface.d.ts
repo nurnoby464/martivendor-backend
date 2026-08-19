@@ -2,6 +2,7 @@ import mongoose, { Document } from "mongoose";
 export interface ICategory {
     sellerId: mongoose.Types.ObjectId;
     name: string;
+    nameLower: string;
     slug: string;
     parentId: mongoose.Types.ObjectId | null;
     path: mongoose.Types.ObjectId[];

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateOPT = exports.makeLoginResponse = exports.profileModelMap = exports.makeToken = void 0;
 exports.generateAsin = generateAsin;
 exports.extractAsin = extractAsin;
+exports.escapeRegex = escapeRegex;
 const customer_schema_1 = __importDefault(require("../CRM/customer/customer.schema"));
 const staff_schema_1 = __importDefault(require("../CRM/staff/staff.schema"));
 const sellerStaff_schema_1 = require("../CRM/sellerStaff/sellerStaff.schema");
@@ -125,5 +126,8 @@ const ASIN_PATTERN = /-([T][23456789ABCDEFGHJKMNPQRSTUVWXYZ]{10})$/;
 function extractAsin(combinedSlug) {
     const match = combinedSlug.match(ASIN_PATTERN);
     return match?.[1] ?? null;
+}
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 //# sourceMappingURL=helper.js.map

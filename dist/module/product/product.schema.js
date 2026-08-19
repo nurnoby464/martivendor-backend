@@ -41,6 +41,10 @@ const ProductSchema = new mongoose_1.Schema({
         minlength: [2, "Name must be at least 2 characters"],
         maxlength: [200, "Name cannot exceed 200 characters"],
     },
+    nameLower: {
+        type: String,
+        index: true,
+    },
     slug: {
         type: String,
         required: true,
@@ -162,6 +166,9 @@ const ProductSchema = new mongoose_1.Schema({
 }, { timestamps: true });
 // ── Auto-generate SKU & calculate profit ──────────────────────────────────────
 ProductSchema.pre("save", async function () {
+    if (this.isModified("name")) {
+        this.nameLower = this.name.toLowerCase();
+    }
     // Auto SKU only on new documents without a manually provided SKU
     if (this.isNew && !this.sku) {
         const counter = await exports.ProductCounter.findOneAndUpdate({ sellerId: this.sellerId }, { $inc: { seq: 1 } }, { upsert: true, new: true });
@@ -198,6 +205,7 @@ ProductSchema.index({ sellerId: 1, stock: 1 });
 ProductSchema.index({ sellerId: 1, sku: 1 }, { unique: true });
 ProductSchema.index({ slug: 1 });
 ProductSchema.index({ sellerId: 1, showOnHomepage: 1 });
+ProductSchema.index({ isActive: 1, nameLower: 1 });
 const Product = (0, mongoose_1.model)("Product", ProductSchema);
 exports.default = Product;
 //# sourceMappingURL=product.schema.js.map

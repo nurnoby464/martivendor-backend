@@ -14,6 +14,10 @@ const CategorySchema = new mongoose_1.Schema({
         minlength: [2, "Min 2 characters"],
         maxlength: [100, "Max 100 characters"],
     },
+    nameLower: {
+        type: String,
+        index: true,
+    },
     slug: {
         type: String,
         required: true,
@@ -60,6 +64,9 @@ const CategorySchema = new mongoose_1.Schema({
 // a migration script, or the Mongo shell — so these derived fields
 // can never be forgotten or set incorrectly by hand.
 CategorySchema.pre("save", async function () {
+    if (this.isModified("name")) {
+        this.nameLower = this.name.toLowerCase();
+    }
     const CategoryModel = this.constructor;
     if (!this.parentId) {
         this.path = [];
@@ -85,6 +92,7 @@ CategorySchema.index({ sellerId: 1, slug: 1, parentId: 1 }, { unique: true });
 CategorySchema.index({ sellerId: 1, path: 1 });
 CategorySchema.index({ sellerId: 1, depth: 1 });
 CategorySchema.index({ slug: 1, parentId: 1 }); // supports public/homepage root grouping
+CategorySchema.index({ isActive: 1, nameLower: 1 });
 const Category = (0, mongoose_1.model)("Category", CategorySchema);
 exports.default = Category;
 //# sourceMappingURL=category.schema.js.map

@@ -9,12 +9,12 @@ import { useSkip } from "../../utils/useSkip";
 
 export const getCustomerList = async (
   query: GetCustomerQuery,
-  companyId: Types.ObjectId,
+  sellerId: Types.ObjectId,
 ) => {
-  const { page, limit, sort_by, sort_order, is_active, search } = query;
+  const { page, limit, sort_by, sort_order, is_active, search ,phone} = query;
 
   const filter: Record<string, unknown> = {
-    companyId,
+    sellerId,
     isActive: true,
   };
   if (search) {
@@ -23,6 +23,9 @@ export const getCustomerList = async (
       { phone: { $regex: search, $options: "i" } },
     ];
   }
+  // if(phone){
+  //   filter.phone =  { $regex: phone, $options: "i" } }
+  // }
   const [customers, total] = await Promise.all([
     Customer.find(filter)
       .skip(useSkip({ page, limit }))

@@ -1,5 +1,5 @@
 import { Document, Types } from "mongoose";
-import { PaymentMethod } from "../sales/sales.interface";
+import { PaymentMethod } from "../posSell/posSell.interface";
 import { TCreateOrderInput } from "./order.validation";
 
 export type TOrderStatus =

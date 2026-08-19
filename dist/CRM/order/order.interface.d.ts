@@ -1,5 +1,5 @@
 import { Document, Types } from "mongoose";
-import { PaymentMethod } from "../sales/sales.interface";
+import { PaymentMethod } from "../posSell/sales.interface";
 import { TCreateOrderInput } from "./order.validation";
 export type TOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 export type TPaymentStatus = "unpaid" | "partial" | "paid";

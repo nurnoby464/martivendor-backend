@@ -42,6 +42,8 @@ const mongoose_1 = require("mongoose");
 const express_1 = __importDefault(require("express"));
 const healper_1 = require("../utils/healper");
 const helper_1 = require("../utils/helper");
+const category_schema_1 = __importDefault(require("../module/category/category.schema"));
+const product_schema_1 = __importDefault(require("../module/product/product.schema"));
 const router = express_1.default.Router();
 router.post("/generateOrderNumber", async (req, res) => {
     const companyId = new mongoose_1.Types.ObjectId();
@@ -64,6 +66,14 @@ router.get("/extract", async (req, res) => {
 router.get("/extract", async (req, res) => {
     const { combinedSlug } = req.query;
     const result = (0, helper_1.extractAsin)(combinedSlug);
+    res.json({ num: result });
+});
+router.put("/make-product-lower-name", async (req, res) => {
+    const result = await product_schema_1.default.updateMany({}, [{ $set: { nameLower: { $toLower: "$name" } } }], { updatePipeline: true });
+    res.json({ num: result });
+});
+router.put("/make-seller-lower-name", async (req, res) => {
+    const result = await category_schema_1.default.updateMany({}, [{ $set: { nameLower: { $toLower: "$name" } } }], { updatePipeline: true });
     res.json({ num: result });
 });
 exports.DevRouter = router;

@@ -10,6 +10,10 @@ const sellerSchema = new mongoose_1.Schema({
         unique: true,
     },
     isPlatform: { type: Boolean, default: false },
+    nameLower: {
+        type: String,
+        index: true,
+    },
     name: { type: String, required: true, trim: true },
     slug: {
         type: String,
@@ -79,10 +83,14 @@ const sellerSchema = new mongoose_1.Schema({
     isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 sellerSchema.index({ status: 1, isPlatform: 1 });
+sellerSchema.index({ isActive: 1, nameLower: 1 });
 // partial unique index: enforces at most ONE isPlatform:true doc,
 // without restricting how many isPlatform:false (vendor) docs exist
 sellerSchema.index({ isPlatform: 1 }, { unique: true, partialFilterExpression: { isPlatform: true } });
 sellerSchema.pre("save", function () {
+    if (this.isModified("name")) {
+        this.nameLower = this.name.toLowerCase();
+    }
     if (this.isPlatform) {
         this.commissionRate = 0; // platform doesn't charge itself commission
         this.status = "approved"; // platform seller skips the approval workflow
