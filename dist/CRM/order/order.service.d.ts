@@ -1,7 +1,13 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { ICreateOrderPayload, IGetMyOrdersQuery } from "./order.interface";
 import { TGetOrderListQuery } from "./order.validation";
-export declare const createOrder: ({ sellerId, input }: ICreateOrderPayload) => Promise<never>;
+export declare const createOrder: ({ sellerId, input }: ICreateOrderPayload) => Promise<mongoose.Document<unknown, {}, import("./order.interface").IOrderDocument, {}, mongoose.DefaultSchemaOptions> & import("./order.interface").IOrderDocument & Required<{
+    _id: Types.ObjectId;
+}> & {
+    __v: number;
+} & {
+    id: string;
+}>;
 export declare const getAllOrder: (sellerId: Types.ObjectId, query: TGetOrderListQuery) => Promise<{
     orders: (import("./order.interface").IOrderDocument & Required<{
         _id: Types.ObjectId;

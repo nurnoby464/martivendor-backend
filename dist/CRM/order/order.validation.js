@@ -31,13 +31,13 @@ exports.createOrderBody = zod_1.z.object({
     // order items
     items: zod_1.z.array(orderItemSchema).min(1, "At least one item is required"),
     // delivery
-    shipping_address: shippingAddressSchema,
+    shippingAddress: shippingAddressSchema,
     // financials
-    discount_amount: zod_1.z.number().min(0).default(0),
-    tax_amount: zod_1.z.number().min(0).default(0),
-    shipping_charge: zod_1.z.number().min(0).default(0),
-    paid_amount: zod_1.z.number().min(0).default(0),
-    payment_method: zod_1.z
+    discountAmount: zod_1.z.number().min(0).default(0),
+    taxAmount: zod_1.z.number().min(0).default(0),
+    shippingCharge: zod_1.z.number().min(0).default(0),
+    paidAmount: zod_1.z.number().min(0).default(0),
+    paymentMethod: zod_1.z
         .enum([
         "cash",
         "cash_on_delivery",

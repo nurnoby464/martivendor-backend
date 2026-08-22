@@ -15,11 +15,10 @@ import {
 } from "../../middlewares/AuthenticateHelper";
 import { CompanyControllers } from "./seller.controller";
 import { CreateNavItemSchema, DeleteNavItemSchema, ReorderNavItemsBodySchema, UpdateNavItemSchema, UpdateParamsSchema } from "./seller.header.validation";
-import { companyIdentifier } from "../../middlewares/companyIdentifier";
 
 const router = express.Router();
-router.get("/my-company", companyIdentifier, CompanyControllers.getMyCompany);
-router.get("/nav-items", companyIdentifier, CompanyControllers.getHeaderNav);
+router.get("/my-company",  CompanyControllers.getMyCompany);
+router.get("/nav-items",  CompanyControllers.getHeaderNav);
 router.use(authenticate);
 router.use(verifySession);
 router.post(

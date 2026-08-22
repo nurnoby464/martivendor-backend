@@ -11,7 +11,6 @@ import {
   verifySession,
 } from "../../middlewares/AuthenticateHelper";
 import { registerCustomerSchema, registerSellerSchema } from "../user/user.validation";
-import { companyIdentifier } from "../../middlewares/companyIdentifier";
 import { resendOTPSchema, UpdateProfileSchema, validateOTPSchema } from "./auth.validation";
 const router = express.Router();
 // public
@@ -20,7 +19,6 @@ router.post("/refresh", AuthController.refresh);
 router.post(
   "/register",
   validate({ body: registerCustomerSchema }),
-  companyIdentifier,
   AuthController.registerCustomer,
 );
 router.post(

@@ -6,7 +6,7 @@ export interface ICustomer {
 
   name: string;
   phone: string;
-  email: string | null;
+  email?: string;
   image: string | null;
   dob: Date | null;
   gender: "male" | "female" | "other" | null;

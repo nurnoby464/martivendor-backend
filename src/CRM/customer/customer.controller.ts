@@ -4,7 +4,8 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import * as CustomerServices from "./customer.service";
 import { Request, Response } from "express";
 import { AppError } from "../../middlewares/appError";
-import { GetCustomerQuery } from "./customer.validation";
+import { CreateCustomerInput, GetCustomerQuery } from "./customer.validation";
+import { CreateBannerInput } from "../../module/siteManagement/banner/banner.validation";
 
 export const getCustomerList = asyncHandler(
   async (req: Request, res: Response) => {
@@ -27,5 +28,20 @@ export const getCustomerList = asyncHandler(
       page,
       limit,
     );
+  },
+);
+export const createCustomer = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = req.user.sellerId;
+
+    if (!sellerId) {
+      throw new AppError("Now found seller.", 404);
+    }
+
+    const result = await CustomerServices.createCustomer(
+      sellerId,
+      req.body as CreateCustomerInput,
+    );
+    return ApiResponse.success(res, result, "Customer created successfully");
   },
 );

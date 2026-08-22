@@ -74,16 +74,23 @@ const resolveCustomer = async (
   netAmount: number,
   effectivePaid: number,
   session: mongoose.ClientSession,
-  customerName?: string,
-  customerPhone?: string,
-): Promise<Types.ObjectId | null> => {
-  let existing = await Customer.findOne({
+  customerId: string | null,
+): Promise<{ _id: Types.ObjectId; name: string; phone: string } | null> => {
+  // Walk-in sale — no customer attached, nothing to resolve.
+  if (!customerId) return null;
+
+  const existing = await Customer.findOne({
     sellerId,
-    phone: "customerPhone",
+    _id: new Types.ObjectId(customerId),
   }).session(session);
 
-  if (existing) {
-    await Customer.updateOne({ _id: existing._id }, [
+  if (!existing) {
+    throw new AppError("Customer not found", 404);
+  }
+
+  const updated = await Customer.findOneAndUpdate(
+    { _id: existing._id },
+    [
       {
         $set: {
           totalPurchased: { $add: ["$totalPurchased", netAmount] },
@@ -110,37 +117,16 @@ const resolveCustomer = async (
               },
             ],
           },
-          name: customerName,
           lastPurchasedAt: new Date(),
         },
       },
-    ]).session(session);
-    return existing._id;
-  }
-  const totalPurchased = netAmount;
-  const totalPaid = effectivePaid;
-  const due = Math.max(totalPurchased - totalPaid, 0);
-  const credit = Math.max(totalPaid - totalPurchased, 0);
-  if (!customerPhone || !customerName) {
-    return null;
-  }
-  const [customer] = await Customer.create(
-    [
-      {
-        sellerId,
-        name: customerName,
-        phone: customerPhone,
-        totalPurchased,
-        totalPaid,
-        due,
-        credit,
-        lastPurchasedAt: new Date(),
-      },
     ],
-    { session },
+    { session, returnDocument: "after", updatePipeline: true },
   );
-  if (!customer) throw new AppError("Customer not created", 400);
-  return customer._id;
+
+  if (!updated) throw new AppError("Failed to update customer", 500);
+
+  return { _id: updated._id, name: updated.name, phone: updated.phone };
 };
 
 // ─── Main Service ─────────────────────────────────────────
@@ -362,7 +348,7 @@ const resolveCustomer = async (
 export const createSale = async (payload: ICreateSalePayload) => {
   const { sellerId, createdBy, input, createdByType } = payload;
   const {
-    customer,
+    customerId: inputCustomerId,
     items,
     paymentMethod,
     paidAmount,
@@ -370,9 +356,6 @@ export const createSale = async (payload: ICreateSalePayload) => {
     discountType: posDiscountType,
     discountValue: posDiscountValue,
   } = input;
-
-  console.log("posDiscountType", posDiscountType);
-  console.log("posDiscountValue", posDiscountValue);
 
   // 1. block online payments — this endpoint is offline-only
   if (!OFFLINE_PAYMENT_METHODS.has(paymentMethod)) {
@@ -385,10 +368,6 @@ export const createSale = async (payload: ICreateSalePayload) => {
   if (paidAmount < 0) {
     throw new AppError("Paid amount cannot be negative", 400);
   }
-
-  // Prefer the nested `customer` object; fall back to legacy top-level fields.
-  const resolvedCustomerName = customer?.name?.trim();
-  const resolvedCustomerPhone = customer?.phone?.trim();
 
   const sellerObjectId = new Types.ObjectId(sellerId);
 
@@ -550,7 +529,7 @@ export const createSale = async (payload: ICreateSalePayload) => {
       posDiscountType ?? null,
       posDiscountValue ?? 0,
     );
-  
+
     const discountTotal = itemDiscountTotal + posDiscountAmount;
     const netAmount = Math.max(grossAmount - discountTotal, 0);
 
@@ -572,13 +551,12 @@ export const createSale = async (payload: ICreateSalePayload) => {
           : "partial";
 
     // 7. resolve or create customer
-    const customerId = await resolveCustomer(
+    const resolvedCustomer = await resolveCustomer(
       sellerObjectId,
       netAmount,
       effectivePaid,
       session,
-      customer?.name,
-      customer?.phone,
+      inputCustomerId,
     );
 
     // 8. deduct stock atomically — guard against a race between the read in
@@ -611,14 +589,13 @@ export const createSale = async (payload: ICreateSalePayload) => {
         {
           sellerId: sellerObjectId,
           saleCode,
-          ...(resolvedCustomerName &&
-            resolvedCustomerPhone && {
-              customer: {
-                name: resolvedCustomerName,
-                phone: resolvedCustomerPhone,
-                customerId,
-              },
-            }),
+          ...(resolvedCustomer && {
+            customer: {
+              name: resolvedCustomer.name,
+              phone: resolvedCustomer.phone,
+              customerId: resolvedCustomer._id,
+            },
+          }),
           items: calculatedItems,
           grossAmount,
           discountTotal,

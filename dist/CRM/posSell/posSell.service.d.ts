@@ -6,12 +6,12 @@ interface ICreateSalePayload {
     input: CreateSaleInput;
     createdByType: "staff" | "system";
 }
-export declare const createSale: (payload: ICreateSalePayload) => Promise<(mongoose.Document<unknown, {}, import("./posSell.interface").ISaleDocument, {}, mongoose.DefaultSchemaOptions> & import("./posSell.interface").ISaleDocument & Required<{
+export declare const createSale: (payload: ICreateSalePayload) => Promise<mongoose.Document<unknown, {}, import("./posSell.interface").ISaleDocument, {}, mongoose.DefaultSchemaOptions> & import("./posSell.interface").ISaleDocument & Required<{
     _id: Types.ObjectId;
 }> & {
     __v: number;
 } & {
     id: string;
-}) | undefined>;
+}>;
 export {};
 //# sourceMappingURL=posSell.service.d.ts.map

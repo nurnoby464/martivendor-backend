@@ -11,21 +11,27 @@ export type TOrderStatus =
 
 export type TPaymentStatus = "unpaid" | "partial" | "paid";
 
+// order.interface.ts
+// order.interface.ts
 export interface IOrderItem {
   product: Types.ObjectId;
   variant: Types.ObjectId;
-  name: string; // snapshot — product name at order time
-  sku: string; // snapshot
-  image:string | null;
+  name: string;
+  sku: string;
+  image: string | null;
   quantity: number;
   sellingPrice: number;
-  total_price: number; // quantity * unit_price
+  discountType: "flat" | "percentage" | null;
+  discountValue: number;
+  discountAmount: number;
+  taxRate: number;
+  taxAmount: number;
+  totalPrice: number;
 }
 
 export interface IShippingAddress {
   name: string;
   phone: string;
-  email: string | null;
   address: string;
   city: string;
   zip: string | null;
@@ -33,25 +39,32 @@ export interface IShippingAddress {
 
 export interface IOrder {
   sellerId: Types.ObjectId;
-  order_number: string; // e.g. "ORD-0001"
+  orderNumber: string;
   customer: Types.ObjectId;
-
   items: IOrderItem[];
-  shipping_address: IShippingAddress;
-
+  shippingAddress: IShippingAddress;
   subtotal: number;
-  discount_amount: number;
-  tax_amount: number;
-  shipping_charge: number;
-  grand_total: number;
-
-  paid_amount: number;
-  due_amount: number; // grand_total - paid_amount
-
-  payment_status: TPaymentStatus;
-  payment_method: PaymentMethod | null;
-  order_status: TOrderStatus;
-
+  discountAmount: number;
+  taxAmount: number;
+  shippingCharge: number;
+  grandTotal: number;
+  paidAmount: number;
+  dueAmount: number;
+  paymentStatus: "due" | "partial" | "paid";
+  paymentMethod:
+    | "cash"
+    | "cash_on_delivery"
+    | "card"
+    | "mobile_banking"
+    | "credit"
+    | "online"
+    | null;
+  orderStatus:
+    | "pending"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   note: string | null;
 }
 
@@ -86,6 +99,6 @@ type OrderStatus =
 export interface IGetMyOrdersQuery {
   page: number;
   limit: number;
-  order_status?: OrderStatus | "all";
+  orderStatus?: OrderStatus | "all";
   search?: string; // order_number search
 }

@@ -43,13 +43,12 @@ const validate_1 = require("../../middlewares/validate");
 const auth_schema_1 = require("./auth.schema");
 const AuthenticateHelper_1 = require("../../middlewares/AuthenticateHelper");
 const user_validation_1 = require("../user/user.validation");
-const companyIdentifier_1 = require("../../middlewares/companyIdentifier");
 const auth_validation_1 = require("./auth.validation");
 const router = express_1.default.Router();
 // public
 router.post("/login", (0, validate_1.validate)({ body: auth_schema_1.loginSchema }), AuthController.login);
 router.post("/refresh", AuthController.refresh);
-router.post("/register", (0, validate_1.validate)({ body: user_validation_1.registerCustomerSchema }), companyIdentifier_1.companyIdentifier, AuthController.registerCustomer);
+router.post("/register", (0, validate_1.validate)({ body: user_validation_1.registerCustomerSchema }), AuthController.registerCustomer);
 router.post("/be-seller", (0, validate_1.validate)({ body: user_validation_1.registerSellerSchema }), AuthController.registerSeller);
 router.post("/be-seller-otp", (0, validate_1.validate)({ body: auth_validation_1.validateOTPSchema }), AuthController.verifySellerOPT);
 router.post("/resend-otp", (0, validate_1.validate)({ body: auth_validation_1.resendOTPSchema }), AuthController.resendOPT);

@@ -14,7 +14,7 @@ const customerSchema = new mongoose_1.Schema({
     },
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
-    email: { type: String, default: null, trim: true },
+    email: { type: String, trim: true },
     addresses: [
         {
             // _id: false,
@@ -50,7 +50,12 @@ const customerSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 customerSchema.index({ sellerId: 1, phone: 1 }, { unique: true });
-customerSchema.index({ sellerId: 1, email: 1 }, { unique: true, sparse: true });
+customerSchema.index({ sellerId: 1, email: 1 }, {
+    unique: true,
+    partialFilterExpression: {
+        email: { $type: "string" },
+    },
+});
 customerSchema.index({ sellerId: 1, due: -1 }); // desending order due report
 customerSchema.index({ sellerId: 1, lastPurchasedAt: -1 }); // recent customers
 const Customer = (0, mongoose_1.model)("Customer", customerSchema);

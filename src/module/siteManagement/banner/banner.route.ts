@@ -11,7 +11,6 @@ import {
   BannerParams,
 } from "../banner/banner.validation";
 import { validate } from "../../../middlewares/validate";
-import { companyIdentifier } from "../../../middlewares/companyIdentifier";
 import {
   authenticate,
   verifySession,
@@ -21,13 +20,13 @@ import { guard } from "../../../middlewares/guard";
 const router = Router();
 
 // Public routes (no auth required for getting active banners)
-router.get("/active",companyIdentifier, BannerController.getActiveBanners);
+router.get("/active", BannerController.getActiveBanners);
 
 // Admin routes (add authentication middleware in production)
 router.get(
   "/",
   validate({ query: getBannersQuerySchema }),
-  companyIdentifier,
+
   BannerController.getAllBanners,
 );
 

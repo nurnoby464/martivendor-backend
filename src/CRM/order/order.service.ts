@@ -8,6 +8,7 @@ import {
   ICreateOrderPayload,
   IEmptyOrderItem,
   IGetMyOrdersQuery,
+  IOrderItem,
   OrderQuery,
 } from "./order.interface";
 import {
@@ -20,6 +21,7 @@ import { useSkip } from "../../utils/useSkip";
 import { TGetOrderListQuery, TShippingAddress } from "./order.validation";
 import Invoice from "../invoice/invoice.schema";
 import User from "../../module/user/user.schema";
+import { PaymentStatus } from "../posSell/posSell.interface";
 
 const resolveCustomer = async (
   sellerId: Types.ObjectId,
@@ -97,7 +99,7 @@ const resolveCustomer = async (
       {
         sellerId,
         name,
-        email,
+        ...(email !== null && { email }),
         phone,
         ...(userId && { userId }),
         addresses: newAddress ? [newAddress] : [],
@@ -134,12 +136,12 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
     userId,
     email,
     items,
-    shipping_address,
-    discount_amount,
-    tax_amount,
-    shipping_charge,
-    paid_amount,
-    payment_method,
+    shippingAddress,
+    discountAmount,
+    taxAmount,
+    shippingCharge,
+    paidAmount,
+    paymentMethod,
     note,
   } = input;
 
@@ -169,7 +171,7 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
     console.log("product", product);
     const productMap = new Map(product.map((p) => [p._id.toString(), p]));
     // 3 validate stock
-    const orderItem = [];
+    const orderItem: IOrderItem[] = [];
 
     for (const item of items) {
       const variant = variantMap.get(item.variant_id);
@@ -190,8 +192,8 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
         );
       }
       const unitPrice = variant.sellingPrice;
-      const taxRete = product.taxRate;
-      const taxAmount = Math.round((unitPrice * item.quantity * taxRete) / 100);
+      const taxRate = product.taxRate;
+      const taxAmount = Math.round((unitPrice * item.quantity * taxRate) / 100);
 
       const discountAmount = calculateDiscount({
         sellingPrice: unitPrice,
@@ -201,7 +203,7 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
       });
       const totalPrice = unitPrice * item.quantity - discountAmount;
       orderItem.push({
-        total_price: totalPrice,
+        totalPrice: totalPrice,
         sellingPrice: unitPrice,
         quantity: item.quantity,
         sku: variant.sku,
@@ -213,11 +215,11 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
         discountValue: variant.discountValue ?? 0,
         discountAmount,
         taxAmount,
-        taxRete,
+        taxRate,
       });
     }
     // 4. calculate total
-    const subTotal = orderItem.reduce((sum, item) => sum + item.total_price, 0);
+    const subTotal = orderItem.reduce((sum, item) => sum + item.totalPrice, 0);
     const discountTotal = orderItem.reduce(
       (sum, item) => sum + item.discountAmount,
       0,
@@ -227,18 +229,18 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
     const grandTotal = subTotal + totalTax + shippingCharge;
     //  check is paid or unpaid or partial
     const effectivePaid =
-      payment_method === "cash_on_delivery"
+      paymentMethod === "cash_on_delivery"
         ? 0
-        : Math.min(paid_amount, grandTotal);
+        : Math.min(paidAmount, grandTotal);
     const dueAmount = Math.max(grandTotal - effectivePaid, 0);
 
-    let paymentStatus;
-    if (payment_method === "cash_on_delivery") {
-      paymentStatus = "unpaid";
+    let paymentStatus: PaymentStatus;
+    if (paymentMethod === "cash_on_delivery") {
+      paymentStatus = "due";
     } else {
       paymentStatus =
         effectivePaid <= 0
-          ? "unpaid"
+          ? "due"
           : effectivePaid >= grandTotal
             ? "paid"
             : "partial";
@@ -249,7 +251,7 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
       name,
       phone,
       email,
-      shipping_address,
+      shippingAddress,
       session,
       userId ? new Types.ObjectId(userId) : undefined,
     );
@@ -310,20 +312,20 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
       [
         {
           sellerId: sellerId,
-          order_number: orderNumber,
+          orderNumber: orderNumber,
           customer: customerId,
           items: orderItem,
-          shipping_address,
+          shippingAddress,
           subtotal: subTotal,
-          discount_amount: discountTotal,
-          tax_amount: orderItem.reduce((sum, item) => sum + item.taxAmount, 0),
-          shipping_charge: shippingCharge,
-          grand_total: grandTotal,
-          paid_amount: effectivePaid,
-          due_amount: dueAmount,
-          payment_status: paymentStatus,
-          payment_method,
-          order_status: "pending",
+          discountAmount: discountTotal,
+          taxAmount: orderItem.reduce((sum, item) => sum + item.taxAmount, 0),
+          shippingCharge: shippingCharge,
+          grandTotal: grandTotal,
+          paidAmount: effectivePaid,
+          dueAmount: dueAmount,
+          paymentStatus: paymentStatus,
+          paymentMethod,
+          orderStatus: "pending",
           note: note ?? null,
         },
       ],
@@ -344,14 +346,14 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
           customer: order.customer,
           items: order.items,
           subtotal: order.subtotal,
-          discountAmount: order.discount_amount,
-          taxAmount: order.tax_amount,
-          shippingCharge: order.shipping_charge,
-          grandTotal: order.grand_total,
-          paidAmount: order.paid_amount,
-          dueAmount: order.due_amount,
-          paymentMethod: order.payment_method,
-          status: order.payment_status,
+          discountAmount: order.discountAmount,
+          taxAmount: order.taxAmount,
+          shippingCharge: order.shippingCharge,
+          grandTotal: order.grandTotal,
+          paidAmount: order.paidAmount,
+          dueAmount: order.dueAmount,
+          paymentMethod: order.paymentMethod,
+          status: order.paymentStatus,
           issuedAt: new Date(),
           deliveryDate,
           paidDate: paymentStatus === "paid" ? new Date() : null,
@@ -445,7 +447,7 @@ export const getMyOrders = async (
   sellerId: Types.ObjectId,
   query: IGetMyOrdersQuery,
 ) => {
-  const { page = 1, limit = 10, order_status, search } = query;
+  const { page = 1, limit = 10, orderStatus, search } = query;
 
   const skip = (page - 1) * limit;
 
@@ -455,8 +457,8 @@ export const getMyOrders = async (
     customer: new Types.ObjectId(customerId),
   };
   console.log(match);
-  if (order_status && order_status !== "all") {
-    match.order_status = order_status;
+  if (orderStatus && orderStatus !== "all") {
+    match.orderStatus = orderStatus;
   }
 
   if (search?.trim()) {
@@ -553,7 +555,7 @@ export const getMyOrderById = async (
     throw new AppError("Invalid order ID", 400);
   }
 
-  const order = await Order.findOne({_id:new Types.ObjectId(orderId)})
+  const order = await Order.findOne({ _id: new Types.ObjectId(orderId) })
     .populate({
       path: "items.product",
       select: "name slug images",

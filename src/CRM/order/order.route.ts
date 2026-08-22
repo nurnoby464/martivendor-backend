@@ -6,7 +6,6 @@ import {
   getMyOrdersQuerySchema,
   getOrderListQuery,
 } from "./order.validation";
-import { companyIdentifier } from "../../middlewares/companyIdentifier";
 import {
   authenticate,
   verifySession,
@@ -36,7 +35,6 @@ router.get(
 );
 router.get(
   "/",
-  companyIdentifier,
   validate({ query: getOrderListQuery }),
   OrderController.getAllOrder,
 );

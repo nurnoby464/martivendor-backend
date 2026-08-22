@@ -35,15 +35,15 @@ export const createOrderBody = z.object({
   items: z.array(orderItemSchema).min(1, "At least one item is required"),
 
   // delivery
-  shipping_address: shippingAddressSchema,
+  shippingAddress: shippingAddressSchema,
 
   // financials
-  discount_amount: z.number().min(0).default(0),
-  tax_amount: z.number().min(0).default(0),
-  shipping_charge: z.number().min(0).default(0),
-  paid_amount: z.number().min(0).default(0),
+  discountAmount: z.number().min(0).default(0),
+  taxAmount: z.number().min(0).default(0),
+  shippingCharge: z.number().min(0).default(0),
+  paidAmount: z.number().min(0).default(0),
 
-  payment_method: z
+  paymentMethod: z
     .enum([
       "cash",
       "cash_on_delivery",

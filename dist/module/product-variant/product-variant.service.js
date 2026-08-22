@@ -608,6 +608,7 @@ const getMyInventory = async (sellerId, query) => {
                             showOnHomepage: 1,
                             tags: 1,
                             hasDiscount: 1,
+                            discount: 1,
                             variants: 1,
                         },
                     },

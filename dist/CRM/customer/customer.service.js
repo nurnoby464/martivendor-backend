@@ -3,13 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCustomerList = void 0;
+exports.createCustomer = exports.getCustomerList = void 0;
+const appError_1 = require("../../middlewares/appError");
 const customer_schema_1 = __importDefault(require("./customer.schema"));
 const useSkip_1 = require("../../utils/useSkip");
-const getCustomerList = async (query, companyId) => {
-    const { page, limit, sort_by, sort_order, is_active, search } = query;
+const getCustomerList = async (query, sellerId) => {
+    const { page, limit, sort_by, sort_order, is_active, search, phone } = query;
     const filter = {
-        companyId,
+        sellerId,
         isActive: true,
     };
     if (search) {
@@ -18,6 +19,9 @@ const getCustomerList = async (query, companyId) => {
             { phone: { $regex: search, $options: "i" } },
         ];
     }
+    // if(phone){
+    //   filter.phone =  { $regex: phone, $options: "i" } }
+    // }
     const [customers, total] = await Promise.all([
         customer_schema_1.default.find(filter)
             .skip((0, useSkip_1.useSkip)({ page, limit }))
@@ -29,4 +33,15 @@ const getCustomerList = async (query, companyId) => {
     return { customers, total, page, limit };
 };
 exports.getCustomerList = getCustomerList;
+const createCustomer = async (sellerId, input) => {
+    const { name, phone } = input;
+    const existing = await customer_schema_1.default.findOne({ sellerId, phone }).lean();
+    if (existing)
+        throw new appError_1.AppError("This customer already exist", 409);
+    const newCustomer = await customer_schema_1.default.create({ name, phone, sellerId });
+    if (!newCustomer)
+        throw new appError_1.AppError("Failed to create customer", 500);
+    return newCustomer;
+};
+exports.createCustomer = createCustomer;
 //# sourceMappingURL=customer.service.js.map

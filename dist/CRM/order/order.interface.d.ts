@@ -1,5 +1,4 @@
 import { Document, Types } from "mongoose";
-import { PaymentMethod } from "../posSell/sales.interface";
 import { TCreateOrderInput } from "./order.validation";
 export type TOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 export type TPaymentStatus = "unpaid" | "partial" | "paid";
@@ -11,32 +10,36 @@ export interface IOrderItem {
     image: string | null;
     quantity: number;
     sellingPrice: number;
-    total_price: number;
+    discountType: "flat" | "percentage" | null;
+    discountValue: number;
+    discountAmount: number;
+    taxRate: number;
+    taxAmount: number;
+    totalPrice: number;
 }
 export interface IShippingAddress {
     name: string;
     phone: string;
-    email: string | null;
     address: string;
     city: string;
     zip: string | null;
 }
 export interface IOrder {
     sellerId: Types.ObjectId;
-    order_number: string;
+    orderNumber: string;
     customer: Types.ObjectId;
     items: IOrderItem[];
-    shipping_address: IShippingAddress;
+    shippingAddress: IShippingAddress;
     subtotal: number;
-    discount_amount: number;
-    tax_amount: number;
-    shipping_charge: number;
-    grand_total: number;
-    paid_amount: number;
-    due_amount: number;
-    payment_status: TPaymentStatus;
-    payment_method: PaymentMethod | null;
-    order_status: TOrderStatus;
+    discountAmount: number;
+    taxAmount: number;
+    shippingCharge: number;
+    grandTotal: number;
+    paidAmount: number;
+    dueAmount: number;
+    paymentStatus: "due" | "partial" | "paid";
+    paymentMethod: "cash" | "cash_on_delivery" | "card" | "mobile_banking" | "credit" | "online" | null;
+    orderStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
     note: string | null;
 }
 export interface IOrderDocument extends IOrder, Document {
@@ -60,7 +63,7 @@ type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancell
 export interface IGetMyOrdersQuery {
     page: number;
     limit: number;
-    order_status?: OrderStatus | "all";
+    orderStatus?: OrderStatus | "all";
     search?: string;
 }
 export {};

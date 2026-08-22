@@ -26,9 +26,10 @@ const calculateDiscount = (data) => {
     const { sellingPrice, quantity, discountType, discountValue } = data;
     if (!discountType || !discountValue)
         return 0;
-    if (discountType === "flat")
+    if (discountType === "flat") {
         return discountValue * quantity;
-    return Math.round((sellingPrice * discountValue) / 100) * quantity;
+    }
+    return (sellingPrice * discountValue) / 100 * quantity;
 };
 exports.calculateDiscount = calculateDiscount;
 //# sourceMappingURL=healper.js.map

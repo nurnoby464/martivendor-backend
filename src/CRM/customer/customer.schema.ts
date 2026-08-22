@@ -16,7 +16,7 @@ const customerSchema = new Schema<ICustomerDocument>(
 
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
-    email: { type: String, default: null, trim: true },
+    email: { type: String, trim: true },
     addresses: [
       {
         // _id: false,
@@ -58,7 +58,12 @@ const customerSchema = new Schema<ICustomerDocument>(
 customerSchema.index({ sellerId: 1, phone: 1 }, { unique: true });
 customerSchema.index(
   { sellerId: 1, email: 1 },
-  { unique: true, sparse: true },
+  {
+    unique: true,
+    partialFilterExpression: {
+      email: { $type: "string" },
+    },
+  },
 );
 customerSchema.index({ sellerId: 1, due: -1 }); // desending order due report
 customerSchema.index({ sellerId: 1, lastPurchasedAt: -1 }); // recent customers

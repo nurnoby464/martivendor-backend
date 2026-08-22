@@ -1,7 +1,6 @@
 import express from "express";
 
 import * as PublicController from "./public.controller";
-import { companyIdentifier } from "../../middlewares/companyIdentifier";
 import { validate } from "../../middlewares/validate";
 import { productQuerySchema } from "../product/product.validation";
 import { suggestionsSchema } from "./public.validation";

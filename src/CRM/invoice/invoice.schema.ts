@@ -67,8 +67,8 @@ const invoiceSchema = new Schema<IInvoiceDocument>(
 
     status: {
       type: String,
-      enum: ["unpaid", "partial", "paid", "cancelled"],
-      default: "unpaid",
+      enum: ["unpaid", "partial", "paid", "cancelled","due"],
+      default: "due",
     },
 
     issuedAt: { type: Date, required: true },

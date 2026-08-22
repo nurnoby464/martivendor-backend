@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.customerQuerySchema = exports.createSaleSchema = void 0;
+exports.createCustomerSchema = exports.customerQuerySchema = exports.createSaleSchema = void 0;
 const zod_1 = require("zod");
 const saleItemSchema = zod_1.z.object({
     productId: zod_1.z.string().min(1, "Product ID is required"),
@@ -36,6 +36,7 @@ exports.customerQuerySchema = zod_1.z.object({
         .optional()
         .transform((v) => parseInt(v ?? "10")),
     search: zod_1.z.string().trim().optional(),
+    phone: zod_1.z.string().trim().optional(),
     is_active: zod_1.z
         .enum(["true", "false"])
         .optional()
@@ -49,5 +50,9 @@ exports.customerQuerySchema = zod_1.z.object({
         .optional()
         .transform((v) => (v === "asc" ? 1 : -1))
         .default(1),
+});
+exports.createCustomerSchema = zod_1.z.object({
+    name: zod_1.z.string().trim().min(3, "At list 3 letter"),
+    phone: zod_1.z.string().trim(),
 });
 //# sourceMappingURL=customer.validation.js.map

@@ -1,1 +1,1 @@
-{"version":3,"file":"customer.schema.d.ts","sourceRoot":"","sources":["../../../src/CRM/customer/customer.schema.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,iBAAiB,EAAE,MAAM,sBAAsB,CAAC;AAgEzD,QAAA,MAAM,QAAQ;;;;;;0BAAuD,CAAC;AACtE,eAAe,QAAQ,CAAC"}
+{"version":3,"file":"customer.schema.d.ts","sourceRoot":"","sources":["../../../src/CRM/customer/customer.schema.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,iBAAiB,EAAE,MAAM,sBAAsB,CAAC;AAqEzD,QAAA,MAAM,QAAQ;;;;;;0BAAuD,CAAC;AACtE,eAAe,QAAQ,CAAC"}

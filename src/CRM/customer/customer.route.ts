@@ -15,8 +15,31 @@ router.get(
   authenticate,
   saleAnAuthenticateAndUnauthenticated,
   verifySession,
-  guard("super_admin", "account", "sales", "admin","seller","seller_staff","staff"),
+  guard(
+    "super_admin",
+    "account",
+    "sales",
+    "admin",
+    "seller",
+    "seller_staff",
+    "staff",
+  ),
   validate({ query: customerQuerySchema }),
   CustomerController.getCustomerList,
+);
+router.post(
+  "/",
+  authenticate,
+  verifySession,
+  guard(
+    "super_admin",
+    "account",
+    "sales",
+    "admin",
+    "seller",
+    "seller_staff",
+    "staff",
+  ),
+  CustomerController.createCustomer,
 );
 export const CustomerRouter = router;

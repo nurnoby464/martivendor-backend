@@ -36,16 +36,16 @@ export interface IInvoice {
   paidAmount: number;
   dueAmount: number;
 
- paymentMethod:
-  | "cash"
-  | "cash_on_delivery"
-  | "card"
-  | "mobile_banking"
-  | "credit"
-  | "online"
-  | null;
+  paymentMethod:
+    | "cash"
+    | "cash_on_delivery"
+    | "card"
+    | "mobile_banking"
+    | "credit"
+    | "online"
+    | null;
 
-  status: "unpaid" | "partial" | "paid" | "cancelled";
+  status: "unpaid" | "partial" | "paid" | "cancelled" | "due";
 
   issuedAt: Date;
   deliveryDate: Date | null; // estimated delivery

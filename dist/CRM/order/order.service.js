@@ -100,7 +100,7 @@ const resolveCustomer = async (sellerId, name, phone, email, shipping_address, s
         {
             sellerId,
             name,
-            email,
+            ...(email !== null && { email }),
             phone,
             ...(userId && { userId }),
             addresses: newAddress ? [newAddress] : [],
@@ -121,7 +121,7 @@ const resolveCustomer = async (sellerId, name, phone, email, shipping_address, s
     return customer._id;
 };
 const createOrder = async ({ sellerId, input }) => {
-    const { name, phone, userId, email, items, shipping_address, discount_amount, tax_amount, shipping_charge, paid_amount, payment_method, note, } = input;
+    const { name, phone, userId, email, items, shippingAddress, discountAmount, taxAmount, shippingCharge, paidAmount, paymentMethod, note, } = input;
     const session = await mongoose_1.default.startSession();
     try {
         await session.startTransaction();
@@ -161,8 +161,8 @@ const createOrder = async ({ sellerId, input }) => {
                 throw new appError_1.AppError(`Insufficient stock for ${product.name} - ${variant.sku}. Available: ${variant.stock}`, 400);
             }
             const unitPrice = variant.sellingPrice;
-            const taxRete = product.taxRate;
-            const taxAmount = Math.round((unitPrice * item.quantity * taxRete) / 100);
+            const taxRate = product.taxRate;
+            const taxAmount = Math.round((unitPrice * item.quantity * taxRate) / 100);
             const discountAmount = (0, healper_1.calculateDiscount)({
                 sellingPrice: unitPrice,
                 quantity: item.quantity,
@@ -171,7 +171,7 @@ const createOrder = async ({ sellerId, input }) => {
             });
             const totalPrice = unitPrice * item.quantity - discountAmount;
             orderItem.push({
-                total_price: totalPrice,
+                totalPrice: totalPrice,
                 sellingPrice: unitPrice,
                 quantity: item.quantity,
                 sku: variant.sku,
@@ -183,34 +183,34 @@ const createOrder = async ({ sellerId, input }) => {
                 discountValue: variant.discountValue ?? 0,
                 discountAmount,
                 taxAmount,
-                taxRete,
+                taxRate,
             });
         }
         // 4. calculate total
-        const subTotal = orderItem.reduce((sum, item) => sum + item.total_price, 0);
+        const subTotal = orderItem.reduce((sum, item) => sum + item.totalPrice, 0);
         const discountTotal = orderItem.reduce((sum, item) => sum + item.discountAmount, 0);
         const shippingCharge = 60;
         const totalTax = orderItem.reduce((sum, item) => sum + item.taxAmount, 0);
         const grandTotal = subTotal + totalTax + shippingCharge;
         //  check is paid or unpaid or partial
-        const effectivePaid = payment_method === "cash_on_delivery"
+        const effectivePaid = paymentMethod === "cash_on_delivery"
             ? 0
-            : Math.min(paid_amount, grandTotal);
+            : Math.min(paidAmount, grandTotal);
         const dueAmount = Math.max(grandTotal - effectivePaid, 0);
         let paymentStatus;
-        if (payment_method === "cash_on_delivery") {
-            paymentStatus = "unpaid";
+        if (paymentMethod === "cash_on_delivery") {
+            paymentStatus = "due";
         }
         else {
             paymentStatus =
                 effectivePaid <= 0
-                    ? "unpaid"
+                    ? "due"
                     : effectivePaid >= grandTotal
                         ? "paid"
                         : "partial";
         }
         // 5. resolve customer
-        const customerId = await resolveCustomer(sellerId, name, phone, email, shipping_address, session, userId ? new mongoose_1.Types.ObjectId(userId) : undefined);
+        const customerId = await resolveCustomer(sellerId, name, phone, email, shippingAddress, session, userId ? new mongoose_1.Types.ObjectId(userId) : undefined);
         // 6. update customer info
         await customer_schema_1.default.updateOne({ _id: customerId }, [
             {
@@ -257,20 +257,20 @@ const createOrder = async ({ sellerId, input }) => {
         const [order] = await order_schema_1.default.create([
             {
                 sellerId: sellerId,
-                order_number: orderNumber,
+                orderNumber: orderNumber,
                 customer: customerId,
                 items: orderItem,
-                shipping_address,
+                shippingAddress,
                 subtotal: subTotal,
-                discount_amount: discountTotal,
-                tax_amount: orderItem.reduce((sum, item) => sum + item.taxAmount, 0),
-                shipping_charge: shippingCharge,
-                grand_total: grandTotal,
-                paid_amount: effectivePaid,
-                due_amount: dueAmount,
-                payment_status: paymentStatus,
-                payment_method,
-                order_status: "pending",
+                discountAmount: discountTotal,
+                taxAmount: orderItem.reduce((sum, item) => sum + item.taxAmount, 0),
+                shippingCharge: shippingCharge,
+                grandTotal: grandTotal,
+                paidAmount: effectivePaid,
+                dueAmount: dueAmount,
+                paymentStatus: paymentStatus,
+                paymentMethod,
+                orderStatus: "pending",
                 note: note ?? null,
             },
         ], { session });
@@ -288,14 +288,14 @@ const createOrder = async ({ sellerId, input }) => {
                 customer: order.customer,
                 items: order.items,
                 subtotal: order.subtotal,
-                discountAmount: order.discount_amount,
-                taxAmount: order.tax_amount,
-                shippingCharge: order.shipping_charge,
-                grandTotal: order.grand_total,
-                paidAmount: order.paid_amount,
-                dueAmount: order.due_amount,
-                paymentMethod: order.payment_method,
-                status: order.payment_status,
+                discountAmount: order.discountAmount,
+                taxAmount: order.taxAmount,
+                shippingCharge: order.shippingCharge,
+                grandTotal: order.grandTotal,
+                paidAmount: order.paidAmount,
+                dueAmount: order.dueAmount,
+                paymentMethod: order.paymentMethod,
+                status: order.paymentStatus,
                 issuedAt: new Date(),
                 deliveryDate,
                 paidDate: paymentStatus === "paid" ? new Date() : null,
@@ -366,7 +366,7 @@ exports.getAllOrder = getAllOrder;
 // Each order includes a lightweight item list (no population needed —
 // items are embedded snapshots).
 const getMyOrders = async (customerId, sellerId, query) => {
-    const { page = 1, limit = 10, order_status, search } = query;
+    const { page = 1, limit = 10, orderStatus, search } = query;
     const skip = (page - 1) * limit;
     // ── Base match ──────────────────────────────────────────────────────────────
     const match = {
@@ -374,8 +374,8 @@ const getMyOrders = async (customerId, sellerId, query) => {
         customer: new mongoose_1.Types.ObjectId(customerId),
     };
     console.log(match);
-    if (order_status && order_status !== "all") {
-        match.order_status = order_status;
+    if (orderStatus && orderStatus !== "all") {
+        match.orderStatus = orderStatus;
     }
     if (search?.trim()) {
         // order_number is a plain string field — safe to use $regex

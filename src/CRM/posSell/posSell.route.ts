@@ -2,7 +2,6 @@ import express from "express";
 import * as SaleController from "./posSell.controller";
 import { validate } from "../../middlewares/validate";
 import { createSaleSchema } from "./posSell.validation";
-import { companyIdentifier } from "../../middlewares/companyIdentifier";
 import { saleAnAuthenticateAndUnauthenticated } from "../../middlewares/saleAuthenticateAndUnauthenticate";
 import {
   authenticate,

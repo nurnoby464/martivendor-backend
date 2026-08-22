@@ -15,7 +15,6 @@ import {
   updateVariantSchema,
   variantParamsSchema,
 } from "./product-variant.validation";
-import { companyIdentifier } from "../../middlewares/companyIdentifier";
 const variantRouter = Router({ mergeParams: true }); // mergeParams to access :id from parent
 
 variantRouter

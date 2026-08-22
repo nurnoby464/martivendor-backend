@@ -38,14 +38,13 @@ const express_1 = require("express");
 const BannerController = __importStar(require("../banner/banner.controller"));
 const banner_validation_1 = require("../banner/banner.validation");
 const validate_1 = require("../../../middlewares/validate");
-const companyIdentifier_1 = require("../../../middlewares/companyIdentifier");
 const AuthenticateHelper_1 = require("../../../middlewares/AuthenticateHelper");
 const guard_1 = require("../../../middlewares/guard");
 const router = (0, express_1.Router)();
 // Public routes (no auth required for getting active banners)
-router.get("/active", companyIdentifier_1.companyIdentifier, BannerController.getActiveBanners);
+router.get("/active", BannerController.getActiveBanners);
 // Admin routes (add authentication middleware in production)
-router.get("/", (0, validate_1.validate)({ query: banner_validation_1.getBannersQuerySchema }), companyIdentifier_1.companyIdentifier, BannerController.getAllBanners);
+router.get("/", (0, validate_1.validate)({ query: banner_validation_1.getBannersQuerySchema }), BannerController.getAllBanners);
 router.get("/:id", (0, validate_1.validate)({ params: banner_validation_1.getBannerSchema }), BannerController.getBannerById);
 router.post("/", (0, validate_1.validate)({ body: banner_validation_1.createBannerSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin"), BannerController.createBanner);
 router.put("/:id", (0, validate_1.validate)({ params: banner_validation_1.BannerParams, body: banner_validation_1.updateBannerSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "admin"), BannerController.updateBanner);

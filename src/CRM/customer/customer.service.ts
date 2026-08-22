@@ -3,7 +3,7 @@ import { generateSaleCode } from "../../utils/generateSaleCode";
 import { AppError } from "../../middlewares/appError";
 import Product from "../../module/product/product.schema";
 import ProductVariant from "../../module/product-variant/product-variant.schema";
-import { GetCustomerQuery } from "./customer.validation";
+import { CreateCustomerInput, GetCustomerQuery } from "./customer.validation";
 import Customer from "./customer.schema";
 import { useSkip } from "../../utils/useSkip";
 
@@ -11,7 +11,7 @@ export const getCustomerList = async (
   query: GetCustomerQuery,
   sellerId: Types.ObjectId,
 ) => {
-  const { page, limit, sort_by, sort_order, is_active, search ,phone} = query;
+  const { page, limit, sort_by, sort_order, is_active, search, phone } = query;
 
   const filter: Record<string, unknown> = {
     sellerId,
@@ -35,4 +35,16 @@ export const getCustomerList = async (
     Customer.countDocuments(filter),
   ]);
   return { customers, total, page, limit };
+};
+
+export const createCustomer = async (
+  sellerId: Types.ObjectId,
+  input: CreateCustomerInput,
+) => {
+  const { name, phone } = input;
+  const existing = await Customer.findOne({ sellerId, phone }).lean();
+  if (existing) throw new AppError("This customer already exist", 409);
+  const newCustomer = await Customer.create({ name, phone, sellerId });
+  if (!newCustomer) throw new AppError("Failed to create customer", 500);
+  return newCustomer;
 };

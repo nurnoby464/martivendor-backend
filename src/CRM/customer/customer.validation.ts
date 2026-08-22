@@ -47,7 +47,7 @@ export const customerQuerySchema = z.object({
     .optional()
     .transform((v) => (v === undefined ? undefined : v === "true")),
   sort_by: z
-    .enum(["name", "createdAt", "stock", "selling_price","lastPurchasedAt"])
+    .enum(["name", "createdAt", "stock", "selling_price", "lastPurchasedAt"])
     .optional()
     .default("createdAt"),
   sort_order: z
@@ -57,6 +57,11 @@ export const customerQuerySchema = z.object({
     .default(1),
 });
 
+export const createCustomerSchema = z.object({
+  name: z.string().trim().min(3, "At list 3 letter"),
+  phone: z.string().trim(),
+});
+
+export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type CreateSaleInput = z.infer<typeof createSaleSchema>;
 export type GetCustomerQuery = z.infer<typeof customerQuerySchema>;
-
