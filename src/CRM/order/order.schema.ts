@@ -86,6 +86,11 @@ const orderSchema = new Schema<IOrderDocument>(
     },
 
     note: { type: String, default: null },
+    notificationSent: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   { timestamps: true },
 );

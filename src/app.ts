@@ -24,6 +24,7 @@ import { OrderRouter } from "./CRM/order/order.route";
 import { InvoiceRouter } from "./CRM/invoice/invoice.route";
 import { PublicRoutes } from "./module/public/public.route";
 import { BannerRouter } from "./module/siteManagement/banner/banner.route";
+import { initializeEventListeners } from "./shared/events";
 
 // routes
 // import authRoutes from './modules/auth/auth.routes';
@@ -121,6 +122,8 @@ app.use(notFoundHandler);
 
 // ─── Global error handler — must be last, needs 4 params ─
 app.use(globalErrorHandler);
+
+initializeEventListeners();
 export default app;
 // ✅ No listen() here
 // ✅ No connectDB() here

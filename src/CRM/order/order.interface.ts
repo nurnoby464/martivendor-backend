@@ -59,13 +59,9 @@ export interface IOrder {
     | "credit"
     | "online"
     | null;
-  orderStatus:
-    | "pending"
-    | "processing"
-    | "shipped"
-    | "delivered"
-    | "cancelled";
+  orderStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   note: string | null;
+  notificationSent?: boolean;
 }
 
 export interface IOrderDocument extends IOrder, Document {}
@@ -93,8 +89,6 @@ type OrderStatus =
   | "shipped"
   | "delivered"
   | "cancelled";
-
-
 
 export interface IGetMyOrdersQuery {
   page: number;

@@ -22,12 +22,14 @@ import { TGetOrderListQuery, TShippingAddress } from "./order.validation";
 import Invoice from "../invoice/invoice.schema";
 import User from "../../module/user/user.schema";
 import { PaymentStatus } from "../posSell/posSell.interface";
+import { eventEmitter } from "../../shared/events";
+import { NOTIFICATION_TYPES } from "../../shared/notifications/constants";
 
 const resolveCustomer = async (
   sellerId: Types.ObjectId,
   name: string,
   phone: string,
-  email: string | null,
+  email: string,
   shipping_address: TShippingAddress,
   session: mongoose.ClientSession,
   userId?: Types.ObjectId,
@@ -364,6 +366,12 @@ export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
     );
     // next apply here send email
     await session.commitTransaction();
+    console.log(`\n📤 Emitting order.created event for #${order.orderNumber}`);
+    eventEmitter.emit(NOTIFICATION_TYPES.ORDER.CREATED, {
+      order,
+      customerId,
+      sellerId,
+    });
     return order;
   } catch (error) {
     await session.abortTransaction();
