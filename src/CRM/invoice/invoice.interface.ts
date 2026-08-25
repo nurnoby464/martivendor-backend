@@ -15,7 +15,7 @@ export interface IInvoiceItem {
   sku: string;
   quantity: number;
   sellingPrice: number;
-  total_price: number;
+  totalPrice: number;
 }
 
 export interface IInvoice {

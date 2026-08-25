@@ -8,6 +8,7 @@ import {
   INotification,
   NotificationRelatedModel,
 } from "./notification.interface";
+import { AppError } from "../../middlewares/appError";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,10 @@ export const create = async (
       !payload.title ||
       !payload.message
     ) {
-      throw new Error("Missing required fields: userId, type, title, message");
+      throw new AppError(
+        "Missing required fields: userId, type, title, message",
+        400,
+      );
     }
 
     // ✅ Convert IDs
@@ -88,7 +92,7 @@ export const notificationMarkAsRead = async (
 ): Promise<INotification | null> => {
   try {
     if (!notificationId) {
-      throw new Error("Notification ID is required");
+      throw new AppError("Notification ID is required", 400);
     }
 
     const notification = await Notification.findByIdAndUpdate(
@@ -162,7 +166,7 @@ export const notificationGetUnread = async (
 ): Promise<INotification[]> => {
   try {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new AppError("User ID is required", 400);
     }
 
     const notifications = await Notification.find({
@@ -193,7 +197,7 @@ export const notificationGetUnreadCount = async (
 ): Promise<number> => {
   try {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new AppError("User ID is required", 400);
     }
 
     const count = await Notification.countDocuments({
@@ -221,7 +225,7 @@ export const notificationDelete = async (
 ): Promise<INotification | null> => {
   try {
     if (!notificationId) {
-      throw new Error("Notification ID is required");
+      throw new AppError("Notification ID is required", 400);
     }
 
     const result = await Notification.findByIdAndDelete(notificationId);
@@ -249,7 +253,7 @@ export const notificationDeleteUserAll = async (
 ): Promise<{ deletedCount: number }> => {
   try {
     if (!userId) {
-      throw new Error("User ID is required");
+      throw new AppError("User ID is required", 400);
     }
 
     const result = await Notification.deleteMany({

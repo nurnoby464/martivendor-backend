@@ -50,7 +50,7 @@ const resolveCustomer = async (
   // check is exist customer
   const existing = await Customer.findOne({
     sellerId,
-    $or: [...(userId ? [{ userId }] : []), { phone }],
+    $or: [...(userId ? [{ userId }] : []), { phone }, { email }],
   }).session(session);
 
   if (existing) {
@@ -581,6 +581,7 @@ export const getMyOrderById = async (
       select: "name storeName",
     })
     .lean();
+  console.log(order);
 
   if (!order) {
     throw new AppError("Order not found", 404);

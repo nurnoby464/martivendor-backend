@@ -62,6 +62,7 @@ export interface IOrder {
   orderStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   note: string | null;
   notificationSent?: boolean;
+  createdAt: Date;
 }
 
 export interface IOrderDocument extends IOrder, Document {}

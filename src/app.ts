@@ -25,6 +25,7 @@ import { InvoiceRouter } from "./CRM/invoice/invoice.route";
 import { PublicRoutes } from "./module/public/public.route";
 import { BannerRouter } from "./module/siteManagement/banner/banner.route";
 import { initializeEventListeners } from "./shared/events";
+import { NotificationRouter } from "./CRM/notification/notificaiton.route";
 
 // routes
 // import authRoutes from './modules/auth/auth.routes';
@@ -107,6 +108,7 @@ app.use('/api/v1/dev', DevRouter);
 app.use('/api/v1/orders', OrderRouter);
 app.use('/api/v1/invoices', InvoiceRouter);
 app.use('/api/v1/banners', BannerRouter);
+app.use('/api/v1/notification', NotificationRouter);
 
 
 // Health check

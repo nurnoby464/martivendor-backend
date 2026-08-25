@@ -1,10 +1,8 @@
-import { IOrder } from "../CRM/order/order.interface";
-
-type IOrderWithTimestamps = IOrder & { createdAt: Date };
+import { IOrderDocument } from "../CRM/order/order.interface";
 
 export const orderConfirmationTemplate = (
   customerName: string,
-  order: IOrderWithTimestamps,
+  order: IOrderDocument,
 ) => `
 <!DOCTYPE html>
 <html lang="en">
