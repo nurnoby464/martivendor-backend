@@ -9,6 +9,7 @@ import { Types } from "mongoose";
 import Customer from "../../../CRM/customer/customer.schema";
 import { AppError } from "../../../middlewares/appError";
 import { Seller } from "../../../module/seller/seller.schema";
+import { notifySellerOwner } from "../../../utils/notificationRecipients";
 
 export async function handleOrderCreated(payload: {
   order: IOrderDocument;
@@ -91,8 +92,7 @@ export async function handleOrderCreated(payload: {
 
     // 3. Create in-app notification for seller (using function)
     console.log(`   → Creating in-app notification for seller ${seller._id}`);
-    await NotificationServices.create({
-      userId: seller._id,
+    await notifySellerOwner(seller._id, {
       type: NOTIFICATION_TYPES.ORDER.CREATED,
       title: "New Order",
       message: `Order #${order.orderNumber} from ${customer.name}`,
@@ -107,7 +107,13 @@ export async function handleOrderCreated(payload: {
         paymentStatus: order.paymentStatus,
       },
     });
-
+    // await notifySellerStaff(seller._id, "manage_orders", {
+    //   type: NOTIFICATION_TYPES.ORDER.CREATED,
+    //   title: "New Order",
+    //   message: `Order #${order.orderNumber} from ${customer.name}`,
+    //   relatedId: order._id,
+    //   relatedModel: "Order",
+    // });
     // 4. Mark as processed
     await Order.updateOne({ _id: order._id }, { notificationSent: true });
 

@@ -19,6 +19,19 @@ const notificationSchema = new Schema<INotification>(
       index: true,
     },
 
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Seller",
+      required: true,
+      index: true,
+    },
+    audience: {
+      type: String,
+      enum: ["Seller", "SellerStaff", "Staff", "SuperAdmin", "Customer"],
+      required: true,
+      index: true,
+    },
+
     type: {
       type: String,
       enum: Object.values(NOTIFICATION_TYPES).flatMap(Object.values),
@@ -84,6 +97,9 @@ const notificationSchema = new Schema<INotification>(
     versionKey: false,
   },
 );
+
+notificationSchema.index({ sellerId: 1, audience: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 
 export const Notification = model<INotification>(
   "Notification",

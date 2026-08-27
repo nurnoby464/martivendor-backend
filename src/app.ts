@@ -108,7 +108,7 @@ app.use('/api/v1/dev', DevRouter);
 app.use('/api/v1/orders', OrderRouter);
 app.use('/api/v1/invoices', InvoiceRouter);
 app.use('/api/v1/banners', BannerRouter);
-app.use('/api/v1/notification', NotificationRouter);
+app.use('/api/v1/notifications', NotificationRouter);
 
 
 // Health check

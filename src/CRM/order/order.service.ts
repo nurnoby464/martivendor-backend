@@ -403,13 +403,16 @@ export const getAllOrder = async (
     sellerId: sellerId,
   };
   if (search?.trim()) {
-    filter.$or = [{}];
+    filter.$or = [
+      { orderNumber: { $reges: search.trim(), $options: "i" } },
+      { customer: { $reges: search.trim(), $options: "i" } },
+    ];
   }
   if (orderStatus) {
-    filter.order_status = orderStatus;
+    filter.orderStatus = orderStatus;
   }
   if (paymentStatus) {
-    filter.payment_status = paymentStatus;
+    filter.paymentStatus = paymentStatus;
   }
   const [orders, total, meta] = await Promise.all([
     Order.find(filter)

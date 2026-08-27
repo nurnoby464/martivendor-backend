@@ -18,7 +18,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
-  const sellerId = req.company?._id;
+  const sellerId = req.user.sellerId;
   const limit = req.validatedQuery.limit as number;
   const page = req.validatedQuery.page as number;
   const sortBy = req.validatedQuery.sortBy as "name" | "createdAt" | "stock";
@@ -39,7 +39,7 @@ export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
   const customerId = req.validatedQuery.customerId as string;
 
   if (!sellerId) {
-    return ApiResponse.error(res, "Created Order place failed", 400);
+    return ApiResponse.error(res, "unauthorized access. Seller id not found", 403);
   }
   const query = {
     limit,

@@ -36,6 +36,9 @@ router.get(
 router.get(
   "/",
   validate({ query: getOrderListQuery }),
+  authenticate,
+  verifySession,
+  guard("super_admin","seller","staff","seller_staff"),
   OrderController.getAllOrder,
 );
 router.get(

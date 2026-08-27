@@ -5,81 +5,64 @@ import {
 } from "../../shared/notifications/constants";
 import { Notification } from "./notification.schema";
 import {
+  CreateNotificationPayload,
   INotification,
   NotificationRelatedModel,
 } from "./notification.interface";
 import { AppError } from "../../middlewares/appError";
+import { INotificationQueryInput } from "./notification.validation";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-export interface CreateNotificationPayload {
-  userId: Types.ObjectId | string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  relatedId?: Types.ObjectId | string;
-  relatedModel?: NotificationRelatedModel;
-  data?: Record<string, any>;
-}
-
-// ─── Create Notification ────────────────────────────────────────────────────
-
-/**
- * Create a new notification in the database
- * @param payload - Notification creation payload
- * @returns Created notification document
- * @throws Error if creation fails
- */
+// /**
+//  * Create a new notification in the database
+//  * @param payload - Notification creation payload
+//  * @returns Created notification document
+//  * @throws Error if creation fails
+//  */
 export const create = async (
   payload: CreateNotificationPayload,
 ): Promise<INotification> => {
-  try {
-    // ✅ Validate required fields
-    if (
-      !payload.userId ||
-      !payload.type ||
-      !payload.title ||
-      !payload.message
-    ) {
-      throw new AppError(
-        "Missing required fields: userId, type, title, message",
-        400,
-      );
-    }
-
-    // ✅ Convert IDs
-    const userId = new Types.ObjectId(payload.userId);
-    const relatedId = payload.relatedId
-      ? new Types.ObjectId(payload.relatedId)
-      : undefined;
-
-    // ✅ Extract category from type
-    const category = getCategoryFromType(payload.type);
-
-    // ✅ Create notification
-    const notification = await Notification.create({
-      userId,
-      type: payload.type,
-      category,
-      title: payload.title,
-      message: payload.message,
-      isRead: false,
-      ...(relatedId && { relatedId }), // ✅ Only include if defined
-      ...(payload.relatedModel && { relatedModel: payload.relatedModel }),
-      ...(payload.data && { data: payload.data }),
-    });
-
-    console.log(
-      `✅ Notification created: ${payload.type} | User: ${userId} | Title: ${payload.title}`,
+  if (
+    !payload.userId ||
+    !payload.sellerId ||
+    !payload.audience ||
+    !payload.type ||
+    !payload.title ||
+    !payload.message
+  ) {
+    throw new AppError(
+      "Missing required fields: userId, type, title, message",
+      400,
     );
-
-    return notification;
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error(`❌ Failed to create notification: ${errorMessage}`, error);
-    throw error;
   }
+
+  // ✅ Validate required fields
+
+  const userId = new Types.ObjectId(payload.userId);
+  const sellerId = new Types.ObjectId(payload.sellerId);
+  const relatedId = payload.relatedId
+    ? new Types.ObjectId(payload.relatedId)
+    : undefined;
+  const category = getCategoryFromType(payload.type);
+
+  const notification = await Notification.create({
+    userId,
+    sellerId,
+    audience: payload.audience,
+    type: payload.type,
+    category,
+    title: payload.title,
+    message: payload.message,
+    isRead: false,
+    ...(relatedId && { relatedId }), // ✅ Only include if defined
+    ...(payload.relatedModel && { relatedModel: payload.relatedModel }),
+    ...(payload.data && { data: payload.data }),
+  });
+
+  console.log(
+    `✅ Notification created: ${payload.type} | User: ${userId} | Title: ${payload.title}`,
+  );
+
+  return notification;
 };
 
 // ─── Other Functions ────────────────────────────────────────────────────────
@@ -90,7 +73,6 @@ export const create = async (
 export const notificationMarkAsRead = async (
   notificationId: string | Types.ObjectId,
 ): Promise<INotification | null> => {
-  try {
     if (!notificationId) {
       throw new AppError("Notification ID is required", 400);
     }
@@ -111,15 +93,8 @@ export const notificationMarkAsRead = async (
 
     console.log(`✅ Notification marked as read: ${notificationId}`);
     return notification;
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error(
-      `❌ Failed to mark notification as read: ${errorMessage}`,
-      error,
-    );
-    throw error;
-  }
+  
+  
 };
 
 /**
@@ -157,36 +132,40 @@ export const notificationMarkMultipleAsRead = async (
   }
 };
 
-/**
- * Get unread notifications for a user
- */
-export const notificationGetUnread = async (
-  userId: string | Types.ObjectId,
-  limit: number = 50,
-): Promise<INotification[]> => {
-  try {
-    if (!userId) {
-      throw new AppError("User ID is required", 400);
-    }
+export const getNotificationList = async (
+  userId: Types.ObjectId,
+  query: INotificationQueryInput,
+): Promise<{
+  notifications: INotification[];
+  total: number;
+  unreadCount: number;
+  page: number;
+  limit: number;
+}> => {
+  const filter: Record<string, unknown> = { userId };
+  if (query.category) filter.category = query.category;
+  if (query.isRead !== undefined) filter.isRead = query.isRead;
 
-    const notifications = await Notification.find({
-      userId: new Types.ObjectId(userId),
-      isRead: false,
-    })
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+
+  const [notifications, total, unreadCount] = await Promise.all([
+    Notification.find(filter)
       .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
       .limit(limit)
-      .lean();
+      .lean(),
+    Notification.countDocuments(filter),
+    Notification.countDocuments({ userId, isRead: false }),
+  ]);
 
-    return notifications as INotification[];
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error(
-      `❌ Failed to fetch unread notifications: ${errorMessage}`,
-      error,
-    );
-    throw error;
-  }
+  return {
+    notifications: notifications as INotification[],
+    total,
+    unreadCount,
+    page,
+    limit,
+  };
 };
 
 /**
