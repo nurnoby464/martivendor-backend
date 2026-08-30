@@ -11,10 +11,12 @@ import {
   verifySession,
 } from "../../middlewares/AuthenticateHelper";
 import { guard } from "../../middlewares/guard";
+import { guardCustomer } from "../../middlewares/guardCustomer";
 
 const router = express.Router();
 router.post(
   "/",
+  guardCustomer,
   validate({ body: createOrderBody }),
   OrderController.createOrder,
 );
