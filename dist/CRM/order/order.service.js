@@ -47,6 +47,8 @@ const order_schema_1 = __importDefault(require("./order.schema"));
 const useSkip_1 = require("../../utils/useSkip");
 const invoice_schema_1 = __importDefault(require("../invoice/invoice.schema"));
 const user_schema_1 = __importDefault(require("../../module/user/user.schema"));
+const events_1 = require("../../shared/events");
+const constants_1 = require("../../shared/notifications/constants");
 const resolveCustomer = async (sellerId, name, phone, email, shipping_address, session, userId) => {
     //check shipping address is same as customer address
     const isSamePerson = shipping_address?.phone === phone && shipping_address.name === name;
@@ -63,7 +65,7 @@ const resolveCustomer = async (sellerId, name, phone, email, shipping_address, s
     // check is exist customer
     const existing = await customer_schema_1.default.findOne({
         sellerId,
-        $or: [...(userId ? [{ userId }] : []), { phone }],
+        $or: [...(userId ? [{ userId }] : []), { phone }, { email }],
     }).session(session);
     if (existing) {
         // check if exist this address
@@ -304,6 +306,12 @@ const createOrder = async ({ sellerId, input }) => {
         ], { session });
         // next apply here send email
         await session.commitTransaction();
+        console.log(`\n📤 Emitting order.created event for #${order.orderNumber}`);
+        events_1.eventEmitter.emit(constants_1.NOTIFICATION_TYPES.ORDER.CREATED, {
+            order,
+            customerId,
+            sellerId,
+        });
         return order;
     }
     catch (error) {
@@ -324,13 +332,16 @@ const getAllOrder = async (sellerId, query) => {
         sellerId: sellerId,
     };
     if (search?.trim()) {
-        filter.$or = [{}];
+        filter.$or = [
+            { orderNumber: { $reges: search.trim(), $options: "i" } },
+            { customer: { $reges: search.trim(), $options: "i" } },
+        ];
     }
     if (orderStatus) {
-        filter.order_status = orderStatus;
+        filter.orderStatus = orderStatus;
     }
     if (paymentStatus) {
-        filter.payment_status = paymentStatus;
+        filter.paymentStatus = paymentStatus;
     }
     const [orders, total, meta] = await Promise.all([
         order_schema_1.default.find(filter)
@@ -479,6 +490,7 @@ const getMyOrderById = async (orderId) => {
         select: "name storeName",
     })
         .lean();
+    console.log(order);
     if (!order) {
         throw new appError_1.AppError("Order not found", 404);
     }

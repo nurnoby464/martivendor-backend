@@ -27,7 +27,7 @@ exports.createOrderBody = zod_1.z.object({
     sellerId: zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format"),
     phone: zod_1.z.string().trim().min(1, "Customer phone is required"),
     name: zod_1.z.string().trim().min(1, "Customer name is required"),
-    email: zod_1.z.string().trim().email("Invalid email").nullable().default(null),
+    email: zod_1.z.string().trim().email("Invalid email"),
     // order items
     items: zod_1.z.array(orderItemSchema).min(1, "At least one item is required"),
     // delivery

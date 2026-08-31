@@ -72,6 +72,11 @@ const orderSchema = new mongoose_1.Schema({
         default: "pending",
     },
     note: { type: String, default: null },
+    notificationSent: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
 }, { timestamps: true });
 orderSchema.index({ sellerId: 1, orderNumber: 1 }, { unique: true });
 orderSchema.index({ sellerId: 1, orderStatus: 1 });

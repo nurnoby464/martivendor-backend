@@ -22,7 +22,7 @@ const invoiceItemSchema = new mongoose_1.Schema({
     sku: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
     sellingPrice: { type: Number, required: true },
-    total_price: { type: Number, required: true },
+    totalPrice: { type: Number, required: true },
 }, { _id: false });
 const invoiceSchema = new mongoose_1.Schema({
     invoiceNumber: { type: String, required: true },

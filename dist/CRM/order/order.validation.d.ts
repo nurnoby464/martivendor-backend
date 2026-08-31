@@ -11,7 +11,7 @@ export declare const createOrderBody: z.ZodObject<{
     sellerId: z.ZodString;
     phone: z.ZodString;
     name: z.ZodString;
-    email: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    email: z.ZodString;
     items: z.ZodArray<z.ZodObject<{
         variant_id: z.ZodString;
         quantity: z.ZodNumber;

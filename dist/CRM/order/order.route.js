@@ -43,8 +43,9 @@ const validate_1 = require("../../middlewares/validate");
 const order_validation_1 = require("./order.validation");
 const AuthenticateHelper_1 = require("../../middlewares/AuthenticateHelper");
 const guard_1 = require("../../middlewares/guard");
+const guardCustomer_1 = require("../../middlewares/guardCustomer");
 const router = express_1.default.Router();
-router.post("/", (0, validate_1.validate)({ body: order_validation_1.createOrderBody }), OrderController.createOrder);
+router.post("/", guardCustomer_1.guardCustomer, (0, validate_1.validate)({ body: order_validation_1.createOrderBody }), OrderController.createOrder);
 // router.get(
 //   "/me",
 //   authenticate,
@@ -52,7 +53,7 @@ router.post("/", (0, validate_1.validate)({ body: order_validation_1.createOrder
 //   OrderController.getAllOrder,
 // );
 router.get("/my-orders", AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("customer"), (0, validate_1.validate)({ query: order_validation_1.getMyOrdersQuerySchema }), OrderController.getMyOrders);
-router.get("/", (0, validate_1.validate)({ query: order_validation_1.getOrderListQuery }), OrderController.getAllOrder);
+router.get("/", (0, validate_1.validate)({ query: order_validation_1.getOrderListQuery }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "staff", "seller_staff"), OrderController.getAllOrder);
 router.get("/:orderId", 
 // validate({ query: getOrderListQuery }),
 OrderController.getMyOrderById);

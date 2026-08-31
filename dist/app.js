@@ -24,6 +24,8 @@ const order_route_1 = require("./CRM/order/order.route");
 const invoice_route_1 = require("./CRM/invoice/invoice.route");
 const public_route_1 = require("./module/public/public.route");
 const banner_route_1 = require("./module/siteManagement/banner/banner.route");
+const events_1 = require("./shared/events");
+const notificaiton_route_1 = require("./CRM/notification/notificaiton.route");
 // routes
 // import authRoutes from './modules/auth/auth.routes';
 // import adminRoutes from './modules/admin/admin.routes';
@@ -97,6 +99,7 @@ app.use('/api/v1/dev', fixIndexes_1.DevRouter);
 app.use('/api/v1/orders', order_route_1.OrderRouter);
 app.use('/api/v1/invoices', invoice_route_1.InvoiceRouter);
 app.use('/api/v1/banners', banner_route_1.BannerRouter);
+app.use('/api/v1/notifications', notificaiton_route_1.NotificationRouter);
 // Health check
 app.get("/", (req, res) => {
     res.json({ success: true, message: "Welcome to Multi vendor e-commerce" });
@@ -108,6 +111,7 @@ app.get("/api/health", (req, res) => {
 app.use(ErrorHandler_1.notFoundHandler);
 // ─── Global error handler — must be last, needs 4 params ─
 app.use(ErrorHandler_1.globalErrorHandler);
+(0, events_1.initializeEventListeners)();
 exports.default = app;
 // ✅ No listen() here
 // ✅ No connectDB() here
