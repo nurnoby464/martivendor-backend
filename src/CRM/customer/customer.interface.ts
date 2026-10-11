@@ -1,8 +1,16 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document, Types } from "mongoose";
+
+export interface ICustomerAddress {
+  _id?: Types.ObjectId;
+  label: string; // "home" | "office"
+  district: string;
+  area: string;
+  zip: string | null;
+  isDefault: boolean;
+}
 
 export interface ICustomer {
-  sellerId: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId | null; // null = guest / walk-in (no login)
 
   name: string;
   phone: string;
@@ -10,32 +18,7 @@ export interface ICustomer {
   image: string | null;
   dob: Date | null;
   gender: "male" | "female" | "other" | null;
-
-  addresses: [
-    {
-      // _id: boolean;
-      // label: string;
-      // division: string;
-      // district: string;
-      // area: string;
-      // zip: string;
-      // isDefault: boolean;
-      label: string;
-      district: string;
-      area: string;
-      zip: string | null;
-      isDefault: boolean;
-    },
-  ];
-
-  totalPurchased: number;
-  totalPaid: number;
-  due: number;
-  credit: number;
-
-  //CRM
-  tags: string[];
-  lastPurchasedAt: Date | null;
+  addresses: ICustomerAddress[];
   isActive: boolean;
 
   createdAt: Date;

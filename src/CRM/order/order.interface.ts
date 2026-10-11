@@ -1,6 +1,10 @@
 import { Document, Types } from "mongoose";
 import { PaymentMethod } from "../posSell/posSell.interface";
 import { TCreateOrderInput } from "./order.validation";
+import {
+  TPaymentMethod,
+  TPaymentStatus,
+} from "../../globalTypes/payment.types";
 
 export type TOrderStatus =
   | "pending"
@@ -9,10 +13,46 @@ export type TOrderStatus =
   | "delivered"
   | "cancelled";
 
-export type TPaymentStatus = "unpaid" | "partial" | "paid";
+export interface IShippingAddress {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string | null;
+}
 
-// order.interface.ts
-// order.interface.ts
+export interface IOrder {
+  orderNumber: string;
+  customerId: Types.ObjectId;
+  shippingAddress: IShippingAddress;
+
+  subOrderCount: number;
+
+  subtotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  shippingTotal: number;
+  grandTotal: number; // subtotal + taxTotal + shippingTotal
+
+  paidAmount: number;
+  dueAmount: number;
+  paymentStatus: TPaymentStatus;
+  paymentMethod: TPaymentMethod | null;
+  paymentId: Types.ObjectId | null; // -> Payment
+
+  note: string | null;
+  notificationSent?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IOrderDocument extends IOrder, Document {}
+
+export interface ICreateOrderPayload {
+  sellerId: Types.ObjectId;
+  input: TCreateOrderInput;
+}
+
 export interface IOrderItem {
   product: Types.ObjectId;
   variant: Types.ObjectId;
@@ -27,49 +67,6 @@ export interface IOrderItem {
   taxRate: number;
   taxAmount: number;
   totalPrice: number;
-}
-
-export interface IShippingAddress {
-  name: string;
-  phone: string;
-  address: string;
-  city: string;
-  zip: string | null;
-}
-
-export interface IOrder {
-  sellerId: Types.ObjectId;
-  orderNumber: string;
-  customer: Types.ObjectId;
-  items: IOrderItem[];
-  shippingAddress: IShippingAddress;
-  subtotal: number;
-  discountAmount: number;
-  taxAmount: number;
-  shippingCharge: number;
-  grandTotal: number;
-  paidAmount: number;
-  dueAmount: number;
-  paymentStatus: "due" | "partial" | "paid";
-  paymentMethod:
-    | "cash"
-    | "cash_on_delivery"
-    | "card"
-    | "mobile_banking"
-    | "credit"
-    | "online"
-    | null;
-  orderStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  note: string | null;
-  notificationSent?: boolean;
-  createdAt: Date;
-}
-
-export interface IOrderDocument extends IOrder, Document {}
-
-export interface ICreateOrderPayload {
-  sellerId: Types.ObjectId;
-  input: TCreateOrderInput;
 }
 
 export type IEmptyOrderItem = IOrderItem | [];
