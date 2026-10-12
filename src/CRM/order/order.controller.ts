@@ -6,14 +6,11 @@ import { Request, Response } from "express";
 import { IGetMyOrdersQuery } from "./order.interface";
 
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const sellerId = req.body?.sellerId;
-  if (!sellerId) {
-    return ApiResponse.error(res, "Created Order place failed", 400);
-  }
-  const result = await OrderServices.createOrder({
-    sellerId,
-    input: req.body,
-  });
+  // const sellerId = req.body?.sellerId;
+  // if (!sellerId) {
+  //   return ApiResponse.error(res, "Created Order place failed", 400);
+  // }
+  const result = await OrderServices.createOrder(req.body);
   return ApiResponse.created(res, result, "Order created successfully");
 });
 
@@ -39,7 +36,11 @@ export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
   const customerId = req.validatedQuery.customerId as string;
 
   if (!sellerId) {
-    return ApiResponse.error(res, "unauthorized access. Seller id not found", 403);
+    return ApiResponse.error(
+      res,
+      "unauthorized access. Seller id not found",
+      403,
+    );
   }
   const query = {
     limit,

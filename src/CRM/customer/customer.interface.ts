@@ -1,5 +1,9 @@
 import mongoose, { Document, Types } from "mongoose";
 
+export const CUSTOMER_GENDERS = ["male", "female", "other", null] as const;
+
+export type TCustomerGender = (typeof CUSTOMER_GENDERS)[number];
+
 export interface ICustomerAddress {
   _id?: Types.ObjectId;
   label: string; // "home" | "office"
@@ -17,7 +21,7 @@ export interface ICustomer {
   email?: string;
   image: string | null;
   dob: Date | null;
-  gender: "male" | "female" | "other" | null;
+  gender: TCustomerGender;
   addresses: ICustomerAddress[];
   isActive: boolean;
 

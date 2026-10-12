@@ -1,14 +1,17 @@
 import { Document, Types } from "mongoose";
+export const SUB_ORDER_STATUSES = [
+  "pending",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "returned",
+] as const;
+export const PAYOUT_STATUS = ["held", "released", "paid", "reversed"] as const;
 
-export type TSubOrderStatus =
-  | "pending"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "returned";
+export type TSubOrderStatus = (typeof SUB_ORDER_STATUSES)[number];
+export type TPayoutStatus = (typeof PAYOUT_STATUS)[number];
 
-export type TPayoutStatus = "held" | "released" | "paid" | "reversed";
 
 export interface ISubOrderItem {
   productId: Types.ObjectId;

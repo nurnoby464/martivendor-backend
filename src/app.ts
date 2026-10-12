@@ -41,7 +41,7 @@ const allowOrigin = [
   "https://luzia-weld.vercel.app",
   "https://ankorabd.vercel.app",
   "https://ankorabd.com",
-  "https://www.ankorabd.com"
+  "https://www.ankorabd.com",
 ];
 
 app.use((req, res, next) => {
@@ -52,8 +52,14 @@ app.use((req, res, next) => {
   }
 
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,x-company-id,x-subdomain");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type,Authorization,x-company-id,x-subdomain",
+  );
   res.setHeader("Access-Control-Expose-Headers", "X-Total-Count,X-Total-Pages");
 
   if (req.method === "OPTIONS") return res.sendStatus(204);
@@ -84,10 +90,79 @@ app.use(helmet());
 //     credentials: true,
 //   }),
 // );
-app.use(morgan("dev"));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+app.use(morgan("dev"));
+
+const c = {
+  reset: "\x1b[0m",
+  dim: "\x1b[2m",
+  bold: "\x1b[1m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+};
+
+const SENSITIVE_KEYS = ["password", "token", "accessToken", "refreshToken", "otp"];
+
+const mask = (_key: string, value: unknown) =>
+  SENSITIVE_KEYS.includes(_key) ? "***" : value;
+
+const isEmpty = (obj: unknown) =>
+  !obj || (typeof obj === "object" && Object.keys(obj as object).length === 0);
+
+const statusColor = (status: number) => {
+  if (status >= 500) return c.red;
+  if (status >= 400) return c.yellow;
+  if (status >= 300) return c.cyan;
+  return c.green;
+};
+
+const indent = (json: string) =>
+  json
+    .split("\n")
+    .map((line) => `   ${c.dim}│${c.reset} ${line}`)
+    .join("\n");
+
+if (process.env.NODE_ENV === "development") {
+  app.use(
+    morgan((tokens, req, res) => {
+      const method = tokens.method?.(req, res) ?? "UNKNOWN";
+      const url = tokens.url?.(req, res) ?? "-";
+      const status = Number(tokens.status?.(req, res)) || 0;
+      const time = tokens["response-time"]?.(req, res) ?? "-";
+      const timestamp = new Date().toLocaleTimeString("en-GB");
+
+      const lines = [
+        `${c.dim}${"─".repeat(60)}${c.reset}`,
+        `${c.dim}${timestamp}${c.reset}  ${c.bold}${c.blue}${method}${c.reset} ${url}`,
+        `   ${c.dim}Status${c.reset}  ${statusColor(status)}${status}${c.reset}`,
+        `   ${c.dim}Time  ${c.reset}  ${time} ms`,
+      ];
+
+      const query = (req as any).query;
+      const body = (req as any).body;
+
+      if (!isEmpty(query)) {
+        lines.push(`   ${c.dim}Query${c.reset}`);
+        lines.push(indent(JSON.stringify(query, mask, 2)));
+      }
+      if (!isEmpty(body)) {
+        lines.push(`   ${c.dim}Body${c.reset}`);
+        lines.push(indent(JSON.stringify(body, mask, 2)));
+      }
+
+      return lines.join("\n");
+    }),
+  );
+} else {
+  app.use(morgan("combined"));
+}
 
 // public route
 app.use("/api/v1/public", PublicRoutes);
@@ -104,12 +179,11 @@ app.use("/api/v1/purchase", PurchaseRoute);
 app.use("/api/v1/product-variant", ProductVariantRoute);
 app.use("/api/v1/sales", SaleRouter);
 app.use("/api/v1/customer", CustomerRouter);
-app.use('/api/v1/dev', DevRouter);
-app.use('/api/v1/orders', OrderRouter);
-app.use('/api/v1/invoices', InvoiceRouter);
-app.use('/api/v1/banners', BannerRouter);
-app.use('/api/v1/notifications', NotificationRouter);
-
+app.use("/api/v1/dev", DevRouter);
+app.use("/api/v1/orders", OrderRouter);
+app.use("/api/v1/invoices", InvoiceRouter);
+app.use("/api/v1/banners", BannerRouter);
+app.use("/api/v1/notifications", NotificationRouter);
 
 // Health check
 app.get("/", (req, res) => {

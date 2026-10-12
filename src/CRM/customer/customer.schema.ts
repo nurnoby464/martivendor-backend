@@ -1,13 +1,20 @@
 import { model, Schema } from "mongoose";
-import { ICustomerDocument } from "./customer.interface";
+import {
+  CUSTOMER_GENDERS,
+  ICustomerAddress,
+  ICustomerDocument,
+} from "./customer.interface";
+
+const addressSchema = new Schema<ICustomerAddress>({
+  label: { type: String, required: true, default: "home" },
+  district: { type: String, required: true },
+  area: { type: String, required: true },
+  zip: { type: String, default: null },
+  isDefault: { type: Boolean, default: false },
+});
 
 const customerSchema = new Schema<ICustomerDocument>(
   {
-    sellerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Seller",
-      required: true,
-    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -16,48 +23,26 @@ const customerSchema = new Schema<ICustomerDocument>(
 
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
-    email: { type: String, trim: true },
-    addresses: [
-      {
-        // _id: false,
-        // label: { type: String, default: "home" }, // "home", "office"
-        // division: { type: String },
-        // district: { type: String },
-        // area: { type: String },
-        // zip: { type: String },
-        // isDefault: { type: Boolean, default: false },
-        label: { type: String, required: true }, // "home", "office"
-        district: { type: String, required: true },
-        area: { type: String, required: true },
-        zip: { type: String, default: null },
-        isDefault: { type: Boolean, default: false },
-      },
-    ],
+    email: { type: String, trim: true, lowercase: true },
+
     image: { type: String, default: null },
     dob: { type: Date, default: null },
     gender: {
       type: String,
-      enum: ["male", "female", "other", null],
+      enum: CUSTOMER_GENDERS,
       default: null,
     },
-    totalPurchased: { type: Number, default: 0 },
-    totalPaid: { type: Number, default: 0 },
-    due: { type: Number, default: 0 },
-    credit: { type: Number, default: 0 },
-
-    //CRM
-    tags: { type: [String], default: [] },
-    lastPurchasedAt: { type: Date, default: null },
+    addresses: { type: [addressSchema], default: [] },
     isActive: { type: Boolean, default: true },
   },
   {
     timestamps: true,
   },
 );
-
-customerSchema.index({ sellerId: 1, phone: 1 }, { unique: true });
+// One person = one Customer, platform-wide.
+customerSchema.index({ phone: 1 }, { unique: true });
 customerSchema.index(
-  { sellerId: 1, email: 1 },
+  { email: 1 },
   {
     unique: true,
     partialFilterExpression: {
@@ -65,8 +50,10 @@ customerSchema.index(
     },
   },
 );
-customerSchema.index({ sellerId: 1, due: -1 }); // desending order due report
-customerSchema.index({ sellerId: 1, lastPurchasedAt: -1 }); // recent customers
+customerSchema.index(
+  { userId: 1 },
+  { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
+);
 
 const Customer = model<ICustomerDocument>("Customer", customerSchema);
 export default Customer;

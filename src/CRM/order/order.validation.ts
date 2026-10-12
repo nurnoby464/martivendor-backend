@@ -1,10 +1,11 @@
 // src/module/order/order.validation.ts
 import { z } from "zod";
+import { PAYMENT_METHODS } from "../../globalTypes/payment.types";
 
 // ─── Sub-schemas ──────────────────────────────────────────────────────────────
 
 const orderItemSchema = z.object({
-  variant_id: z.string().trim().min(1, "Variant ID is required"),
+  variantId: z.string().trim().min(1, "Variant ID is required"),
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
 });
 
@@ -21,12 +22,12 @@ const shippingAddressSchema = z.object({
 
 export const createOrderBody = z.object({
   // customer identification
-  userId: z
-    .string()
-    .regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format")
-    .optional()
-    .nullable(),
-  sellerId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format"),
+  // userId: z
+  //   .string()
+  //   .regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format")
+  //   .optional()
+  //   .nullable(),
+  // sellerId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format"),
   phone: z.string().trim().min(1, "Customer phone is required"),
   name: z.string().trim().min(1, "Customer name is required"),
   email: z.string().trim().email("Invalid email"),
@@ -38,20 +39,13 @@ export const createOrderBody = z.object({
   shippingAddress: shippingAddressSchema,
 
   // financials
-  discountAmount: z.number().min(0).default(0),
-  taxAmount: z.number().min(0).default(0),
+  // discountAmount: z.number().min(0).default(0),
+  // taxAmount: z.number().min(0).default(0),
   shippingCharge: z.number().min(0).default(0),
-  paidAmount: z.number().min(0).default(0),
+  // paidAmount: z.number().min(0).default(0),
 
   paymentMethod: z
-    .enum([
-      "cash",
-      "cash_on_delivery",
-      "card",
-      "mobile_banking",
-      "credit",
-      "online",
-    ])
+    .enum(PAYMENT_METHODS)
     .nullable()
     .default(null),
 

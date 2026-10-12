@@ -1,4 +1,4 @@
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { CreateCustomerInput, GetCustomerQuery } from "./customer.validation";
 export declare const getCustomerList: (query: GetCustomerQuery, sellerId: Types.ObjectId) => Promise<{
     customers: (import("./customer.interface").ICustomerDocument & Required<{
@@ -10,11 +10,5 @@ export declare const getCustomerList: (query: GetCustomerQuery, sellerId: Types.
     page: number;
     limit: number;
 }>;
-export declare const createCustomer: (sellerId: Types.ObjectId, input: CreateCustomerInput) => Promise<mongoose.Document<unknown, {}, import("./customer.interface").ICustomerDocument, {}, mongoose.DefaultSchemaOptions> & import("./customer.interface").ICustomerDocument & Required<{
-    _id: Types.ObjectId;
-}> & {
-    __v: number;
-} & {
-    id: string;
-}>;
+export declare const createCustomer: (sellerId: Types.ObjectId, input: CreateCustomerInput) => Promise<never>;
 //# sourceMappingURL=customer.service.d.ts.map

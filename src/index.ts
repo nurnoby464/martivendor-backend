@@ -2,6 +2,7 @@ import "dotenv/config";
 import app from "./app";
 import connectDB from "./config/db";
 import type { Request, Response } from "express";
+import Customer from "./CRM/customer/customer.schema";
 
 const isDev = process.env.NODE_ENV === "development";
 let isConnected = false;

@@ -1,6 +1,20 @@
 // order.model.ts
 import { model, Schema } from "mongoose";
 import { IOrderDocument, IOrderItem } from "./order.interface";
+import {
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+} from "../../globalTypes/payment.types";
+const shippingAddressSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    zip: { type: String, default: null },
+  },
+  { _id: false },
+);
 
 const orderItemSchema = new Schema<IOrderItem>(
   {
@@ -29,76 +43,49 @@ const orderItemSchema = new Schema<IOrderItem>(
   { _id: false },
 );
 
-const shippingAddressSchema = new Schema(
-  {
-    name: { type: String, required: true },
-    phone: { type: String, required: true },
-    address: { type: String, required: true },
-    city: { type: String, required: true },
-    zip: { type: String, default: null },
-  },
-  { _id: false },
-);
-
 const orderSchema = new Schema<IOrderDocument>(
   {
-    sellerId: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
     orderNumber: { type: String, required: true },
-    customer: {
+    customerId: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
       required: true,
     },
-
-    items: { type: [orderItemSchema], required: true },
     shippingAddress: { type: shippingAddressSchema, required: true },
+    subOrderCount: { type: Number, required: true, min: 1 },
 
-    subtotal: { type: Number, required: true },
-    discountAmount: { type: Number, default: 0 },
-    taxAmount: { type: Number, default: 0 },
-    shippingCharge: { type: Number, default: 0 },
-    grandTotal: { type: Number, required: true },
+    subtotal: { type: Number, required: true, min: 0 },
+    discountTotal: { type: Number, default: 0, min: 0 },
+    taxTotal: { type: Number, default: 0, min: 0 },
+    shippingTotal: { type: Number, default: 0, min: 0 },
+    grandTotal: { type: Number, required: true, min: 0 },
 
-    paidAmount: { type: Number, default: 0 },
-    dueAmount: { type: Number, required: true },
-
+    paidAmount: { type: Number, default: 0, min: 0 },
+    dueAmount: { type: Number, required: true, min: 0 },
     paymentStatus: {
       type: String,
-      enum: ["due", "partial", "paid"],
+      enum: PAYMENT_STATUSES,
       default: "due",
     },
+
     paymentMethod: {
       type: String,
-      enum: [
-        "cash",
-        "cash_on_delivery",
-        "card",
-        "mobile_banking",
-        "credit",
-        "online",
-      ],
+      enum: [...PAYMENT_METHODS, null],
       default: null,
     },
-    orderStatus: {
-      type: String,
-      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
-      default: "pending",
-    },
+
+    paymentId: { type: Schema.Types.ObjectId, ref: "Payment", default: null },
 
     note: { type: String, default: null },
-    notificationSent: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
+    notificationSent: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
 
-orderSchema.index({ sellerId: 1, orderNumber: 1 }, { unique: true });
-orderSchema.index({ sellerId: 1, orderStatus: 1 });
-orderSchema.index({ sellerId: 1, paymentStatus: 1 });
-orderSchema.index({ sellerId: 1, createdAt: -1 });
+orderSchema.index({ customerId: 1, createdAt: -1 }); // "My Orders"
+orderSchema.index({ createdAt: -1 }); // admin list
+orderSchema.index({ paymentStatus: 1, createdAt: -1 });
+orderSchema.index({ notificationSent: 1 });
 
 const Order = model<IOrderDocument>("Order", orderSchema);
 export default Order;

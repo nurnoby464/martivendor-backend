@@ -18,12 +18,21 @@ import {
 } from "../../utils/healper";
 import Order from "./order.schema";
 import { useSkip } from "../../utils/useSkip";
-import { TGetOrderListQuery, TShippingAddress } from "./order.validation";
+import {
+  TCreateOrderInput,
+  TGetOrderListQuery,
+  TShippingAddress,
+} from "./order.validation";
 import Invoice from "../invoice/invoice.schema";
 import User from "../../module/user/user.schema";
 import { PaymentStatus } from "../posSell/posSell.interface";
 import { eventEmitter } from "../../shared/events";
 import { NOTIFICATION_TYPES } from "../../shared/notifications/constants";
+import {
+  generateOrderNumber,
+  generateSubOrderNumber,
+} from "../../utils/orderHelper";
+import { Seller } from "../../module/seller/seller.schema";
 
 const resolveCustomer = async (
   sellerId: Types.ObjectId,
@@ -131,22 +140,74 @@ const resolveCustomer = async (
   }
   return customer._id;
 };
-export const createOrder = async ({ sellerId, input }: ICreateOrderPayload) => {
+export const createOrder = async (input: TCreateOrderInput) => {
   const {
     name,
     phone,
-    userId,
     email,
     items,
     shippingAddress,
-    discountAmount,
-    taxAmount,
     shippingCharge,
-    paidAmount,
     paymentMethod,
     note,
   } = input;
 
+  // order Number generation
+  const orderNumber = await generateOrderNumber();
+  const subOrderNumber = await generateSubOrderNumber(orderNumber, 1);
+  const variantIds = items.map((item) => new Types.ObjectId(item.variantId));
+
+  const variants = await ProductVariant.find({
+    _id: { $in: variantIds },
+    isActive: true,
+  })
+    .select(
+      "_id productId sellerId sku image attributes  sellingPrice stock discountType discountValue ",
+    )
+    .lean();
+  if (variants.length !== items.length) {
+    throw new AppError("One or more variants not found or inactive", 404);
+  }
+  const productIds = variants.map((v) => v.productId);
+  const products = await Product.find({
+    _id: { $in: productIds },
+    isActive: true,
+  })
+    .select("_id sellerId  name slug  taxRate isActive discount hasDiscount ")
+    .lean();
+
+  const sellerIds = products.map((p) => p.sellerId);
+
+  // make unique sellers
+  const uniqueSellerIds = [...new Set(sellerIds)];
+
+  const sellers = await Seller.find({
+    _id: { $in: uniqueSellerIds },
+    isActive: true,
+    status: "approved", 
+  })
+    .select("_id name isPlatform commissionRate userId")
+    .lean();
+
+  // add Map
+  const productMap = new Map(
+    products.map((product) => [
+      product._id.toString(),
+      product.sellerId.toString(),
+    ]),
+  );
+  
+
+  const hasSellerMismatch = variants.some(
+    (variant) =>
+      productMap.get(variant.productId.toString()) !==
+      variant.sellerId.toString(),
+  );
+  
+  if (hasSellerMismatch)
+    throw new AppError("Product and variant seller mismatch", 400);
+
+  return { orderNumber, subOrderNumber, variants, products, sellers };
   const session = await mongoose.startSession();
   try {
     await session.startTransaction();

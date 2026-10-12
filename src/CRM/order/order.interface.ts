@@ -49,7 +49,6 @@ export interface IOrder {
 export interface IOrderDocument extends IOrder, Document {}
 
 export interface ICreateOrderPayload {
-  sellerId: Types.ObjectId;
   input: TCreateOrderInput;
 }
 
