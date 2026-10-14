@@ -13,6 +13,9 @@ export type TOrderStatus =
   | "delivered"
   | "cancelled";
 
+export const DISCOUNT_TYPE = ["flat", "percentage"] as const;
+export type discountType = (typeof DISCOUNT_TYPE)[number];
+
 export interface IShippingAddress {
   name: string;
   phone: string;
@@ -60,7 +63,7 @@ export interface IOrderItem {
   image: string | null;
   quantity: number;
   sellingPrice: number;
-  discountType: "flat" | "percentage" | null;
+  discountType: discountType | null;
   discountValue: number;
   discountAmount: number;
   taxRate: number;

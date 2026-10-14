@@ -24,7 +24,6 @@ const UserSchema = new Schema<IUserDocument>(
       type: String,
       // default: null,
       trim: true,
-      sparse: true, // unique but allows multiple nulls
     },
 
     password: {

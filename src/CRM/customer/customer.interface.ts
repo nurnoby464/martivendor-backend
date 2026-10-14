@@ -5,7 +5,7 @@ export const CUSTOMER_GENDERS = ["male", "female", "other", null] as const;
 export type TCustomerGender = (typeof CUSTOMER_GENDERS)[number];
 
 export interface ICustomerAddress {
-  _id?: Types.ObjectId;
+  // _id?: Types.ObjectId;
   label: string; // "home" | "office"
   district: string;
   area: string;

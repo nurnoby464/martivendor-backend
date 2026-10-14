@@ -6,6 +6,8 @@ import { Seller } from "../module/seller/seller.schema";
 import { ISessionDocument } from "../module/auth/auth.interface";
 import { IUserDocument, ProfileType } from "../module/user/user.interface";
 import { ITokenPayload } from "./jwtHelper";
+import { discountType } from "../CRM/order/order.interface";
+import { round2 } from "./money";
 const { customAlphabet } = require("nanoid");
 type IMakeToken = {
   existing: IUserDocument;
@@ -146,3 +148,37 @@ export function extractAsin(combinedSlug: string): string | null {
 export function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+export const normalizedBDPhone = (phone: string): string => {
+  const normalized = phone.replace(/[\s()-]/g, "");
+  if (normalized.startsWith("+880")) return normalized;
+  if (normalized.startsWith("880")) return `+${normalized}`;
+  if (normalized.startsWith("0")) return `+88${normalized}`;
+
+  return normalized;
+};
+interface ICalculateDiscount {
+  lineBase: number;
+  discountValue: number;
+  discountType: discountType | null;
+  quantity: number;
+}
+export const calculateDiscount = (input: ICalculateDiscount): number => {
+  const { lineBase, discountType, discountValue, quantity } = input;
+  if (discountType === "percentage") {
+    return (lineBase * discountValue) / 100;
+  }
+  if (discountType === "flat") {
+    return discountValue * quantity;
+  }
+  return 0;
+};
+interface ICalculateTaxRete {
+  totalPrice: number;
+  taxRate: number;
+}
+export const calculateTaxRate = (input: ICalculateTaxRete) => {
+  const { totalPrice, taxRate } = input;
+  const taxAmount = (totalPrice * taxRate) / 100;
+  return round2(taxAmount);
+};
