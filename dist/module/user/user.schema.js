@@ -26,7 +26,6 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         // default: null,
         trim: true,
-        sparse: true, // unique but allows multiple nulls
     },
     password: {
         type: String,
@@ -86,11 +85,9 @@ const UserSchema = new mongoose_1.Schema({
 // ─── Indexes ─────────────────────────────────────────────
 UserSchema.index({ sellerId: 1, role: 1 });
 UserSchema.index({ createdBy: 1 });
-UserSchema.index({ sellerId: 1, email: 1 }, { unique: true });
-UserSchema.index({ sellerId: 1, phone: 1 }, {
-    unique: true,
-    sparse: true,
-});
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ phone: 1 }, { unique: true, partialFilterExpression: { phone: { $type: "string" } } });
+UserSchema.index({ profileType: 1, profileId: 1 });
 // ─── Virtual: sessions ────────────────────────────────────
 // Lets you do user.populate("sessions") to get all sessions for this user.
 // No data is stored on the User document itself.

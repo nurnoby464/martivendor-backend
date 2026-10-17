@@ -1,7 +1,8 @@
 import { Types } from "mongoose";
-import { ICreateOrderPayload, IGetMyOrdersQuery } from "./order.interface";
-import { TGetOrderListQuery } from "./order.validation";
-export declare const createOrder: ({ sellerId, input }: ICreateOrderPayload) => Promise<never>;
+import { IGetMyOrdersQuery } from "./order.interface";
+import { TCreateOrderInput, TGetOrderListQuery } from "./order.validation";
+export declare const ENABLED_PAYMENT_METHODS: readonly ["cash_on_delivery"];
+export declare const createOrder: (input: TCreateOrderInput, userId: Types.ObjectId | null) => Promise<Record<string, unknown>>;
 export declare const getAllOrder: (sellerId: Types.ObjectId, query: TGetOrderListQuery) => Promise<{
     orders: (import("./order.interface").IOrderDocument & Required<{
         _id: Types.ObjectId;

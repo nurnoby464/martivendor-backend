@@ -19,7 +19,7 @@ interface ListResult {
     page: number;
     limit: number;
 }
-export declare const createUser: (input: CreateUserInput, createdBy: mongoose.Types.ObjectId | null) => Promise<IUserDocument & Required<{
+export declare const createUser: (input: CreateUserInput) => Promise<IUserDocument & Required<{
     _id: mongoose.Types.ObjectId;
 }> & {
     __v: number;

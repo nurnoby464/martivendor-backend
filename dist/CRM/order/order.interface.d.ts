@@ -2,6 +2,8 @@ import { Document, Types } from "mongoose";
 import { TCreateOrderInput } from "./order.validation";
 import { TPaymentMethod, TPaymentStatus } from "../../globalTypes/payment.types";
 export type TOrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+export declare const DISCOUNT_TYPE: readonly ["flat", "percentage"];
+export type discountType = (typeof DISCOUNT_TYPE)[number];
 export interface IShippingAddress {
     name: string;
     phone: string;
@@ -32,7 +34,6 @@ export interface IOrder {
 export interface IOrderDocument extends IOrder, Document {
 }
 export interface ICreateOrderPayload {
-    sellerId: Types.ObjectId;
     input: TCreateOrderInput;
 }
 export interface IOrderItem {
@@ -43,7 +44,7 @@ export interface IOrderItem {
     image: string | null;
     quantity: number;
     sellingPrice: number;
-    discountType: "flat" | "percentage" | null;
+    discountType: discountType | null;
     discountValue: number;
     discountAmount: number;
     taxRate: number;

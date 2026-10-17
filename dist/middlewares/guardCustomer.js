@@ -38,11 +38,22 @@ const guardCustomer = async (req, res, next) => {
                 throw new appError_1.AppError("Password was changed. Please log in again", 401);
             }
         }
-        if (decoded.role !== "customer") {
+        if (!["user", "customer"].includes(decoded.role)) {
             const role = formatRole(decoded.role);
             //   return ApiResponse.error(res,`You are ${decoded.role}. Only customer can order product`,400)
-            throw new appError_1.AppError(`You are a ${role}. Only customers can order products`, 400);
+            throw new appError_1.AppError(`You are a ${role}. Only customers and user can order products`, 400);
         }
+        req.user = {
+            _id: decoded._id,
+            sellerId: decoded.sellerId,
+            sessionId: decoded.sessionId,
+            profileId: decoded.profileId,
+            profileType: decoded.profileType,
+            name: decoded.name,
+            email: decoded.email,
+            role: decoded.role,
+            passwordChangedAt: decoded.passwordChangedAt,
+        };
         next();
     }
     catch (error) {

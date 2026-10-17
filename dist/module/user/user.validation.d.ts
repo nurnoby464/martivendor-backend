@@ -5,16 +5,10 @@ export declare const createUserSchema: z.ZodObject<{
     email: z.ZodEmail;
     password: z.ZodString;
     role: z.ZodEnum<{
-        report: "report";
-        sales: "sales";
-        inventory: "inventory";
-        site_management: "site_management";
-        account: "account";
-        admin: "admin";
-        super_admin: "super_admin";
+        user: "user";
     }>;
     sellerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-    is_active: z.ZodOptional<z.ZodBoolean>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
     createdBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
 export declare const registerCustomerSchema: z.ZodObject<{

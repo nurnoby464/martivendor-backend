@@ -13,6 +13,13 @@ exports.USER_ROLES = [
     "sales",
     "report",
     "customer",
+    "user",
 ];
-exports.PROFILE_TYPE = ["Seller", "Customer", "Staff", "SellerStaff"];
+exports.PROFILE_TYPE = [
+    "Seller",
+    "Customer",
+    "Staff",
+    "SellerStaff",
+    "User",
+];
 //# sourceMappingURL=user.interface.js.map

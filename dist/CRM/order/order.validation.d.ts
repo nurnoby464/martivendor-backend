@@ -7,13 +7,11 @@ declare const shippingAddressSchema: z.ZodObject<{
     zip: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
 export declare const createOrderBody: z.ZodObject<{
-    userId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-    sellerId: z.ZodString;
     phone: z.ZodString;
     name: z.ZodString;
     email: z.ZodString;
     items: z.ZodArray<z.ZodObject<{
-        variant_id: z.ZodString;
+        variantId: z.ZodString;
         quantity: z.ZodNumber;
     }, z.core.$strip>>;
     shippingAddress: z.ZodObject<{
@@ -23,18 +21,14 @@ export declare const createOrderBody: z.ZodObject<{
         city: z.ZodString;
         zip: z.ZodDefault<z.ZodNullable<z.ZodString>>;
     }, z.core.$strip>;
-    discountAmount: z.ZodDefault<z.ZodNumber>;
-    taxAmount: z.ZodDefault<z.ZodNumber>;
-    shippingCharge: z.ZodDefault<z.ZodNumber>;
-    paidAmount: z.ZodDefault<z.ZodNumber>;
-    paymentMethod: z.ZodDefault<z.ZodNullable<z.ZodEnum<{
+    paymentMethod: z.ZodEnum<{
         cash: "cash";
         cash_on_delivery: "cash_on_delivery";
         card: "card";
         mobile_banking: "mobile_banking";
         credit: "credit";
         online: "online";
-    }>>>;
+    }>;
     note: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
 export declare const updateOrderStatusParam: z.ZodObject<{

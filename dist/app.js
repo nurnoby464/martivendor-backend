@@ -39,7 +39,7 @@ const allowOrigin = [
     "https://luzia-weld.vercel.app",
     "https://ankorabd.vercel.app",
     "https://ankorabd.com",
-    "https://www.ankorabd.com"
+    "https://www.ankorabd.com",
 ];
 app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -77,10 +77,65 @@ app.use((0, helmet_1.default)());
 //     credentials: true,
 //   }),
 // );
-app.use((0, morgan_1.default)("dev"));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
+app.use((0, morgan_1.default)("dev"));
+const c = {
+    reset: "\x1b[0m",
+    dim: "\x1b[2m",
+    bold: "\x1b[1m",
+    red: "\x1b[31m",
+    green: "\x1b[32m",
+    yellow: "\x1b[33m",
+    blue: "\x1b[34m",
+    cyan: "\x1b[36m",
+};
+const SENSITIVE_KEYS = ["password", "token", "accessToken", "refreshToken", "otp"];
+const mask = (_key, value) => SENSITIVE_KEYS.includes(_key) ? "***" : value;
+const isEmpty = (obj) => !obj || (typeof obj === "object" && Object.keys(obj).length === 0);
+const statusColor = (status) => {
+    if (status >= 500)
+        return c.red;
+    if (status >= 400)
+        return c.yellow;
+    if (status >= 300)
+        return c.cyan;
+    return c.green;
+};
+const indent = (json) => json
+    .split("\n")
+    .map((line) => `   ${c.dim}│${c.reset} ${line}`)
+    .join("\n");
+if (process.env.NODE_ENV === "development") {
+    app.use((0, morgan_1.default)((tokens, req, res) => {
+        const method = tokens.method?.(req, res) ?? "UNKNOWN";
+        const url = tokens.url?.(req, res) ?? "-";
+        const status = Number(tokens.status?.(req, res)) || 0;
+        const time = tokens["response-time"]?.(req, res) ?? "-";
+        const timestamp = new Date().toLocaleTimeString("en-GB");
+        const lines = [
+            `${c.dim}${"─".repeat(60)}${c.reset}`,
+            `${c.dim}${timestamp}${c.reset}  ${c.bold}${c.blue}${method}${c.reset} ${url}`,
+            `   ${c.dim}Status${c.reset}  ${statusColor(status)}${status}${c.reset}`,
+            `   ${c.dim}Time  ${c.reset}  ${time} ms`,
+        ];
+        const query = req.query;
+        const body = req.body;
+        if (!isEmpty(query)) {
+            lines.push(`   ${c.dim}Query${c.reset}`);
+            lines.push(indent(JSON.stringify(query, mask, 2)));
+        }
+        if (!isEmpty(body)) {
+            lines.push(`   ${c.dim}Body${c.reset}`);
+            lines.push(indent(JSON.stringify(body, mask, 2)));
+        }
+        return lines.join("\n");
+    }));
+}
+else {
+    app.use((0, morgan_1.default)("combined"));
+}
 // public route
 app.use("/api/v1/public", public_route_1.PublicRoutes);
 // how i give all dist
@@ -95,11 +150,11 @@ app.use("/api/v1/purchase", purchase_route_1.PurchaseRoute);
 app.use("/api/v1/product-variant", product_variant_route_1.ProductVariantRoute);
 app.use("/api/v1/sales", posSell_route_1.SaleRouter);
 app.use("/api/v1/customer", customer_route_1.CustomerRouter);
-app.use('/api/v1/dev', fixIndexes_1.DevRouter);
-app.use('/api/v1/orders', order_route_1.OrderRouter);
-app.use('/api/v1/invoices', invoice_route_1.InvoiceRouter);
-app.use('/api/v1/banners', banner_route_1.BannerRouter);
-app.use('/api/v1/notifications', notificaiton_route_1.NotificationRouter);
+app.use("/api/v1/dev", fixIndexes_1.DevRouter);
+app.use("/api/v1/orders", order_route_1.OrderRouter);
+app.use("/api/v1/invoices", invoice_route_1.InvoiceRouter);
+app.use("/api/v1/banners", banner_route_1.BannerRouter);
+app.use("/api/v1/notifications", notificaiton_route_1.NotificationRouter);
 // Health check
 app.get("/", (req, res) => {
     res.json({ success: true, message: "Welcome to Multi vendor e-commerce" });

@@ -38,14 +38,13 @@ const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const OrderServices = __importStar(require("./order.service"));
 exports.createOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const sellerId = req.body?.sellerId;
-    if (!sellerId) {
-        return ApiResponse_1.ApiResponse.error(res, "Created Order place failed", 400);
-    }
-    const result = await OrderServices.createOrder({
-        sellerId,
-        input: req.body,
-    });
+    // const sellerId = req.body?.sellerId;
+    // if (!sellerId) {
+    //   return ApiResponse.error(res, "Created Order place failed", 400);
+    // }
+    const userId = req.user?._id ?? null;
+    console.log(userId);
+    const result = await OrderServices.createOrder(req.body, userId);
     return ApiResponse_1.ApiResponse.created(res, result, "Order created successfully");
 });
 exports.getAllOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {

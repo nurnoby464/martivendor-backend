@@ -53,6 +53,11 @@ exports.customerQuerySchema = zod_1.z.object({
 });
 exports.createCustomerSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(3, "At list 3 letter"),
-    phone: zod_1.z.string().trim(),
+    email: zod_1.z
+        .string()
+        .trim()
+        .min(1, "Email is required")
+        .email("Please provide a valid email address"),
+    password: zod_1.z.string().trim().min(8, "Password must be least 8 characters"),
 });
 //# sourceMappingURL=customer.validation.js.map

@@ -26,6 +26,7 @@ import { PaymentStatus } from "../posSell/posSell.interface";
 import { eventEmitter } from "../../shared/events";
 import { NOTIFICATION_TYPES } from "../../shared/notifications/constants";
 import {
+  deriveOrderStatus,
   generateOrderNumber,
   generateSubOrderNumber,
 } from "../../utils/orderHelper";
@@ -43,6 +44,8 @@ import {
 } from "../subOrder/subOrder.interface";
 import { round2 } from "../../utils/money";
 import SubOrder from "../subOrder/subOrder.schema";
+import Payment from "../payment/payment.schema";
+import { handleOrderCreated } from "../../shared/events/listeners/orderListeners";
 
 // const resolveCustomer = async (
 //   sellerId: Types.ObjectId,
@@ -156,11 +159,12 @@ interface IResolveCustomerInput {
   phone: string;
   email: string;
   shippingAddress: TShippingAddress;
+  userId: Types.ObjectId | null;
   session: mongoose.ClientSession;
 }
 
 const resolveCustomer = async (input: IResolveCustomerInput) => {
-  const { name, phone, email, shippingAddress, session } = input;
+  const { name, phone, email, shippingAddress, userId, session } = input;
   const isSameCustomer = [
     name === shippingAddress.name,
     phone === shippingAddress.phone,
@@ -169,7 +173,7 @@ const resolveCustomer = async (input: IResolveCustomerInput) => {
   const existingCustomer = await Customer.findOne({
     $or: [{ phone: normalizedPhone }, { email }],
   })
-    .select("userId _id addresses")
+    .select("userId _id addresses phone email")
     .session(session)
     .lean();
 
@@ -191,6 +195,7 @@ const resolveCustomer = async (input: IResolveCustomerInput) => {
           phone: normalizedPhone,
           email,
           ...(newAddress && { addresses: [newAddress] }),
+          ...userId !==null && {userId}
         },
       ],
       { session },
@@ -207,6 +212,7 @@ const resolveCustomer = async (input: IResolveCustomerInput) => {
             profileId: newCustomer._id,
             profileType: "Customer",
             phone: normalizedPhone,
+            role:"customer"
           },
         },
         {
@@ -218,291 +224,329 @@ const resolveCustomer = async (input: IResolveCustomerInput) => {
     }
     return newCustomer;
   }
-
+  if (existingCustomer.email !== email) {
+    throw new AppError(`${email} not match Customer email`, 400);
+  }
+  if (phone && existingCustomer.phone && existingCustomer.phone !== phone)
+    throw new AppError(`${email} not match Customer phone`, 400);
   return existingCustomer;
 };
 
-export const createOrder = async (input: TCreateOrderInput) => {
-  const {
-    name,
-    phone,
-    email,
-    items,
-    shippingAddress,
-    shippingCharge,
-    paymentMethod,
-    note,
-  } = input;
+export const ENABLED_PAYMENT_METHODS = ["cash_on_delivery"] as const;
+// export const createOrder = async (input: TCreateOrderInput) => {
+//   const { name, phone, email, items, shippingAddress, paymentMethod, note } =
+//     input;
 
-  // order Number generation
-  const orderNumber = await generateOrderNumber();
-  const orderId = new Types.ObjectId();
-  const paymentId = new Types.ObjectId();
-  const variantIds = items.map((item) => new Types.ObjectId(item.variantId));
+//   if (!(ENABLED_PAYMENT_METHODS as readonly string[]).includes(paymentMethod)) {
+//     throw new AppError("This payment method is not available yet", 400);
+//   }
 
-  const variants = await ProductVariant.find({
-    _id: { $in: variantIds },
-    isActive: true,
-  })
-    .select(
-      "_id productId sellerId sku image attributes  sellingPrice stock discountType discountValue ",
-    )
-    .lean();
-  if (variants.length !== items.length) {
-    throw new AppError("One or more variants not found or inactive", 404);
-  }
-  const productIds = variants.map((v) => v.productId);
-  const products = await Product.find({
-    _id: { $in: productIds },
-    isActive: true,
-  })
-    .select("_id sellerId  name slug  taxRate isActive discount hasDiscount ")
-    .lean();
+//   // order Number generation
+//   const orderId = new Types.ObjectId();
+//   const paymentId = new Types.ObjectId();
+//   const variantIds = items.map((item) => new Types.ObjectId(item.variantId));
 
-  const sellerIds = products.map((p) => p.sellerId);
+//   const variants = await ProductVariant.find({
+//     _id: { $in: variantIds },
+//     isActive: true,
+//   })
+//     .select(
+//       "_id productId sellerId sku image attributes  sellingPrice stock discountType discountValue ",
+//     )
+//     .lean();
+//   if (variants.length !== items.length) {
+//     throw new AppError("One or more variants not found or inactive", 404);
+//   }
+//   const productIds = variants.map((v) => v.productId);
+//   const products = await Product.find({
+//     _id: { $in: productIds },
+//     isActive: true,
+//   })
+//     .select("_id sellerId  name slug  taxRate isActive discount hasDiscount ")
+//     .lean();
 
-  // make unique sellers
-  const uniqueSellerIds = [
-    ...new Set(variants.map((v) => v.sellerId.toString())),
-  ];
+//   const sellerIds = products.map((p) => p.sellerId);
 
-  const sellers = await Seller.find({
-    _id: { $in: uniqueSellerIds },
-    isActive: true,
-    status: "approved",
-  })
-    .select("_id name isPlatform commissionRate userId")
-    .lean();
+//   // make unique sellers
+//   const uniqueSellerIds = [
+//     ...new Set(variants.map((v) => v.sellerId.toString())),
+//   ];
 
-  // add Map
-  const productMap = new Map(
-    products.map((product) => [
-      product._id.toString(),
-      { sellerId: product.sellerId.toString(), name: product.name },
-    ]),
-  );
-  const variantMap = new Map(
-    variants.map((variant) => [
-      variant._id.toString(),
-      {
-        sellingPrice: variant.sellingPrice,
-        stock: variant.stock,
-        attributes: variant.attributes,
-        discountType: variant.discountType,
-        discountValue: variant.discountValue,
-        sku: variant.sku,
-        productId: variant.productId,
-        sellerId: variant.sellerId,
-        image: variant.image,
-      },
-    ]),
-  );
+//   const sellers = await Seller.find({
+//     _id: { $in: uniqueSellerIds },
+//     isActive: true,
+//     status: "approved",
+//   })
+//     .select("_id name isPlatform commissionRate userId")
+//     .lean();
 
-  const sellerMap = new Map(sellers.map((s) => [s._id.toString(), s]));
-  const subOrderDrafts: TSubOrderDraft[] = [];
-  let index = 1;
+//   // add Map
+//   const productMap = new Map(
+//     products.map((product) => [
+//       product._id.toString(),
+//       { sellerId: product.sellerId.toString(), name: product.name },
+//     ]),
+//   );
+//   const variantMap = new Map(
+//     variants.map((variant) => [
+//       variant._id.toString(),
+//       {
+//         sellingPrice: variant.sellingPrice,
+//         stock: variant.stock,
+//         attributes: variant.attributes,
+//         discountType: variant.discountType,
+//         discountValue: variant.discountValue,
+//         sku: variant.sku,
+//         productId: variant.productId,
+//         sellerId: variant.sellerId,
+//         image: variant.image,
+//       },
+//     ]),
+//   );
 
-  const group = new Map<string, TSubOrderLineDraft[]>();
+//   const sellerMap = new Map(sellers.map((s) => [s._id.toString(), s]));
+//   const subOrderDrafts: TSubOrderDraft[] = [];
+//   let index = 1;
 
-  if (sellerMap.size !== uniqueSellerIds.length) {
-    throw new AppError("One or more sellers are not available", 400);
-  }
-  const hasSellerMismatch = variants.some(
-    (variant) =>
-      productMap.get(variant.productId.toString())?.sellerId !==
-      variant.sellerId.toString(),
-  );
+//   const group = new Map<string, TSubOrderLineDraft[]>();
 
-  if (hasSellerMismatch)
-    throw new AppError("Product and variant seller mismatch", 400);
+//   if (sellerMap.size !== uniqueSellerIds.length) {
+//     throw new AppError("One or more sellers are not available", 400);
+//   }
+//   const hasSellerMismatch = variants.some(
+//     (variant) =>
+//       productMap.get(variant.productId.toString())?.sellerId !==
+//       variant.sellerId.toString(),
+//   );
 
-  for (const item of items) {
-    const variant = variantMap.get(item.variantId);
-    if (!variant) {
-      throw new AppError(`Not found this ${item.variantId} `, 404);
-    }
-    const product = productMap.get(variant.productId.toString());
-    if (!product) {
-      throw new AppError(
-        `Product not found for variant: ${item.variantId} `,
-        404,
-      );
-    }
+//   if (hasSellerMismatch)
+//     throw new AppError("Product and variant seller mismatch", 400);
+//   const orderNumber = await generateOrderNumber();
 
-    if (variant.stock < item.quantity) {
-      throw new AppError(
-        `Insufficient stock for ${product.name} - ${variant.sku}. Available: ${variant.stock}`,
-        400,
-      );
-    }
+//   for (const item of items) {
+//     const variant = variantMap.get(item.variantId);
+//     if (!variant) {
+//       throw new AppError(`Not found this ${item.variantId} `, 404);
+//     }
+//     const product = productMap.get(variant.productId.toString());
+//     if (!product) {
+//       throw new AppError(
+//         `Product not found for variant: ${item.variantId} `,
+//         404,
+//       );
+//     }
 
-    const sellingPrice = variant.sellingPrice;
-    const quantity = item.quantity;
-    const lineBase = sellingPrice * quantity;
-    const discountAmount = calculateDiscount({
-      lineBase,
-      discountValue: variant.discountValue,
-      discountType: variant.discountType,
-      quantity,
-    });
-    if (lineBase < discountAmount) {
-      throw new AppError("Discount amount cannot exceed the total price", 400);
-    }
-    const totalPrice = lineBase - discountAmount;
-    // const taxAmount = calculateTaxRate({totalPrice,taxRate: variant})
+//     if (variant.stock < item.quantity) {
+//       throw new AppError(
+//         `Insufficient stock for ${product.name} - ${variant.sku}. Available: ${variant.stock}`,
+//         400,
+//       );
+//     }
 
-    const key = variant.sellerId.toString();
-    if (!group.has(key)) group.set(key, []);
-    group.get(key)!.push({
-      productId: variant.productId,
-      variantId: new Types.ObjectId(item.variantId),
-      name: product.name,
-      sku: variant.sku,
-      image: variant.image ?? null,
-      quantity,
-      sellingPrice,
-      discountType: variant.discountType ?? null,
-      discountValue: variant.discountValue ?? 0,
-      discountAmount,
-      totalPrice,
-    });
-  }
-  for (const [sellerId, lines] of group) {
-    subOrderDrafts.push({
-      sellerId,
-      seller: sellerMap.get(sellerId)!,
-      lines,
-      subOrderNumber: generateSubOrderNumber(orderNumber, index++),
-    });
-  }
-  const subOrderPlans = subOrderDrafts.map((draft) => ({
-    ...draft,
-    items: draft.lines.map((l) => ({ ...l, taxRate: 0, taxAmount: 0 })),
-    ...calculateSubOrderMoney(draft.lines, draft.seller),
-  }));
+//     const sellingPrice = variant.sellingPrice;
+//     const quantity = item.quantity;
+//     const lineBase = sellingPrice * quantity;
+//     const discountAmount = round2(
+//       calculateDiscount({
+//         lineBase,
+//         discountValue: variant.discountValue,
+//         discountType: variant.discountType,
+//         quantity,
+//       }),
+//     );
+//     const totalPrice = round2(lineBase - discountAmount);
+//     if (lineBase < discountAmount) {
+//       throw new AppError("Discount amount cannot exceed the total price", 400);
+//     }
+//     // const taxAmount = calculateTaxRate({totalPrice,taxRate: variant})
 
-  const sum = (pick: (p: (typeof subOrderPlans)[number]) => number) =>
-    round2(subOrderPlans.reduce((s, p) => s + pick(p), 0));
+//     const key = variant.sellerId.toString();
+//     if (!group.has(key)) group.set(key, []);
+//     group.get(key)!.push({
+//       productId: variant.productId,
+//       variantId: new Types.ObjectId(item.variantId),
+//       name: product.name,
+//       sku: variant.sku,
+//       image: variant.image ?? null,
+//       quantity,
+//       sellingPrice,
+//       discountType: variant.discountType ?? null,
+//       discountValue: variant.discountValue ?? 0,
+//       discountAmount,
+//       totalPrice,
+//     });
+//   }
+//   for (const [sellerId, lines] of group) {
+//     subOrderDrafts.push({
+//       sellerId,
+//       seller: sellerMap.get(sellerId)!,
+//       lines,
+//       subOrderNumber: generateSubOrderNumber(orderNumber, index++),
+//     });
+//   }
+//   const subOrderPlans = subOrderDrafts.map((draft) => ({
+//     ...draft,
+//     items: draft.lines.map((l) => ({ ...l, taxRate: 0, taxAmount: 0 })),
+//     ...calculateSubOrderMoney(draft.lines, draft.seller),
+//   }));
 
-  const orderTotals = {
-    subtotal: sum((p) => p.subtotal),
-    discountTotal: sum((p) => p.discountAmount),
-    taxTotal: 0,
-    shippingTotal: sum((p) => p.shippingCharge),
-    grandTotal: sum((p) => p.total),
-  };
+//   const sum = (pick: (p: (typeof subOrderPlans)[number]) => number) =>
+//     round2(subOrderPlans.reduce((s, p) => s + pick(p), 0));
 
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-    const customer = await resolveCustomer({
-      name,
-      phone,
-      email,
-      shippingAddress,
-      session,
-    });
-    const customerId = customer._id;
-    const allLines = subOrderDrafts
-      .flatMap((d) => d.lines)
-      .sort((a, b) =>
-        a.variantId.toString().localeCompare(b.variantId.toString()),
-      );
-    const ops = allLines.map((line) => ({
-      updateOne: {
-        filter: {
-          _id: line.variantId,
-          isActive: true,
-          stock: { $gte: line.quantity },
-        },
-        update: { $inc: { stock: -line.quantity } },
-      },
-    }));
-    const result = await ProductVariant.bulkWrite(ops, {
-      session,
-    });
+//   const orderTotals = {
+//     subtotal: sum((p) => p.subtotal),
+//     discountTotal: sum((p) => p.discountAmount),
+//     taxTotal: 0,
+//     shippingTotal: sum((p) => p.shippingCharge),
+//     grandTotal: sum((p) => p.total),
+//   };
 
-    if (result.matchedCount < ops.length) {
-      const current = await ProductVariant.find({
-        _id: { $in: allLines.map((l) => l.variantId) },
-      })
-        .select("_id stock")
-        .lean();
-      const stockMap = new Map(current.map((v) => [v._id.toString(), v.stock]));
-      const bad = allLines.find(
-        (l) => (stockMap.get(l.variantId.toString()) ?? 0) < l.quantity,
-      );
-      throw new AppError(
-        bad
-          ? `Not enough stock for ${bad.name} (${bad.sku}). Available: ${stockMap.get(bad.variantId.toString()) ?? 0}`
-          : "Stock changed. Please refresh and try again.",
-        409,
-      );
-    }
+//   const session = await mongoose.startSession();
+//   try {
+//     await session.withTransaction(async () => {
+//       const customer = await resolveCustomer({
+//         name,
+//         phone,
+//         email,
+//         shippingAddress,
+//         session,
+//       });
+//       const customerId = customer._id;
+//       const allLines = subOrderDrafts
+//         .flatMap((d) => d.lines)
+//         .sort((a, b) =>
+//           a.variantId.toString().localeCompare(b.variantId.toString()),
+//         );
+//       const ops = allLines.map((line) => ({
+//         updateOne: {
+//           filter: {
+//             _id: line.variantId,
+//             isActive: true,
+//             stock: { $gte: line.quantity },
+//           },
+//           update: { $inc: { stock: -line.quantity } },
+//         },
+//       }));
+//       const result = await ProductVariant.bulkWrite(ops, {
+//         session,
+//       });
 
-    const [order] = await Order.create(
-      [
-        {
-          _id: orderId,
-          orderNumber,
-          customerId,
-          shippingAddress,
-          subOrderCount: subOrderPlans.length,
-          ...orderTotals,
-          paidAmount: 0,
-          dueAmount: orderTotals.grandTotal,
-          paymentStatus: "due",
-          paymentMethod,
-          paymentId,
-          note,
-        },
-      ],
-      { session },
-    );
-    console.log("order", order);
+//       if (result.matchedCount < ops.length) {
+//         const current = await ProductVariant.find({
+//           _id: { $in: allLines.map((l) => l.variantId) },
+//         })
+//           .select("_id stock")
+//           .lean();
+//         const stockMap = new Map(
+//           current.map((v) => [v._id.toString(), v.stock]),
+//         );
+//         const bad = allLines.find(
+//           (l) => (stockMap.get(l.variantId.toString()) ?? 0) < l.quantity,
+//         );
+//         throw new AppError(
+//           bad
+//             ? `Not enough stock for ${bad.name} (${bad.sku}). Available: ${stockMap.get(bad.variantId.toString()) ?? 0}`
+//             : "Stock changed. Please refresh and try again.",
+//           409,
+//         );
+//       }
 
-    const createdSubOrders = await SubOrder.create(
-      subOrderPlans.map((p) => ({
-        orderId,
-        orderNumber,
-        customerId,
-        subOrderNumber: p.subOrderNumber,
-        sellerId: p.seller._id,
-        items: p.items,
-        subtotal: p.subtotal,
-        discountAmount: p.discountAmount,
-        taxAmount: p.taxAmount,
-        shippingCharge: p.shippingCharge,
-        total: p.total,
-        commissionRate: p.commissionRate,
-        commissionAmount: p.commissionAmount,
-        sellerEarning: p.sellerEarning,
-        status: "pending",
-        statusHistory: [
-          { status: "pending", at: new Date(), by: null, note: "Order placed" },
-        ],
-      })),
-      { session, ordered: true },
-    );
+//       await Order.create(
+//         [
+//           {
+//             _id: orderId,
+//             orderNumber,
+//             customerId,
+//             shippingAddress,
+//             subOrderCount: subOrderPlans.length,
+//             ...orderTotals,
+//             paidAmount: 0,
+//             dueAmount: orderTotals.grandTotal,
+//             paymentStatus: "due",
+//             paymentMethod,
+//             paymentId,
+//             note,
+//           },
+//         ],
+//         { session },
+//       );
 
-    console.log("createdSubOrders", createdSubOrders);
-    // await session.commitTransaction();
+//       const createdSubOrders = await SubOrder.create(
+//         subOrderPlans.map((p) => ({
+//           orderId,
+//           orderNumber,
+//           customerId,
+//           subOrderNumber: p.subOrderNumber,
+//           sellerId: p.seller._id,
+//           items: p.items,
+//           subtotal: p.subtotal,
+//           discountAmount: p.discountAmount,
+//           taxAmount: p.taxAmount,
+//           shippingCharge: p.shippingCharge,
+//           total: p.total,
+//           commissionRate: p.commissionRate,
+//           commissionAmount: p.commissionAmount,
+//           sellerEarning: p.sellerEarning,
+//           status: "pending",
+//           statusHistory: [
+//             {
+//               status: "pending",
+//               at: new Date(),
+//               by: null,
+//               note: "Order placed",
+//             },
+//           ],
+//         })),
+//         { session, ordered: true },
+//       );
 
-    return {
-      orderNumber,
-      variants,
-      products,
-      sellers,
-      customer,
-      subOrderDrafts,
-    };
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
-  } finally {
-    session.endSession();
-  }
-};
+//       await Payment.create(
+//         [
+//           {
+//             _id: paymentId,
+//             orderId,
+//             customerId,
+//             amount: orderTotals.grandTotal,
+//             method: paymentMethod,
+//             status: "pending",
+//           },
+//         ],
+//         { session },
+//       );
+
+//       eventEmitter.emit(NOTIFICATION_TYPES.ORDER.CREATED, {
+//         orderId,
+//         customerId,
+//         subOrders: createdSubOrders.map((s) => ({
+//           subOrderId: s._id,
+//           sellerId: s.sellerId,
+//           subOrderNumber: s.subOrderNumber,
+//           total: s.total,
+//         })),
+//       });
+
+//       return {
+//         orderId,
+//         orderNumber,
+//         status: deriveOrderStatus(createdSubOrders),
+//         paymentStatus: "due",
+//         paymentMethod,
+//         subtotal: orderTotals.subtotal,
+//         shippingTotal: orderTotals.shippingTotal,
+//         grandTotal: orderTotals.grandTotal,
+//         dueAmount: orderTotals.grandTotal,
+//         subOrders: createdSubOrders.map((s) => ({
+//           subOrderNumber: s.subOrderNumber,
+//           seller: sellerMap.get(s.sellerId.toString())?.name ?? "",
+//           total: s.total,
+//         })),
+//         paymentAction: null, // COD
+//       };
+//     });
+//   } finally {
+//     session.endSession();
+//   }
+// };
 
 // console.log(customer);
 
@@ -738,6 +782,351 @@ export const createOrder = async (input: TCreateOrderInput) => {
 // } finally {
 //   session.endSession();
 // }
+
+export const createOrder = async (
+  input: TCreateOrderInput,
+  userId: Types.ObjectId | null,
+) => {
+  const { name, phone, email, items, shippingAddress, paymentMethod, note } =
+    input;
+
+  if (!(ENABLED_PAYMENT_METHODS as readonly string[]).includes(paymentMethod)) {
+    throw new AppError("This payment method is not available yet", 400);
+  }
+
+  const orderId = new Types.ObjectId();
+  const paymentId = new Types.ObjectId();
+
+  // FIX 1: normalize ids once, and reject duplicates (uppercase hex or repeats broke the Map lookups)
+  const cart = items.map((item) => ({
+    variantId: new Types.ObjectId(item.variantId),
+    quantity: item.quantity,
+  }));
+  if (new Set(cart.map((c) => c.variantId.toString())).size !== cart.length) {
+    throw new AppError("Duplicate items in the cart", 400);
+  }
+  const variantIds = cart.map((c) => c.variantId);
+
+  const variants = await ProductVariant.find({
+    _id: { $in: variantIds },
+    isActive: true,
+  })
+    .select(
+      "_id productId sellerId sku image attributes sellingPrice stock discountType discountValue",
+    )
+    .lean();
+  if (variants.length !== cart.length) {
+    throw new AppError("One or more variants not found or inactive", 404);
+  }
+
+  // FIX 2: unique product ids (two variants of one product are normal)
+  const productIds = [...new Set(variants.map((v) => v.productId.toString()))];
+  const products = await Product.find({
+    _id: { $in: productIds },
+    isActive: true,
+  })
+    .select("_id sellerId name slug taxRate isActive discount hasDiscount")
+    .lean();
+
+  // FIX 3: a missing or inactive product is not a "seller mismatch"
+  if (products.length !== productIds.length) {
+    throw new AppError("One or more products not found or inactive", 404);
+  }
+
+  // make unique sellers
+  const uniqueSellerIds = [
+    ...new Set(variants.map((v) => v.sellerId.toString())),
+  ];
+
+  const sellers = await Seller.find({
+    _id: { $in: uniqueSellerIds },
+    isActive: true,
+    status: "approved",
+  })
+    .select("_id name isPlatform commissionRate userId")
+    .lean();
+
+  // add Map
+  const productMap = new Map(
+    products.map((product) => [
+      product._id.toString(),
+      { sellerId: product.sellerId.toString(), name: product.name },
+    ]),
+  );
+  const variantMap = new Map(
+    variants.map((variant) => [
+      variant._id.toString(),
+      {
+        sellingPrice: variant.sellingPrice,
+        stock: variant.stock,
+        attributes: variant.attributes,
+        discountType: variant.discountType,
+        discountValue: variant.discountValue,
+        sku: variant.sku,
+        productId: variant.productId,
+        sellerId: variant.sellerId,
+        image: variant.image,
+      },
+    ]),
+  );
+
+  const sellerMap = new Map(sellers.map((s) => [s._id.toString(), s]));
+  const subOrderDrafts: TSubOrderDraft[] = [];
+  let index = 1;
+
+  const group = new Map<string, TSubOrderLineDraft[]>();
+
+  if (sellerMap.size !== uniqueSellerIds.length) {
+    throw new AppError("One or more sellers are not available", 400);
+  }
+  const hasSellerMismatch = variants.some(
+    (variant) =>
+      productMap.get(variant.productId.toString())?.sellerId !==
+      variant.sellerId.toString(),
+  );
+
+  if (hasSellerMismatch)
+    throw new AppError("Product and variant seller mismatch", 400);
+
+  for (const item of cart) {
+    const variant = variantMap.get(item.variantId.toString());
+    if (!variant) {
+      throw new AppError(`Not found this ${item.variantId} `, 404);
+    }
+    const product = productMap.get(variant.productId.toString());
+    if (!product) {
+      throw new AppError(
+        `Product not found for variant: ${item.variantId} `,
+        404,
+      );
+    }
+
+    if (variant.stock < item.quantity) {
+      throw new AppError(
+        `Insufficient stock for ${product.name} - ${variant.sku}. Available: ${variant.stock}`,
+        400,
+      );
+    }
+
+    const sellingPrice = variant.sellingPrice;
+    const quantity = item.quantity;
+    const lineBase = round2(sellingPrice * quantity); // FIX 4: round
+    const discountAmount = round2(
+      calculateDiscount({
+        lineBase,
+        discountValue: variant.discountValue ?? 0,
+        discountType: variant.discountType ?? null,
+        quantity,
+      }),
+    );
+    // FIX 4: check BEFORE using the value
+    if (discountAmount > lineBase) {
+      throw new AppError("Discount amount cannot exceed the total price", 400);
+    }
+    const totalPrice = round2(lineBase - discountAmount);
+
+    const key = variant.sellerId.toString();
+    if (!group.has(key)) group.set(key, []);
+    group.get(key)!.push({
+      productId: variant.productId,
+      variantId: item.variantId,
+      name: product.name,
+      sku: variant.sku,
+      image: variant.image ?? null,
+      quantity,
+      sellingPrice,
+      discountType: variant.discountType ?? null,
+      discountValue: variant.discountValue ?? 0,
+      discountAmount,
+      totalPrice,
+    });
+  }
+
+  // FIX 5: generate the number AFTER every validation, so 400/404 errors do not waste numbers
+  const orderNumber = await generateOrderNumber();
+
+  for (const [sellerId, lines] of group) {
+    subOrderDrafts.push({
+      sellerId,
+      seller: sellerMap.get(sellerId)!,
+      lines,
+      subOrderNumber: generateSubOrderNumber(orderNumber, index++),
+    });
+  }
+  const subOrderPlans = subOrderDrafts.map((draft) => ({
+    ...draft,
+    items: draft.lines.map((l) => ({ ...l, taxRate: 0, taxAmount: 0 })),
+    ...calculateSubOrderMoney(draft.lines, draft.seller),
+  }));
+
+  const sum = (pick: (p: (typeof subOrderPlans)[number]) => number) =>
+    round2(subOrderPlans.reduce((s, p) => s + pick(p), 0));
+
+  const orderTotals = {
+    subtotal: sum((p) => p.subtotal),
+    discountTotal: sum((p) => p.discountAmount),
+    taxTotal: 0,
+    shippingTotal: sum((p) => p.shippingCharge),
+    grandTotal: sum((p) => p.total),
+  };
+
+  // FIX 6: a holder for the result. The callback fills it, and we return it AFTER the commit
+  const holder: { response: Record<string, unknown> | null } = {
+    response: null,
+  };
+
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      // this callback can run more than once: no emails, no events, no commit here
+      const customer = await resolveCustomer({
+        name,
+        phone,
+        email,
+        shippingAddress,
+        userId,
+        session,
+      });
+      const customerId = customer._id;
+      const allLines = subOrderDrafts
+        .flatMap((d) => d.lines)
+        .sort((a, b) =>
+          a.variantId.toString().localeCompare(b.variantId.toString()),
+        );
+      const ops = allLines.map((line) => ({
+        updateOne: {
+          filter: {
+            _id: line.variantId,
+            isActive: true,
+            stock: { $gte: line.quantity },
+          },
+          update: { $inc: { stock: -line.quantity } },
+        },
+      }));
+      const result = await ProductVariant.bulkWrite(ops, {
+        session,
+      });
+
+      if (result.matchedCount < ops.length) {
+        // no session here: we want the committed stock, to blame the right line
+        const current = await ProductVariant.find({
+          _id: { $in: allLines.map((l) => l.variantId) },
+        })
+          .select("_id stock")
+          .lean();
+        const stockMap = new Map(
+          current.map((v) => [v._id.toString(), v.stock]),
+        );
+        const bad = allLines.find(
+          (l) => (stockMap.get(l.variantId.toString()) ?? 0) < l.quantity,
+        );
+        throw new AppError(
+          bad
+            ? `Not enough stock for ${bad.name} (${bad.sku}). Available: ${stockMap.get(bad.variantId.toString()) ?? 0}`
+            : "Stock changed. Please refresh and try again.",
+          409,
+        );
+      }
+
+      await Order.create(
+        [
+          {
+            _id: orderId,
+            orderNumber,
+            customerId,
+            shippingAddress,
+            subOrderCount: subOrderPlans.length,
+            ...orderTotals,
+            paidAmount: 0,
+            dueAmount: orderTotals.grandTotal,
+            paymentStatus: "due",
+            paymentMethod,
+            paymentId,
+            note,
+          },
+        ],
+        { session },
+      );
+
+      const createdSubOrders = await SubOrder.create(
+        subOrderPlans.map((p) => ({
+          orderId,
+          orderNumber,
+          customerId,
+          subOrderNumber: p.subOrderNumber,
+          sellerId: p.seller._id,
+          items: p.items,
+          subtotal: p.subtotal,
+          discountAmount: p.discountAmount,
+          taxAmount: p.taxAmount,
+          shippingCharge: p.shippingCharge,
+          total: p.total,
+          commissionRate: p.commissionRate,
+          commissionAmount: p.commissionAmount,
+          sellerEarning: p.sellerEarning,
+          status: "pending" as const, // FIX 7: keep the literal type
+          statusHistory: [
+            {
+              status: "pending" as const,
+              at: new Date(),
+              by: null,
+              note: "Order placed",
+            },
+          ],
+        })),
+        { session, ordered: true },
+      );
+
+      await Payment.create(
+        [
+          {
+            _id: paymentId,
+            orderId,
+            customerId,
+            amount: orderTotals.grandTotal,
+            method: paymentMethod,
+            status: "pending",
+          },
+        ],
+        { session },
+      );
+
+      // FIX 8: eventEmitter.emit(...) removed from here (see below, after the commit)
+
+      // FIX 6: assign instead of "return"
+      holder.response = {
+        orderId,
+        orderNumber,
+        status: deriveOrderStatus(createdSubOrders),
+        paymentStatus: "due",
+        paymentMethod,
+        subtotal: orderTotals.subtotal,
+        shippingTotal: orderTotals.shippingTotal,
+        grandTotal: orderTotals.grandTotal,
+        dueAmount: orderTotals.grandTotal,
+        subOrders: createdSubOrders.map((s) => ({
+          subOrderNumber: s.subOrderNumber,
+          seller: sellerMap.get(s.sellerId.toString())?.name ?? "",
+          total: s.total,
+        })),
+        paymentAction: null, // COD
+      };
+    }); // withTransaction commits here
+  } finally {
+    await session.endSession(); // FIX 9: await
+  }
+
+  if (!holder.response) throw new AppError("Order was not created", 500);
+
+  // FIX 8: AFTER the commit. A failure here must never fail the order
+  try {
+    eventEmitter.emit(NOTIFICATION_TYPES.ORDER.CREATED, { orderId });
+  } catch (err) {
+    console.error("order.created handler failed:", err);
+  }
+
+  return holder.response;
+};
 
 export const getAllOrder = async (
   sellerId: Types.ObjectId,

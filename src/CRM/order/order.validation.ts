@@ -41,13 +41,10 @@ export const createOrderBody = z.object({
   // financials
   // discountAmount: z.number().min(0).default(0),
   // taxAmount: z.number().min(0).default(0),
-  shippingCharge: z.number().min(0).default(0),
+  // shippingCharge: z.number().min(0).default(0),
   // paidAmount: z.number().min(0).default(0),
 
-  paymentMethod: z
-    .enum(PAYMENT_METHODS)
-    .nullable()
-    .default(null),
+  paymentMethod: z.enum(PAYMENT_METHODS),
 
   note: z.string().trim().nullable().default(null),
 });

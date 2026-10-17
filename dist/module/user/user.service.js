@@ -17,7 +17,7 @@ function assertValidObjectId(id, label = "ID") {
     }
 }
 // ─── createUser ───────────────────────────────────────────
-const createUser = async (input, createdBy) => {
+const createUser = async (input) => {
     const existing = await user_schema_1.default.findOne({ email: input.email }).lean();
     if (existing) {
         throw new appError_1.AppError("Email already in use", 409);
@@ -30,7 +30,7 @@ const createUser = async (input, createdBy) => {
         sellerId: input.sellerId
             ? new mongoose_1.default.Types.ObjectId(input.sellerId)
             : null,
-        createdBy,
+        createdBy: null,
     });
     return user.toJSON();
 };

@@ -59,7 +59,12 @@ export const customerQuerySchema = z.object({
 
 export const createCustomerSchema = z.object({
   name: z.string().trim().min(3, "At list 3 letter"),
-  phone: z.string().trim(),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Please provide a valid email address"),
+  password: z.string().trim().min(8, "Password must be least 8 characters"),
 });
 
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;

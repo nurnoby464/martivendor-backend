@@ -1,1 +1,1 @@
-{"version":3,"file":"payment.schema.d.ts","sourceRoot":"","sources":["../../../src/CRM/payment/payment.schema.ts"],"names":[],"mappings":""}
+{"version":3,"file":"payment.schema.d.ts","sourceRoot":"","sources":["../../../src/CRM/payment/payment.schema.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,gBAAgB,EAAE,MAAM,qBAAqB,CAAC;AAuCvD,QAAA,MAAM,OAAO;;;;;;yBAAoD,CAAC;AAClE,eAAe,OAAO,CAAC"}

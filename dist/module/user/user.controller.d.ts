@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-export declare const create: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const createUser: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const getById: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const list: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const remove: (req: Request, res: Response, next: import("express").NextFunction) => void;

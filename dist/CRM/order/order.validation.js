@@ -3,9 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMyOrderByIdParamSchema = exports.getMyOrdersQuerySchema = exports.getOrderByIdParam = exports.getOrderListQuery = exports.updatePaymentBody = exports.updatePaymentParam = exports.updateOrderStatusBody = exports.updateOrderStatusParam = exports.createOrderBody = void 0;
 // src/module/order/order.validation.ts
 const zod_1 = require("zod");
+const payment_types_1 = require("../../globalTypes/payment.types");
 // ─── Sub-schemas ──────────────────────────────────────────────────────────────
 const orderItemSchema = zod_1.z.object({
-    variant_id: zod_1.z.string().trim().min(1, "Variant ID is required"),
+    variantId: zod_1.z.string().trim().min(1, "Variant ID is required"),
     quantity: zod_1.z.number().int().min(1, "Quantity must be at least 1"),
 });
 const shippingAddressSchema = zod_1.z.object({
@@ -19,12 +20,12 @@ const shippingAddressSchema = zod_1.z.object({
 // ─── Create Order ─────────────────────────────────────────────────────────────
 exports.createOrderBody = zod_1.z.object({
     // customer identification
-    userId: zod_1.z
-        .string()
-        .regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format")
-        .optional()
-        .nullable(),
-    sellerId: zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format"),
+    // userId: z
+    //   .string()
+    //   .regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format")
+    //   .optional()
+    //   .nullable(),
+    // sellerId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID format"),
     phone: zod_1.z.string().trim().min(1, "Customer phone is required"),
     name: zod_1.z.string().trim().min(1, "Customer name is required"),
     email: zod_1.z.string().trim().email("Invalid email"),
@@ -33,21 +34,11 @@ exports.createOrderBody = zod_1.z.object({
     // delivery
     shippingAddress: shippingAddressSchema,
     // financials
-    discountAmount: zod_1.z.number().min(0).default(0),
-    taxAmount: zod_1.z.number().min(0).default(0),
-    shippingCharge: zod_1.z.number().min(0).default(0),
-    paidAmount: zod_1.z.number().min(0).default(0),
-    paymentMethod: zod_1.z
-        .enum([
-        "cash",
-        "cash_on_delivery",
-        "card",
-        "mobile_banking",
-        "credit",
-        "online",
-    ])
-        .nullable()
-        .default(null),
+    // discountAmount: z.number().min(0).default(0),
+    // taxAmount: z.number().min(0).default(0),
+    // shippingCharge: z.number().min(0).default(0),
+    // paidAmount: z.number().min(0).default(0),
+    paymentMethod: zod_1.z.enum(payment_types_1.PAYMENT_METHODS),
     note: zod_1.z.string().trim().nullable().default(null),
 });
 // ─── Update Order Status ──────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateOPT = exports.makeLoginResponse = exports.profileModelMap = exports.makeToken = void 0;
+exports.calculateTaxRate = exports.calculateDiscount = exports.normalizedBDPhone = exports.generateOPT = exports.makeLoginResponse = exports.profileModelMap = exports.makeToken = void 0;
 exports.generateAsin = generateAsin;
 exports.extractAsin = extractAsin;
 exports.escapeRegex = escapeRegex;
@@ -11,6 +11,8 @@ const customer_schema_1 = __importDefault(require("../CRM/customer/customer.sche
 const staff_schema_1 = __importDefault(require("../CRM/staff/staff.schema"));
 const sellerStaff_schema_1 = require("../CRM/sellerStaff/sellerStaff.schema");
 const seller_schema_1 = require("../module/seller/seller.schema");
+const user_schema_1 = __importDefault(require("../module/user/user.schema"));
+const money_1 = require("./money");
 const { customAlphabet } = require("nanoid");
 const makeToken = (payload) => {
     const { existing, session } = payload;
@@ -33,6 +35,7 @@ exports.profileModelMap = {
     Customer: customer_schema_1.default,
     Staff: staff_schema_1.default,
     SellerStaff: sellerStaff_schema_1.SellerStaff,
+    User: user_schema_1.default,
 };
 const makeLoginResponse = async (payload) => {
     const { user } = payload;
@@ -130,4 +133,32 @@ function extractAsin(combinedSlug) {
 function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+const normalizedBDPhone = (phone) => {
+    const normalized = phone.replace(/[\s()-]/g, "");
+    if (normalized.startsWith("+880"))
+        return normalized;
+    if (normalized.startsWith("880"))
+        return `+${normalized}`;
+    if (normalized.startsWith("0"))
+        return `+88${normalized}`;
+    return normalized;
+};
+exports.normalizedBDPhone = normalizedBDPhone;
+const calculateDiscount = (input) => {
+    const { lineBase, discountType, discountValue, quantity } = input;
+    if (discountType === "percentage") {
+        return (lineBase * discountValue) / 100;
+    }
+    if (discountType === "flat") {
+        return discountValue * quantity;
+    }
+    return 0;
+};
+exports.calculateDiscount = calculateDiscount;
+const calculateTaxRate = (input) => {
+    const { totalPrice, taxRate } = input;
+    const taxAmount = (totalPrice * taxRate) / 100;
+    return (0, money_1.round2)(taxAmount);
+};
+exports.calculateTaxRate = calculateTaxRate;
 //# sourceMappingURL=helper.js.map

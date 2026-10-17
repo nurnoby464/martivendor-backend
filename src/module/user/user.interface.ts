@@ -12,10 +12,17 @@ export const USER_ROLES = [
   "sales",
   "report",
   "customer",
+  "user",
 ] as const;
 
-export const PROFILE_TYPE = ["Seller" , "Customer" , "Staff" , "SellerStaff"] as const;
-export type ProfileType =(typeof PROFILE_TYPE)[number]
+export const PROFILE_TYPE = [
+  "Seller",
+  "Customer",
+  "Staff",
+  "SellerStaff",
+  "User",
+] as const;
+export type ProfileType = (typeof PROFILE_TYPE)[number];
 
 export type UserRole = (typeof USER_ROLES)[number];
 

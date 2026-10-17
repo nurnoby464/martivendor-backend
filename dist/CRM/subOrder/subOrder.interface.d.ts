@@ -54,4 +54,18 @@ export interface ISubOrder {
 }
 export interface ISubOrderDocument extends ISubOrder, Document {
 }
+export type TSubOrderLineDraft = Omit<ISubOrderItem, "taxRate" | "taxAmount">;
+export type TDraftSeller = {
+    _id: Types.ObjectId;
+    name: string;
+    isPlatform: boolean;
+    commissionRate: number;
+    userId: Types.ObjectId;
+};
+export type TSubOrderDraft = {
+    sellerId: string;
+    seller: TDraftSeller;
+    lines: TSubOrderLineDraft[];
+    subOrderNumber: string;
+};
 //# sourceMappingURL=subOrder.interface.d.ts.map

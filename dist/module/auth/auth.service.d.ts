@@ -26,7 +26,7 @@ export declare const AuthServices: {
             isPlatform: any;
             commissionRate: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
             sellerId: Types.ObjectId | null;
             isActive: boolean;
             emailVerified: boolean;
@@ -43,7 +43,7 @@ export declare const AuthServices: {
             kycStatus: any;
             commissionRate: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
             sellerId: Types.ObjectId | null;
             isActive: boolean;
             emailVerified: boolean;
@@ -59,7 +59,7 @@ export declare const AuthServices: {
             permissions: any;
             status: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
             sellerId: Types.ObjectId | null;
             isActive: boolean;
             emailVerified: boolean;
@@ -75,7 +75,7 @@ export declare const AuthServices: {
             gender: any;
             addresses: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
             sellerId: Types.ObjectId | null;
             isActive: boolean;
             emailVerified: boolean;
@@ -92,7 +92,7 @@ export declare const AuthServices: {
             joining_date: any;
             address: any;
             _id: Types.ObjectId;
-            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
+            role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
             sellerId: Types.ObjectId | null;
             isActive: boolean;
             emailVerified: boolean;

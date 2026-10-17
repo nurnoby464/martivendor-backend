@@ -1,6 +1,6 @@
 import mongoose, { Document } from "mongoose";
-export declare const USER_ROLES: readonly ["super_admin", "seller", "admin", "staff", "seller_staff", "account", "site_management", "inventory", "sales", "report", "customer"];
-export declare const PROFILE_TYPE: readonly ["Seller", "Customer", "Staff", "SellerStaff"];
+export declare const USER_ROLES: readonly ["super_admin", "seller", "admin", "staff", "seller_staff", "account", "site_management", "inventory", "sales", "report", "customer", "user"];
+export declare const PROFILE_TYPE: readonly ["Seller", "Customer", "Staff", "SellerStaff", "User"];
 export type ProfileType = (typeof PROFILE_TYPE)[number];
 export type UserRole = (typeof USER_ROLES)[number];
 export interface IUser {

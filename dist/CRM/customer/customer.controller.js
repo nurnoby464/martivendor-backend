@@ -47,11 +47,7 @@ exports.getCustomerList = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     return ApiResponse_1.ApiResponse.paginated(res, "sales created successfully", customers, total, page, limit);
 });
 exports.createCustomer = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const sellerId = req.user.sellerId;
-    if (!sellerId) {
-        throw new appError_1.AppError("Now found seller.", 404);
-    }
-    const result = await CustomerServices.createCustomer(sellerId, req.body);
+    const result = await CustomerServices.createCustomer(req.body);
     return ApiResponse_1.ApiResponse.success(res, result, "Customer created successfully");
 });
 //# sourceMappingURL=customer.controller.js.map

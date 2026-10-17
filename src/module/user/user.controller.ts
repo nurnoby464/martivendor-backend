@@ -7,8 +7,8 @@ import { CompanyQueryInput } from "../seller/seller.validation";
 import { UserDetailsParams, UserStatsInput } from "./user.validation";
 
 // ─── POST /users ──────────────────────────────────────────
-export const create = asyncHandler(async (req: Request, res: Response) => {
-  const user = await UserService.createUser(req.body, req.user?._id ?? null);
+export const createUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = await UserService.createUser(req.body);
 
   return ApiResponse.created(res, user, "User created successfully");
 });
@@ -130,7 +130,13 @@ export const createSuperAdmin = asyncHandler(
 
 export const getUserDetails = asyncHandler(
   async (req: Request, res: Response) => {
-    const result = await UserService.getUserDetails(req.validatedQuery as UserDetailsParams);
-    return ApiResponse.success(res, result, "User details fetched successfully");
+    const result = await UserService.getUserDetails(
+      req.validatedQuery as UserDetailsParams,
+    );
+    return ApiResponse.success(
+      res,
+      result,
+      "User details fetched successfully",
+    );
   },
 );

@@ -1,93 +1,74 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.orderConfirmationTemplate = void 0;
-const orderConfirmationTemplate = (customerName, order) => `
+const escapeHtml_1 = require("../utils/escapeHtml");
+const orderConfirmationTemplate = (customerName, o) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
-        .order-details { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
-        .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        .items-table th, .items-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        .items-table th { background-color: #f0f0f0; }
-        .total-section { font-size: 18px; font-weight: bold; margin-top: 20px; text-align: right; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; color: #666; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+    .box { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+    .items-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    .items-table th, .items-table td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    .items-table th { background-color: #f0f0f0; }
+    .right { text-align: right; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; color: #666; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Order Confirmation</h1>
-        </div>
+  <div class="container">
+    <div class="header"><h1>Order Confirmation</h1></div>
 
-        <div class="order-details">
-            <h2>Hello ${customerName},</h2>
-            <p>Thank you for your order! We've received your order and it will be processed shortly.</p>
-
-            <h3>Order Number: <strong>#${order.orderNumber}</strong></h3>
-            <p><strong>Order Date:</strong> ${new Date(order.createdAt || new Date()).toLocaleDateString()}</p>
-
-            <h3>Order Items:</h3>
-            <table class="items-table">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Quantity</th>
-                        <th>Unit Price</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${order.items
-    .map((item) => `
-                        <tr>
-                            <td>${item.name}</td>
-                            <td>${item.quantity}</td>
-                            <td>৳${item.sellingPrice}</td>
-                            <td>৳${item.totalPrice}</td>
-                        </tr>
-                    `)
-    .join("")}
-                </tbody>
-            </table>
-
-            <div class="total-section">
-                <p>Subtotal: ৳${order.subtotal}</p>
-                <p>Discount: -৳${order.discountAmount}</p>
-                <p>Tax: ৳${order.taxAmount}</p>
-                <p>Shipping: ৳${order.shippingCharge}</p>
-                <hr>
-                <p>Total: ৳${order.grandTotal}</p>
-            </div>
-
-            <h3>Shipping Address:</h3>
-            <p>
-                ${order.shippingAddress.name}<br>
-                ${order.shippingAddress.address}<br>
-                ${order.shippingAddress.city}, ${order.shippingAddress.zip}<br>
-                Phone: ${order.shippingAddress.phone}
-            </p>
-
-            <h3>Payment Status:</h3>
-            <p><strong>${order.paymentStatus.toUpperCase()}</strong></p>
-            ${order.paymentStatus !== "paid"
-    ? `
-                <p>Paid Amount: ৳${order.paidAmount}</p>
-                <p>Due Amount: ৳${order.dueAmount}</p>
-            `
-    : ""}
-        </div>
-
-        <div class="footer">
-            <p>Thank you for shopping with us!</p>
-            <p>If you have any questions, please contact our support team.</p>
-        </div>
+    <div class="box">
+      <h2>Hello ${(0, escapeHtml_1.escapeHtml)(customerName)},</h2>
+      <p>Thank you for your order! We have received it.</p>
+      <p><strong>Order:</strong> #${(0, escapeHtml_1.escapeHtml)(o.orderNumber)}<br>
+         <strong>Date:</strong> ${new Date(o.createdAt).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka" })}</p>
+      ${o.packages.length > 1 ? `<p>Your items come from ${o.packages.length} sellers, so they will arrive in ${o.packages.length} separate packages.</p>` : ""}
     </div>
+
+    ${o.packages.map((p, i) => `
+    <div class="box">
+      <h3>Package ${i + 1} of ${o.packages.length}: ${(0, escapeHtml_1.escapeHtml)(p.sellerName)}</h3>
+      <table class="items-table">
+        <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+        <tbody>
+          ${p.items.map((it) => `<tr><td>${(0, escapeHtml_1.escapeHtml)(it.name)}</td><td>${it.quantity}</td><td>৳${it.sellingPrice}</td><td>৳${it.totalPrice}</td></tr>`).join("")}
+        </tbody>
+      </table>
+      <p class="right">Shipping: ৳${p.shippingCharge}<br><strong>Package total: ৳${p.total}</strong></p>
+    </div>`).join("")}
+
+    <div class="box right">
+      <p>Subtotal: ৳${o.subtotal}</p>
+      ${o.discountTotal > 0 ? `<p>You saved: ৳${o.discountTotal}</p>` : ""}
+      <p>Shipping: ৳${o.shippingTotal}</p>
+      <hr>
+      <p><strong>Total: ৳${o.grandTotal}</strong></p>
+    </div>
+
+    <div class="box">
+      <h3>Shipping Address</h3>
+      <p>${(0, escapeHtml_1.escapeHtml)(o.shippingAddress.name)}<br>
+         ${(0, escapeHtml_1.escapeHtml)(o.shippingAddress.address)}<br>
+         ${(0, escapeHtml_1.escapeHtml)(o.shippingAddress.city)}${o.shippingAddress.zip ? `, ${(0, escapeHtml_1.escapeHtml)(o.shippingAddress.zip)}` : ""}<br>
+         Phone: ${(0, escapeHtml_1.escapeHtml)(o.shippingAddress.phone)}</p>
+      <h3>Payment</h3>
+      ${o.paymentMethod === "cash_on_delivery"
+    ? `<p><strong>Cash on delivery.</strong> Pay the courier when each package arrives. The amount for each package is shown above.</p>`
+    : `<p><strong>${(0, escapeHtml_1.escapeHtml)(o.paymentStatus.toUpperCase())}</strong><br>Amount due: ৳${o.dueAmount}</p>`}
+    </div>
+
+    <div class="footer">
+      <p>Thank you for shopping with us!</p>
+      <p>If you have any questions, please contact our support team.</p>
+    </div>
+  </div>
 </body>
 </html>
 `;

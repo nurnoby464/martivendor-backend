@@ -9,6 +9,7 @@ import {
 import * as UserController from "./user.controller";
 import {
   authenticate,
+  optionalAuthForUser,
   verifySession,
 } from "../../middlewares/AuthenticateHelper";
 import { guard } from "../../middlewares/guard";
@@ -18,12 +19,19 @@ import {
   createNewCompanySchema,
   updateCompanySchema,
 } from "../seller/seller.validation";
+
 const router = express.Router();
 router.post(
   "/super-admin",
   validate({ body: superAdminSchema }),
   UserController.createSuperAdmin,
 );
+router.post(
+  "/",
+  validate({ body: createUserSchema }),
+  UserController.createUser,
+);
+
 router.use(authenticate);
 router.use(verifySession);
 router.post(
@@ -33,7 +41,6 @@ router.post(
   UserController.createCompany,
 );
 // ─── POST /users ──────────────────────────────────────────
-router.post("/", validate({ body: createUserSchema }), UserController.create);
 
 // ─── GET /users ───────────────────────────────────────────
 router.get(

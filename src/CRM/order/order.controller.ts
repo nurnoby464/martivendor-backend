@@ -10,7 +10,10 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   // if (!sellerId) {
   //   return ApiResponse.error(res, "Created Order place failed", 400);
   // }
-  const result = await OrderServices.createOrder(req.body);
+
+  const userId = req.user?._id ?? null;
+  console.log(userId)
+  const result = await OrderServices.createOrder(req.body,userId);
   return ApiResponse.created(res, result, "Order created successfully");
 });
 

@@ -5,6 +5,7 @@ import { SellerStaff } from "../CRM/sellerStaff/sellerStaff.schema";
 import { Seller } from "../module/seller/seller.schema";
 import { ISessionDocument } from "../module/auth/auth.interface";
 import { IUserDocument, ProfileType } from "../module/user/user.interface";
+import User from "../module/user/user.schema";
 import { ITokenPayload } from "./jwtHelper";
 import { discountType } from "../CRM/order/order.interface";
 import { round2 } from "./money";
@@ -40,6 +41,7 @@ export const profileModelMap: Record<ProfileType, Model<any>> = {
   Customer,
   Staff,
   SellerStaff,
+  User,
 };
 export const makeLoginResponse = async (payload: IMakeLoginResponse) => {
   const { user } = payload;

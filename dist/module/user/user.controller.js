@@ -33,14 +33,14 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserDetails = exports.createSuperAdmin = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getUserStats = exports.getAllCompanies = exports.createCompany = exports.toggleStatus = exports.remove = exports.list = exports.getById = exports.create = void 0;
+exports.getUserDetails = exports.createSuperAdmin = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.getUserStats = exports.getAllCompanies = exports.createCompany = exports.toggleStatus = exports.remove = exports.list = exports.getById = exports.createUser = void 0;
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const UserService = __importStar(require("./user.service"));
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const appError_1 = require("../../middlewares/appError");
 // ─── POST /users ──────────────────────────────────────────
-exports.create = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const user = await UserService.createUser(req.body, req.user?._id ?? null);
+exports.createUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const user = await UserService.createUser(req.body);
     return ApiResponse_1.ApiResponse.created(res, user, "User created successfully");
 });
 // ─── GET /users/:id ───────────────────────────────────────

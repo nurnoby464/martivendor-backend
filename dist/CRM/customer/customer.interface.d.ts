@@ -1,8 +1,7 @@
-import mongoose, { Document, Types } from "mongoose";
+import mongoose, { Document } from "mongoose";
 export declare const CUSTOMER_GENDERS: readonly ["male", "female", "other", null];
 export type TCustomerGender = (typeof CUSTOMER_GENDERS)[number];
 export interface ICustomerAddress {
-    _id?: Types.ObjectId;
     label: string;
     district: string;
     area: string;

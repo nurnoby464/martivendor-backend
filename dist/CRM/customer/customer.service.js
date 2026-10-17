@@ -33,12 +33,12 @@ const getCustomerList = async (query, sellerId) => {
     return { customers, total, page, limit };
 };
 exports.getCustomerList = getCustomerList;
-const createCustomer = async (sellerId, input) => {
-    const { name, phone } = input;
-    const existing = await customer_schema_1.default.findOne({ sellerId, phone }).lean();
+const createCustomer = async (input) => {
+    const { name, email } = input;
+    const existing = await customer_schema_1.default.findOne({ email }).lean();
     if (existing)
         throw new appError_1.AppError("This customer already exist", 409);
-    const newCustomer = await customer_schema_1.default.create({ name, phone, sellerId });
+    const newCustomer = await customer_schema_1.default.create({ name, email });
     if (!newCustomer)
         throw new appError_1.AppError("Failed to create customer", 500);
     return newCustomer;

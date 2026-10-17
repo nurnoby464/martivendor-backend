@@ -46,7 +46,8 @@ export declare const customerQuerySchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const createCustomerSchema: z.ZodObject<{
     name: z.ZodString;
-    phone: z.ZodString;
+    email: z.ZodString;
+    password: z.ZodString;
 }, z.core.$strip>;
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type CreateSaleInput = z.infer<typeof createSaleSchema>;

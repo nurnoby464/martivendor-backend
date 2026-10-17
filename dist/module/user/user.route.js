@@ -46,11 +46,11 @@ const guard_1 = require("../../middlewares/guard");
 const seller_validation_1 = require("../seller/seller.validation");
 const router = express_1.default.Router();
 router.post("/super-admin", (0, validate_1.validate)({ body: user_validation_1.superAdminSchema }), UserController.createSuperAdmin);
+router.post("/", (0, validate_1.validate)({ body: user_validation_1.createUserSchema }), UserController.createUser);
 router.use(AuthenticateHelper_1.authenticate);
 router.use(AuthenticateHelper_1.verifySession);
 router.post("/company", (0, guard_1.guard)("super_admin"), (0, validate_1.validate)({ body: seller_validation_1.createNewCompanySchema }), UserController.createCompany);
 // ─── POST /users ──────────────────────────────────────────
-router.post("/", (0, validate_1.validate)({ body: user_validation_1.createUserSchema }), UserController.create);
 // ─── GET /users ───────────────────────────────────────────
 router.get("/company/", (0, guard_1.guard)("super_admin"), // only super_admin sees all companies
 (0, validate_1.validate)({ query: seller_validation_1.companyQuerySchema }), UserController.getAllCompanies);
