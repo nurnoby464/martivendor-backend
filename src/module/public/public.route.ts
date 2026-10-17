@@ -2,7 +2,10 @@ import express from "express";
 
 import * as PublicController from "./public.controller";
 import { validate } from "../../middlewares/validate";
-import { productQuerySchema } from "../product/product.validation";
+import {
+  productQuerySchema,
+  productSlugParamsSchema,
+} from "../product/product.validation";
 import { suggestionsSchema } from "./public.validation";
 import rateLimit from "express-rate-limit";
 import { success } from "zod";
@@ -35,4 +38,10 @@ router.get(
 router.get("/category/tree", PublicController.getCategoryTree);
 router.get("/categories/menu", PublicController.getPublicMergedCategories);
 router.get("/category", PublicController.getAllCategories);
+
+router.get(
+  "/products/slug/:slug",
+  validate({ params: productSlugParamsSchema }),
+  PublicController.getProductBySlug,
+);
 export const PublicRoutes = router;

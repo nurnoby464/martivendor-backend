@@ -19,7 +19,7 @@ import {
   PublicCategoryNode,
 } from "./public.interface";
 import { Seller } from "../seller/seller.schema";
-import { escapeRegex } from "../../utils/helper";
+import { escapeRegex, extractAsin } from "../../utils/helper";
 
 // reuseable merge stage — dedupes any set of category docs by slugPath
 
@@ -181,7 +181,10 @@ export const getProducts = async (payload: GetProductQueryInput) => {
     ];
   }
 
-  const filter: Record<string, unknown> = { ...baseFilter };
+  const filter: Record<string, unknown> = {
+    ...baseFilter,
+    showOnHomepage: true,
+  };
 
   if (categorySlug) {
     const slugPathArr = categorySlug
@@ -233,13 +236,140 @@ export const getProducts = async (payload: GetProductQueryInput) => {
   const sortDir = sortOrder === "asc" ? 1 : -1;
 
   const [products, total, categories] = await Promise.all([
-    Product.find(filter)
-      .populate("categoryId", "name slug depth slugPath")
-      // .populate("vendor_id", "name phone")
-      .sort({ [sortBy]: sortDir })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean(),
+    // Product.find(filter)
+    //   .populate("categoryId", "name slug depth slugPath")
+    //   .populate("sellerId", "name")
+    //   .sort({ [sortBy]: sortDir })
+    //   .skip((page - 1) * limit)
+    //   .limit(limit)
+    //   .select(
+    //     "sellerId categoryId name slug description productType specification images sellingPrice discount stock hasVariants displayPriceMin displayPriceMax totalStock hasDiscount tags nameLower sku asin showOnHomepage",
+    //   )
+    //   .lean(),
+    Product.aggregate([
+      { $match: filter },
+
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                slug: 1,
+                depth: 1,
+                slugPath: 1,
+              },
+            },
+          ],
+          as: "categoryId",
+        },
+      },
+      {
+        $unwind: "$categoryId",
+      },
+      {
+        $lookup: {
+          from: "sellers",
+          localField: "sellerId",
+          foreignField: "_id",
+          pipeline: [{ $project: { name: 1 } }],
+          as: "seller",
+        },
+      },
+      {
+        $unwind: "$seller",
+      },
+      // {
+      //   $addFields: {
+      //     discountAmount: {
+      //       $cond: {
+      //         if: { $gt: ["$discount", 0] },
+      //         then: {
+      //           $round: [
+      //             {
+      //               $divide: [
+      //                 { $multiply: ["$sellingPrice", "$discount"] },
+      //                 100,
+      //               ],
+      //             },
+      //             2,
+      //           ],
+      //         },
+      //         else: 0,
+      //       },
+      //     },
+      //   },
+      // },
+      // {
+      //   $addFields: {
+      //     finalPrice: { $subtract: ["$sellingPrice", "$discountAmount"] },
+      //   },
+      // },
+      {
+        $addFields: {
+          maxDiscountAmount: {
+            $cond: {
+              if: { $gt: ["$discount", 0] },
+              then: {
+                $round: [
+                  {
+                    $divide: [
+                      { $multiply: ["$displayPriceMax", "$discount"] },
+                      100,
+                    ],
+                  },
+                  2,
+                ],
+              },
+              else: 0,
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          finalMaxPrice: {
+            $subtract: ["$displayPriceMax", "$maxDiscountAmount"],
+          },
+        },
+      },
+
+      { $sort: { [sortBy]: sortDir } },
+      // ,{$skip:{(page - 1) * limit}}
+      { $limit: limit },
+      {
+        $project: {
+          seller: 1,
+          categoryId: 1,
+          name: 1,
+          slug: 1,
+          description: 1,
+          productType: 1,
+          specification: 1,
+          images: 1,
+          sellingPrice: 1,
+          discount: 1,
+          stock: 1,
+          hasVariants: 1,
+          displayPriceMin: 1,
+          displayPriceMax: 1,
+          totalStock: 1,
+          hasDiscount: 1,
+          tags: 1,
+          nameLower: 1,
+          sku: 1,
+          asin: 1,
+          showOnHomepage: 1,
+          anotherCategory: 1,
+          finalMaxPrice: 1,
+          maxDiscountAmount: 1,
+        },
+      },
+    ]),
     Product.countDocuments(filter),
     Product.aggregate([
       {
@@ -279,6 +409,8 @@ export const getProducts = async (payload: GetProductQueryInput) => {
       { $sort: { productCount: -1, name: 1 } },
     ]),
   ]);
+  // console.log("products", products);
+  // console.log("demo", demo);
 
   return { products, total, categories };
 };
@@ -625,8 +757,110 @@ export const getSuggestions = async (search: string) => {
         },
       }, // drop _score, don't leak it to client
     ]),
-    Seller.find({ isActive: true, nameLower: { $regex: prefix } }).select("name slug  -_id").lean(),
+    Seller.find({ isActive: true, nameLower: { $regex: prefix } })
+      .select("name slug  -_id")
+      .lean(),
   ]);
 
   return { categories, products, sellers };
+};
+
+export const getProductBySlug = async (payload: {
+  slug: string;
+  // sellerId: mongoose.Types.ObjectId;
+}) => {
+  const asin = extractAsin(payload.slug);
+
+  const filter: Record<string, unknown> =
+    asin !== null && asin !== undefined && asin !== ""
+      ? { asin: asin }
+      : { slug: payload.slug };
+
+  const product = await Product.findOne(filter)
+    .populate("categoryId", "name slug path depth")
+    // .populate("vendor_id", "name phone email")
+    .populate("createdBy", "name email")
+    .select(
+      "categoryId name slug description productType specification images tags createdBy asin sku nameLower createdAt updatedAt hasVariants",
+    )
+    .lean();
+
+  if (!product) throw new AppError("Product not found", 404);
+
+  // attach variants if hasVariants
+  let variants: any[] = [];
+  if (product.hasVariants) {
+    // variants = await ProductVariant.find({
+    //   // sellerId: payload.sellerId,
+    //   productId: product._id,
+    //   isActive: true,
+    // }).lean();
+
+    variants = await ProductVariant.aggregate([
+      { $match: { productId: product._id, isActive: true } },
+      {
+        $lookup: {
+          from: "sellers",
+          localField: "sellerId",
+          foreignField: "_id",
+          pipeline: [{ $project: { name: 1 } }],
+          as: "seller",
+        },
+      },
+      { $unwind: "$seller" },
+      {
+        $addFields: {
+          discountAmount: {
+            $cond: {
+              if: { $gt: ["$discountValue", 0] },
+              then: {
+                $round: [
+                  {
+                    $cond: {
+                      if: { $eq: ["$discountType", "percentage"] },
+                      then: {
+                        $divide: [
+                          {
+                            $multiply: ["$sellingPrice", "$discountValue"],
+                          },
+                          100,
+                        ],
+                      },
+                      else: "$discountValue",
+                    },
+                  },
+                  2,
+                ],
+              },
+              else: 0,
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          finalPrice: {
+            $subtract: ["$sellingPrice", "$discountAmount"],
+          },
+        },
+      },
+      {
+        $project: {
+          productId: 1,
+          seller: 1,
+          attributes: 1,
+          sku: 1,
+          image: 1,
+          sellingPrice: 1,
+          stock: 1,
+          discountType: 1,
+          discountValue: 1,
+          discountAmount: 1,
+          finalPrice: 1,
+        },
+      },
+    ]);
+  }
+
+  return { product, variants };
 };

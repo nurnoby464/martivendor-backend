@@ -106,3 +106,14 @@ export const getSuggestions = asyncHandler(
     return ApiResponse.success(res, result, "successfully");
   },
 );
+
+export const getProductBySlug = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await PublicService.getProductBySlug({
+      slug: req.params.slug as string,
+      // sellerId: req.user.sellerId!,
+    });
+
+    return ApiResponse.success(res, result);
+  },
+);
