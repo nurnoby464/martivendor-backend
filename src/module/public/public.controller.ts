@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as PublicService from "./public.service";
-import { GetProductQuery } from "../product/product.validation";
+import { GetProductQuery, GetProductViewQuery } from "../product/product.validation";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import {
@@ -115,5 +115,17 @@ export const getProductBySlug = asyncHandler(
     });
 
     return ApiResponse.success(res, result);
+  },
+);
+
+export const getProductForCart = asyncHandler(
+  async (req: Request, res: Response) => {
+    const product = await PublicService.getProductForCart(req.validatedQuery as GetProductViewQuery);
+
+    return ApiResponse.success(
+      res,
+      product,
+      "Product details fetch successfully",
+    );
   },
 );

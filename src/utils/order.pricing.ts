@@ -8,7 +8,13 @@ import { SHIPPING_FEE } from "./order.constant";
 
 type TSellerForPricing = Pick<TDraftSeller, "isPlatform" | "commissionRate">;
 
-export const calculateShipping = (_seller: TDraftSeller): number =>
+const SHIPPING_CHARGE_INSIDE_DHAKA = 60;
+const SHIPPING_CHARGE_OUTSIDE_DHAKA = 90;
+
+// Swap this for the real inside/outside logic later
+const PER_SELLER_SHIPPING = SHIPPING_CHARGE_INSIDE_DHAKA;
+
+export const calculateShipping = (_seller: TDraftSeller): number => SHIPPING_CHARGE_INSIDE_DHAKA
   SHIPPING_FEE;
 
 export const calculateSubOrderMoney = (

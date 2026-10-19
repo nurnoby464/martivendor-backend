@@ -1,6 +1,9 @@
 import { categoryParamsSchema } from "./../category/category.validation";
 import { Request } from "express";
-import { GetProductQuery } from "../product/product.validation";
+import {
+  GetProductQuery,
+  GetProductViewQuery,
+} from "../product/product.validation";
 import Product from "../product/product.schema";
 import {
   GetProductParamsQuery,
@@ -277,11 +280,11 @@ export const getProducts = async (payload: GetProductQueryInput) => {
           localField: "sellerId",
           foreignField: "_id",
           pipeline: [{ $project: { name: 1 } }],
-          as: "seller",
+          as: "sellerId",
         },
       },
       {
-        $unwind: "$seller",
+        $unwind: "$sellerId",
       },
       // {
       //   $addFields: {
@@ -343,7 +346,7 @@ export const getProducts = async (payload: GetProductQueryInput) => {
       { $limit: limit },
       {
         $project: {
-          seller: 1,
+          sellerId: 1,
           categoryId: 1,
           name: 1,
           slug: 1,
@@ -863,4 +866,120 @@ export const getProductBySlug = async (payload: {
   }
 
   return { product, variants };
+};
+
+export const getProductForCart = async (payload: GetProductViewQuery) => {
+  const { productId, variantId } = payload;
+  const filter: Record<string, unknown> = {
+    productId: new Types.ObjectId(productId),
+    isActive: true,
+    stock: { $gt: 0 },
+  };
+  if (variantId) filter._id = new Types.ObjectId(variantId);
+
+  const [product] = await ProductVariant.aggregate([
+    { $match: filter },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              slug: 1,
+            },
+          },
+        ],
+        as: "productId",
+      },
+    },
+    {
+      $unwind:"$productId"
+    },
+    {
+      $lookup: {
+        from: "sellers",
+        localField: "sellerId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+            },
+          },
+        ],
+        as: "sellerId",
+      },
+    },
+    {
+      $unwind:"$sellerId"
+    },
+    {
+      $addFields: {
+        discountAmount: {
+          $switch: {
+            branches: [
+              {
+                case: { $lte: ["$discountValue", 0] },
+                then: 0,
+              },
+              {
+                case: { $eq: ["$discountType", "percentage"] },
+                then: {
+                  $round: [
+                    {
+                      $divide: [
+                        {
+                          $multiply: ["$sellingPrice", "$discountValue"],
+                        },
+                        100,
+                      ],
+                    },
+                    2,
+                  ],
+                },
+              },
+            ],
+            default: "$discountValue",
+          },
+        },
+      },
+    },
+    {
+      $addFields:{
+        finalPrice :{
+         $max: [{ $subtract: ["$sellingPrice", "$discountAmount"] }, 0],
+        }
+      }
+    },
+    {
+      $project: {
+        attributes: 1,
+        discountType: 1,
+        finalPrice:1,
+        discountAmount:1,
+        discountValue:1,
+        image:1,
+        productId:1,
+        sellerId:1,
+        sellingPrice:1,
+        sku:1,
+        stock:1,
+
+
+      },
+    },
+  ]);
+
+  // const product = await ProductVariant.findOne(filter)
+  //   .populate(
+  //     "productId",
+  //     "name slug description images specification productType",
+  //   )
+  //   .lean();
+  
+  if (!product) throw new AppError("Variant not found", 404);
+  return product;
 };

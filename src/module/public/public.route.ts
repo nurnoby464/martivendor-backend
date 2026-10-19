@@ -5,6 +5,7 @@ import { validate } from "../../middlewares/validate";
 import {
   productQuerySchema,
   productSlugParamsSchema,
+  productViewQuerySchema,
 } from "../product/product.validation";
 import { suggestionsSchema } from "./public.validation";
 import rateLimit from "express-rate-limit";
@@ -44,4 +45,10 @@ router.get(
   validate({ params: productSlugParamsSchema }),
   PublicController.getProductBySlug,
 );
+router
+  .route("/products/cart/view")
+  .get(
+    validate({ query: productViewQuerySchema }),
+    PublicController.getProductForCart,
+  );
 export const PublicRoutes = router;

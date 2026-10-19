@@ -195,7 +195,7 @@ const resolveCustomer = async (input: IResolveCustomerInput) => {
           phone: normalizedPhone,
           email,
           ...(newAddress && { addresses: [newAddress] }),
-          ...userId !==null && {userId}
+          ...(userId !== null && { userId }),
         },
       ],
       { session },
@@ -212,7 +212,7 @@ const resolveCustomer = async (input: IResolveCustomerInput) => {
             profileId: newCustomer._id,
             profileType: "Customer",
             phone: normalizedPhone,
-            role:"customer"
+            role: "customer",
           },
         },
         {
@@ -1313,29 +1313,37 @@ export const getMyOrderById = async (
     throw new AppError("Invalid order ID", 400);
   }
 
-  const order = await Order.findOne({ _id: new Types.ObjectId(orderId) })
-    .populate({
-      path: "items.product",
-      select: "name slug images",
-    })
-    .populate({
-      path: "items.variant",
-      select: "sku image attributes sellingPrice stock",
-    })
-    .populate({
-      path: "customer",
-      select: "name phone email",
-    })
-    .populate({
-      path: "sellerId",
-      select: "name storeName",
-    })
-    .lean();
-  console.log(order);
+  const [order, subOrders] = await Promise.all([
+    Order.findOne({ _id: new Types.ObjectId(orderId) })
+
+      .populate({
+        path: "customerId",
+        select: "name phone email",
+      })
+
+      .lean(),
+    SubOrder.find({ orderId: new Types.ObjectId(orderId) }).lean(),
+  ]);
 
   if (!order) {
     throw new AppError("Order not found", 404);
   }
 
-  return order;
+  if (!subOrders) throw new AppError("sub Order not found", 404);
+
+  const data = {
+    order: order.subOrderCount,
+    paymentMethod: order.paymentMethod,
+    deliveryTo: order.shippingAddress.city,
+    shippingAddress: order.shippingAddress,
+    subOrder: subOrders.map((subOrder) => ({
+      orderNumber: subOrder.orderNumber,
+      subOrderNumber: subOrder.subOrderNumber,
+      items: subOrder.items,
+      status: subOrder.status,
+      shippingCharge: subOrder.shippingCharge,
+    })),
+  };
+
+  return data;
 };

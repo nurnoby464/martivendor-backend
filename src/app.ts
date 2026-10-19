@@ -19,7 +19,7 @@ import { ProductVariantRoute } from "./module/product-variant/product-variant.ro
 import { AppError } from "./middlewares/appError";
 import { SaleRouter } from "./CRM/posSell/posSell.route";
 import { CustomerRouter } from "./CRM/customer/customer.route";
-import { DevRouter } from "./dev/fixIndexes";
+// import { DevRouter } from "./dev/fixIndexes";
 import { OrderRouter } from "./CRM/order/order.route";
 import { InvoiceRouter } from "./CRM/invoice/invoice.route";
 import { PublicRoutes } from "./module/public/public.route";
@@ -179,7 +179,7 @@ app.use("/api/v1/purchase", PurchaseRoute);
 app.use("/api/v1/product-variant", ProductVariantRoute);
 app.use("/api/v1/sales", SaleRouter);
 app.use("/api/v1/customer", CustomerRouter);
-app.use("/api/v1/dev", DevRouter);
+// app.use("/api/v1/dev", DevRouter);
 app.use("/api/v1/orders", OrderRouter);
 app.use("/api/v1/invoices", InvoiceRouter);
 app.use("/api/v1/banners", BannerRouter);
