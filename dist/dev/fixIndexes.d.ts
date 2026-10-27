@@ -1,2 +1,2 @@
-export declare const DevRouter: import("express-serve-static-core").Router;
+export {};
 //# sourceMappingURL=fixIndexes.d.ts.map

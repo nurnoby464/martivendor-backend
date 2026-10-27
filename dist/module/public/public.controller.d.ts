@@ -5,4 +5,6 @@ export declare const getAllCategories: (req: Request, res: Response) => Promise<
 export declare const getCategoryTree: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const getPublicMergedCategories: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export declare const getSuggestions: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getProductBySlug: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getProductForCart: (req: Request, res: Response, next: import("express").NextFunction) => void;
 //# sourceMappingURL=public.controller.d.ts.map

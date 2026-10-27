@@ -1,31 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCustomerSchema = exports.customerQuerySchema = exports.createSaleSchema = void 0;
+exports.createCustomerSchema = exports.customerQuerySchema = void 0;
 const zod_1 = require("zod");
-const saleItemSchema = zod_1.z.object({
-    productId: zod_1.z.string().min(1, "Product ID is required"),
-    variantId: zod_1.z.string().min(1, "Variant ID is required"),
-    quantity: zod_1.z.number().min(1, "Minimum quantity is 1"),
-    sellingPrice: zod_1.z.number().min(0),
-    discountType: zod_1.z.enum(["flat", "percentage"]).nullable().optional(),
-    discountValue: zod_1.z.number().min(0).default(0),
-});
+const helper_1 = require("../../utils/helper");
+const bdPhone = zod_1.z
+    .string()
+    .trim()
+    .transform((v) => (0, helper_1.normalizedBDPhone)(v))
+    .pipe(zod_1.z.string().regex(/^\+8801[3-9]\d{8}$/, "Invalid Bangladeshi phone number"));
 const offlinePayments = ["cash", "cash_on_delivery", "credit"];
-exports.createSaleSchema = zod_1.z.object({
-    // customer
-    customerName: zod_1.z.string().min(2, "Customer name is required"),
-    customerPhone: zod_1.z.string().regex(/^01[3-9]\d{8}$/, "Invalid phone number"),
-    items: zod_1.z.array(saleItemSchema).min(1, "At least one item is required"),
-    paymentMethod: zod_1.z.enum([
-        "cash",
-        "cash_on_delivery",
-        "credit",
-        "card",
-        "mobile_banking",
-    ]),
-    paidAmount: zod_1.z.number().min(0).default(0),
-    note: zod_1.z.string().optional().nullable(),
-});
 exports.customerQuerySchema = zod_1.z.object({
     page: zod_1.z
         .string()
@@ -36,16 +19,21 @@ exports.customerQuerySchema = zod_1.z.object({
         .optional()
         .transform((v) => parseInt(v ?? "10")),
     search: zod_1.z.string().trim().optional(),
-    phone: zod_1.z.string().trim().optional(),
-    is_active: zod_1.z
+    phone: zod_1.z.preprocess((v) => (v === "" ? undefined : v), bdPhone.optional()),
+    source: zod_1.z.enum(["pos", "online"]).optional(),
+    hasDue: zod_1.z
+        .enum(["true"])
+        .transform((v) => (v === "true" ? true : undefined))
+        .optional(),
+    isActive: zod_1.z
         .enum(["true", "false"])
         .optional()
         .transform((v) => (v === undefined ? undefined : v === "true")),
-    sort_by: zod_1.z
-        .enum(["name", "createdAt", "stock", "selling_price", "lastPurchasedAt"])
+    sortBy: zod_1.z
+        .enum(["name", "createdAt", "stock", "sellingPrice", "lastPurchasedAt"])
         .optional()
         .default("createdAt"),
-    sort_order: zod_1.z
+    sortOrder: zod_1.z
         .enum(["asc", "desc"])
         .optional()
         .transform((v) => (v === "asc" ? 1 : -1))
@@ -53,11 +41,6 @@ exports.customerQuerySchema = zod_1.z.object({
 });
 exports.createCustomerSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(3, "At list 3 letter"),
-    email: zod_1.z
-        .string()
-        .trim()
-        .min(1, "Email is required")
-        .email("Please provide a valid email address"),
-    password: zod_1.z.string().trim().min(8, "Password must be least 8 characters"),
+    phone: bdPhone,
 });
 //# sourceMappingURL=customer.validation.js.map

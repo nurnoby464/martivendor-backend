@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { GetProductViewQuery } from "../product/product.validation";
 import { GetProductQueryInput } from "./public.validation";
 import { Types } from "mongoose";
 import { ICategoryDocument } from "../category/category.interface";
@@ -13,11 +14,7 @@ export declare const getPublicMergedCategories: (payload: {
     limit: number;
 }>;
 export declare const getProducts: (payload: GetProductQueryInput) => Promise<{
-    products: (import("../product/product.interface").IProduct & {
-        _id: Types.ObjectId;
-    } & {
-        __v: number;
-    })[];
+    products: any[];
     total: number;
     categories: any[];
 }>;
@@ -44,4 +41,15 @@ export declare const getSuggestions: (search: string) => Promise<{
         __v: number;
     })[];
 }>;
+export declare const getProductBySlug: (payload: {
+    slug: string;
+}) => Promise<{
+    product: import("../product/product.interface").IProduct & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    };
+    variants: any[];
+}>;
+export declare const getProductForCart: (payload: GetProductViewQuery) => Promise<any>;
 //# sourceMappingURL=public.service.d.ts.map

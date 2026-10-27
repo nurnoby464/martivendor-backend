@@ -45,6 +45,6 @@ const saleAuthenticateAndUnauthenticate_1 = require("../../middlewares/saleAuthe
 const AuthenticateHelper_1 = require("../../middlewares/AuthenticateHelper");
 const guard_1 = require("../../middlewares/guard");
 const router = express_1.default.Router();
-router.post("/", (0, validate_1.validate)({ body: posSell_validation_1.createSaleSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, saleAuthenticateAndUnauthenticate_1.saleAnAuthenticateAndUnauthenticated, (0, guard_1.guard)("super_admin", "admin", "sales", "account"), SaleController.createSale);
+router.post("/", (0, validate_1.validate)({ body: posSell_validation_1.createSaleSchema }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, saleAuthenticateAndUnauthenticate_1.saleAnAuthenticateAndUnauthenticated, (0, guard_1.guard)("super_admin", "sales", "account", "seller"), SaleController.createSale);
 exports.SaleRouter = router;
 //# sourceMappingURL=posSell.route.js.map

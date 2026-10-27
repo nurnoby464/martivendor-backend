@@ -85,11 +85,15 @@ export declare const getOrderListQuery: z.ZodObject<{
 export declare const getOrderByIdParam: z.ZodObject<{
     id: z.ZodString;
 }, z.core.$strip>;
+export declare const getMyOrderByIdParamSchema: z.ZodObject<{
+    orderId: z.ZodString;
+}, z.core.$strip>;
 export declare const getMyOrdersQuerySchema: z.ZodObject<{
-    page: z.ZodPipe<z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>, z.ZodNumber>;
-    limit: z.ZodPipe<z.ZodPipe<z.ZodOptional<z.ZodString>, z.ZodTransform<number, string | undefined>>, z.ZodNumber>;
-    order_status: z.ZodOptional<z.ZodEnum<{
+    page: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    limit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    status: z.ZodDefault<z.ZodEnum<{
         pending: "pending";
+        returned: "returned";
         cancelled: "cancelled";
         processing: "processing";
         shipped: "shipped";
@@ -98,13 +102,11 @@ export declare const getMyOrdersQuerySchema: z.ZodObject<{
     }>>;
     search: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
-export declare const getMyOrderByIdParamSchema: z.ZodObject<{
-    orderId: z.ZodString;
-}, z.core.$strip>;
 export type TCreateOrderInput = z.infer<typeof createOrderBody>;
 export type TUpdateOrderStatusInput = z.infer<typeof updateOrderStatusBody>;
 export type TUpdatePaymentInput = z.infer<typeof updatePaymentBody>;
 export type TGetOrderListQuery = z.infer<typeof getOrderListQuery>;
 export type TShippingAddress = z.infer<typeof shippingAddressSchema>;
+export type TMyOrdersQuery = z.infer<typeof getMyOrdersQuerySchema>;
 export {};
 //# sourceMappingURL=order.validation.d.ts.map

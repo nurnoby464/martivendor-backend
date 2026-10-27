@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateDiscount = exports.generateInvoiceNumber = exports.generateOderNumber = void 0;
+exports.generateInvoiceNumber = exports.generateOderNumber = void 0;
 const order_schema_1 = __importDefault(require("../CRM/order/order.schema"));
 const generateOderNumber = async (sellerId) => {
     const count = await order_schema_1.default.countDocuments({ sellerId });
@@ -22,14 +22,4 @@ const generateInvoiceNumber = async () => {
     return `INV-${year}${month}${date}${orderNum}`;
 };
 exports.generateInvoiceNumber = generateInvoiceNumber;
-const calculateDiscount = (data) => {
-    const { sellingPrice, quantity, discountType, discountValue } = data;
-    if (!discountType || !discountValue)
-        return 0;
-    if (discountType === "flat") {
-        return discountValue * quantity;
-    }
-    return (sellingPrice * discountValue) / 100 * quantity;
-};
-exports.calculateDiscount = calculateDiscount;
 //# sourceMappingURL=healper.js.map

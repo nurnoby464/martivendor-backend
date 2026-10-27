@@ -58,5 +58,9 @@ router.get("/search/suggest", (0, validate_1.validate)({ query: public_validatio
 router.get("/category/tree", PublicController.getCategoryTree);
 router.get("/categories/menu", PublicController.getPublicMergedCategories);
 router.get("/category", PublicController.getAllCategories);
+router.get("/products/slug/:slug", (0, validate_1.validate)({ params: product_validation_1.productSlugParamsSchema }), PublicController.getProductBySlug);
+router
+    .route("/products/cart/view")
+    .get((0, validate_1.validate)({ query: product_validation_1.productViewQuerySchema }), PublicController.getProductForCart);
 exports.PublicRoutes = router;
 //# sourceMappingURL=public.route.js.map

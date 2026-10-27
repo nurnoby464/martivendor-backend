@@ -17,12 +17,10 @@ exports.posCustomerSchema = zod_1.z.object({
 });
 exports.createSaleSchema = zod_1.z.object({
     // customer
-    customerId: zod_1.z.string().nullable(),
-    // customerEmail: z.string().optional(),
-    // customerName: z.string().optional(),
-    // customerPhone: z.string().optional(),
-    // customer: posCustomerSchema.optional(),
-    // .regex(/^01[3-9]\d{8}$/, "Invalid phone number"),
+    customerId: zod_1.z
+        .string()
+        .regex(/^[0-9a-fA-F]{24}$/, "Invalid customer id")
+        .nullable(),
     items: zod_1.z.array(saleItemSchema).min(1, "At least one item is required"),
     paymentMethod: zod_1.z.enum([
         "cash",

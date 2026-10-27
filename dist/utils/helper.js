@@ -3,10 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateTaxRate = exports.calculateDiscount = exports.normalizedBDPhone = exports.generateOPT = exports.makeLoginResponse = exports.profileModelMap = exports.makeToken = void 0;
+exports.makeObjectId = exports.calculateTaxRate = exports.calculateDiscount = exports.normalizedBDPhone = exports.generateOPT = exports.makeLoginResponse = exports.profileModelMap = exports.makeToken = void 0;
 exports.generateAsin = generateAsin;
 exports.extractAsin = extractAsin;
 exports.escapeRegex = escapeRegex;
+const mongoose_1 = require("mongoose");
 const customer_schema_1 = __importDefault(require("../CRM/customer/customer.schema"));
 const staff_schema_1 = __importDefault(require("../CRM/staff/staff.schema"));
 const sellerStaff_schema_1 = require("../CRM/sellerStaff/sellerStaff.schema");
@@ -161,4 +162,8 @@ const calculateTaxRate = (input) => {
     return (0, money_1.round2)(taxAmount);
 };
 exports.calculateTaxRate = calculateTaxRate;
+const makeObjectId = (value) => {
+    return new mongoose_1.Types.ObjectId(String(value));
+};
+exports.makeObjectId = makeObjectId;
 //# sourceMappingURL=helper.js.map

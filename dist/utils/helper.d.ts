@@ -1,4 +1,4 @@
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { ISessionDocument } from "../module/auth/auth.interface";
 import { IUserDocument, ProfileType } from "../module/user/user.interface";
 import { ITokenPayload } from "./jwtHelper";
@@ -17,9 +17,9 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     shopName: any;
     isPlatform: any;
     commissionRate: any;
-    _id: import("mongoose").Types.ObjectId;
+    _id: Types.ObjectId;
     role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-    sellerId: import("mongoose").Types.ObjectId | null;
+    sellerId: Types.ObjectId | null;
     isActive: boolean;
     emailVerified: boolean;
     profileId: any;
@@ -34,9 +34,9 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     status: any;
     kycStatus: any;
     commissionRate: any;
-    _id: import("mongoose").Types.ObjectId;
+    _id: Types.ObjectId;
     role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-    sellerId: import("mongoose").Types.ObjectId | null;
+    sellerId: Types.ObjectId | null;
     isActive: boolean;
     emailVerified: boolean;
     profileId: any;
@@ -50,9 +50,9 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     designation: any;
     permissions: any;
     status: any;
-    _id: import("mongoose").Types.ObjectId;
+    _id: Types.ObjectId;
     role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-    sellerId: import("mongoose").Types.ObjectId | null;
+    sellerId: Types.ObjectId | null;
     isActive: boolean;
     emailVerified: boolean;
     profileId: any;
@@ -66,9 +66,9 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     dob: any;
     gender: any;
     addresses: any;
-    _id: import("mongoose").Types.ObjectId;
+    _id: Types.ObjectId;
     role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-    sellerId: import("mongoose").Types.ObjectId | null;
+    sellerId: Types.ObjectId | null;
     isActive: boolean;
     emailVerified: boolean;
     profileId: any;
@@ -83,9 +83,9 @@ export declare const makeLoginResponse: (payload: IMakeLoginResponse) => Promise
     department: any;
     joining_date: any;
     address: any;
-    _id: import("mongoose").Types.ObjectId;
+    _id: Types.ObjectId;
     role: "report" | "sales" | "inventory" | "site_management" | "account" | "admin" | "user" | "super_admin" | "seller" | "staff" | "seller_staff" | "customer";
-    sellerId: import("mongoose").Types.ObjectId | null;
+    sellerId: Types.ObjectId | null;
     isActive: boolean;
     emailVerified: boolean;
     profileId: any;
@@ -111,5 +111,6 @@ interface ICalculateTaxRete {
     taxRate: number;
 }
 export declare const calculateTaxRate: (input: ICalculateTaxRete) => number;
+export declare const makeObjectId: (value: string) => Types.ObjectId;
 export {};
 //# sourceMappingURL=helper.d.ts.map

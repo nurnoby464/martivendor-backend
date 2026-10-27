@@ -1,3 +1,2 @@
-import { Request, Response } from "express";
-export declare const getCustomerList: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export {};
 //# sourceMappingURL=sellerStaff.controller.d.ts.map

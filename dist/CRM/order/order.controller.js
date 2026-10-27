@@ -37,6 +37,7 @@ exports.getMyOrderById = exports.getMyOrders = exports.getAllOrder = exports.cre
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const OrderServices = __importStar(require("./order.service"));
+const appError_1 = require("../../middlewares/appError");
 exports.createOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     // const sellerId = req.body?.sellerId;
     // if (!sellerId) {
@@ -75,25 +76,15 @@ exports.getAllOrder = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 exports.getMyOrders = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const customerId = req.user.profileId;
-    const sellerId = req.user.sellerId;
-    if (!sellerId) {
-        return ApiResponse_1.ApiResponse.error(res, "Company not found", 404);
-    }
-    const { page, limit, order_status, search } = req.validatedQuery;
-    const { orders, total, statusCounts } = await OrderServices.getMyOrders(customerId, sellerId, req.validatedQuery);
-    return ApiResponse_1.ApiResponse.paginated(res, "My Orders fetched successfully", orders, total, page, limit);
+    if (!customerId)
+        throw new appError_1.AppError("Customer profile not found", 403);
+    const query = req.validatedQuery;
+    const { orders, total, statusCounts } = await OrderServices.getMyOrders(customerId, query);
+    return ApiResponse_1.ApiResponse.paginated(res, "My Orders fetched successfully", orders, total, query.page, query.limit, { statusCounts });
 });
 exports.getMyOrderById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    // const customerId = req.user.profileId as Types.ObjectId;
-    // const sellerId = req.user.sellerId as Types.ObjectId;
-    // if (!sellerId) {
-    //   return ApiResponse.error(res, "Company not found", 404);
-    // }
     const { orderId } = req.params;
-    const order = await OrderServices.getMyOrderById(
-    // customerId,
-    // sellerId,
-    orderId);
+    const order = await OrderServices.getMyOrderById(orderId);
     if (!order) {
         return ApiResponse_1.ApiResponse.error(res, "Order not found", 404);
     }

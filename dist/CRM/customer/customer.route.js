@@ -45,7 +45,7 @@ const AuthenticateHelper_1 = require("../../middlewares/AuthenticateHelper");
 const saleAuthenticateAndUnauthenticate_1 = require("../../middlewares/saleAuthenticateAndUnauthenticate");
 const guard_1 = require("../../middlewares/guard");
 const router = express_1.default.Router();
-router.get("/", AuthenticateHelper_1.authenticate, saleAuthenticateAndUnauthenticate_1.saleAnAuthenticateAndUnauthenticated, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "account", "sales", "admin", "seller", "seller_staff", "staff"), (0, validate_1.validate)({ query: customer_validation_1.customerQuerySchema }), CustomerController.getCustomerList);
-router.post("/", AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "account", "sales", "admin", "seller", "seller_staff", "staff"), CustomerController.createCustomer);
+router.get("/", AuthenticateHelper_1.authenticate, saleAuthenticateAndUnauthenticate_1.saleAnAuthenticateAndUnauthenticated, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin"), (0, validate_1.validate)({ query: customer_validation_1.customerQuerySchema }), CustomerController.getCustomerList);
+router.post("/", AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "account", "sales", "admin", "seller", "seller_staff", "staff"), (0, validate_1.validate)({ body: customer_validation_1.createCustomerSchema }), CustomerController.createCustomer);
 exports.CustomerRouter = router;
 //# sourceMappingURL=customer.route.js.map

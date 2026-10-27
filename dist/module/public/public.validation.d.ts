@@ -28,8 +28,8 @@ export declare const productQuerySchema: z.ZodObject<{
         name: "name";
         createdAt: "createdAt";
         updatedAt: "updatedAt";
-        stock: "stock";
         sellingPrice: "sellingPrice";
+        stock: "stock";
     }>>>;
     sortOrder: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
         asc: "asc";

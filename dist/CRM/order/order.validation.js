@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMyOrderByIdParamSchema = exports.getMyOrdersQuerySchema = exports.getOrderByIdParam = exports.getOrderListQuery = exports.updatePaymentBody = exports.updatePaymentParam = exports.updateOrderStatusBody = exports.updateOrderStatusParam = exports.createOrderBody = void 0;
+exports.getMyOrdersQuerySchema = exports.getMyOrderByIdParamSchema = exports.getOrderByIdParam = exports.getOrderListQuery = exports.updatePaymentBody = exports.updatePaymentParam = exports.updateOrderStatusBody = exports.updateOrderStatusParam = exports.createOrderBody = void 0;
 // src/module/order/order.validation.ts
 const zod_1 = require("zod");
 const payment_types_1 = require("../../globalTypes/payment.types");
+const subOrder_interface_1 = require("../subOrder/subOrder.interface");
 // ─── Sub-schemas ──────────────────────────────────────────────────────────────
 const orderItemSchema = zod_1.z.object({
     variantId: zod_1.z.string().trim().min(1, "Variant ID is required"),
@@ -98,22 +99,14 @@ const ORDER_STATUSES = [
     "delivered",
     "cancelled",
 ];
-exports.getMyOrdersQuerySchema = zod_1.z.object({
-    page: zod_1.z
-        .string()
-        .optional()
-        .transform((v) => (v ? parseInt(v, 10) : 1))
-        .pipe(zod_1.z.number().int().min(1)),
-    limit: zod_1.z
-        .string()
-        .optional()
-        .transform((v) => (v ? parseInt(v, 10) : 10))
-        .pipe(zod_1.z.number().int().min(1).max(50)),
-    order_status: zod_1.z.enum(ORDER_STATUSES).optional(),
-    search: zod_1.z.string().trim().max(100).optional(),
-});
 // ─── getMyOrderById param validation ─────────────────────────────────────────
 exports.getMyOrderByIdParamSchema = zod_1.z.object({
     orderId: zod_1.z.string().min(1, "Order ID is required"),
+});
+exports.getMyOrdersQuerySchema = zod_1.z.object({
+    page: zod_1.z.coerce.number().int().min(1).default(1),
+    limit: zod_1.z.coerce.number().int().min(1).max(50).default(10),
+    status: zod_1.z.enum(["all", ...subOrder_interface_1.SUB_ORDER_STATUSES]).default("all"),
+    search: zod_1.z.string().trim().max(50).optional(),
 });
 //# sourceMappingURL=order.validation.js.map

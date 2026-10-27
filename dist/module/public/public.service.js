@@ -1,11 +1,45 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSuggestions = exports.searchCategories = exports.getAllCategories = exports.getProductFilterCategories = exports.getProducts = exports.getPublicMergedCategories = void 0;
+exports.getProductForCart = exports.getProductBySlug = exports.getSuggestions = exports.searchCategories = exports.getAllCategories = exports.getProductFilterCategories = exports.getProducts = exports.getPublicMergedCategories = void 0;
 const product_schema_1 = __importDefault(require("../product/product.schema"));
-const mongoose_1 = __importDefault(require("mongoose"));
+const mongoose_1 = __importStar(require("mongoose"));
+const product_variant_schema_1 = __importDefault(require("../product-variant/product-variant.schema"));
 const category_schema_1 = __importDefault(require("../category/category.schema"));
 const appError_1 = require("../../middlewares/appError");
 const seller_schema_1 = require("../seller/seller.schema");
@@ -133,7 +167,10 @@ const getProducts = async (payload) => {
             { sku: { $regex: search, $options: "i" } },
         ];
     }
-    const filter = { ...baseFilter };
+    const filter = {
+        ...baseFilter,
+        showOnHomepage: true,
+    };
     if (categorySlug) {
         const slugPathArr = categorySlug
             .split("/")
@@ -176,13 +213,138 @@ const getProducts = async (payload) => {
     }
     const sortDir = sortOrder === "asc" ? 1 : -1;
     const [products, total, categories] = await Promise.all([
-        product_schema_1.default.find(filter)
-            .populate("categoryId", "name slug depth slugPath")
-            // .populate("vendor_id", "name phone")
-            .sort({ [sortBy]: sortDir })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .lean(),
+        // Product.find(filter)
+        //   .populate("categoryId", "name slug depth slugPath")
+        //   .populate("sellerId", "name")
+        //   .sort({ [sortBy]: sortDir })
+        //   .skip((page - 1) * limit)
+        //   .limit(limit)
+        //   .select(
+        //     "sellerId categoryId name slug description productType specification images sellingPrice discount stock hasVariants displayPriceMin displayPriceMax totalStock hasDiscount tags nameLower sku asin showOnHomepage",
+        //   )
+        //   .lean(),
+        product_schema_1.default.aggregate([
+            { $match: filter },
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "categoryId",
+                    foreignField: "_id",
+                    pipeline: [
+                        {
+                            $project: {
+                                _id: 1,
+                                name: 1,
+                                slug: 1,
+                                depth: 1,
+                                slugPath: 1,
+                            },
+                        },
+                    ],
+                    as: "categoryId",
+                },
+            },
+            {
+                $unwind: "$categoryId",
+            },
+            {
+                $lookup: {
+                    from: "sellers",
+                    localField: "sellerId",
+                    foreignField: "_id",
+                    pipeline: [{ $project: { name: 1 } }],
+                    as: "sellerId",
+                },
+            },
+            {
+                $unwind: "$sellerId",
+            },
+            // {
+            //   $addFields: {
+            //     discountAmount: {
+            //       $cond: {
+            //         if: { $gt: ["$discount", 0] },
+            //         then: {
+            //           $round: [
+            //             {
+            //               $divide: [
+            //                 { $multiply: ["$sellingPrice", "$discount"] },
+            //                 100,
+            //               ],
+            //             },
+            //             2,
+            //           ],
+            //         },
+            //         else: 0,
+            //       },
+            //     },
+            //   },
+            // },
+            // {
+            //   $addFields: {
+            //     finalPrice: { $subtract: ["$sellingPrice", "$discountAmount"] },
+            //   },
+            // },
+            {
+                $addFields: {
+                    maxDiscountAmount: {
+                        $cond: {
+                            if: { $gt: ["$discount", 0] },
+                            then: {
+                                $round: [
+                                    {
+                                        $divide: [
+                                            { $multiply: ["$displayPriceMax", "$discount"] },
+                                            100,
+                                        ],
+                                    },
+                                    2,
+                                ],
+                            },
+                            else: 0,
+                        },
+                    },
+                },
+            },
+            {
+                $addFields: {
+                    finalMaxPrice: {
+                        $subtract: ["$displayPriceMax", "$maxDiscountAmount"],
+                    },
+                },
+            },
+            { $sort: { [sortBy]: sortDir } },
+            // ,{$skip:{(page - 1) * limit}}
+            { $limit: limit },
+            {
+                $project: {
+                    sellerId: 1,
+                    categoryId: 1,
+                    name: 1,
+                    slug: 1,
+                    description: 1,
+                    productType: 1,
+                    specification: 1,
+                    images: 1,
+                    sellingPrice: 1,
+                    discount: 1,
+                    stock: 1,
+                    hasVariants: 1,
+                    displayPriceMin: 1,
+                    displayPriceMax: 1,
+                    totalStock: 1,
+                    hasDiscount: 1,
+                    tags: 1,
+                    nameLower: 1,
+                    sku: 1,
+                    asin: 1,
+                    showOnHomepage: 1,
+                    anotherCategory: 1,
+                    finalMaxPrice: 1,
+                    maxDiscountAmount: 1,
+                },
+            },
+        ]),
         product_schema_1.default.countDocuments(filter),
         product_schema_1.default.aggregate([
             {
@@ -221,6 +383,8 @@ const getProducts = async (payload) => {
             { $sort: { productCount: -1, name: 1 } },
         ]),
     ]);
+    // console.log("products", products);
+    // console.log("demo", demo);
     return { products, total, categories };
 };
 exports.getProducts = getProducts;
@@ -519,9 +683,213 @@ const getSuggestions = async (search) => {
                 },
             }, // drop _score, don't leak it to client
         ]),
-        seller_schema_1.Seller.find({ isActive: true, nameLower: { $regex: prefix } }).select("name slug  -_id").lean(),
+        seller_schema_1.Seller.find({ isActive: true, nameLower: { $regex: prefix } })
+            .select("name slug  -_id")
+            .lean(),
     ]);
     return { categories, products, sellers };
 };
 exports.getSuggestions = getSuggestions;
+const getProductBySlug = async (payload) => {
+    const asin = (0, helper_1.extractAsin)(payload.slug);
+    const filter = asin !== null && asin !== undefined && asin !== ""
+        ? { asin: asin }
+        : { slug: payload.slug };
+    const product = await product_schema_1.default.findOne(filter)
+        .populate("categoryId", "name slug path depth")
+        // .populate("vendor_id", "name phone email")
+        .populate("createdBy", "name email")
+        .select("categoryId name slug description productType specification images tags createdBy asin sku nameLower createdAt updatedAt hasVariants")
+        .lean();
+    if (!product)
+        throw new appError_1.AppError("Product not found", 404);
+    // attach variants if hasVariants
+    let variants = [];
+    if (product.hasVariants) {
+        // variants = await ProductVariant.find({
+        //   // sellerId: payload.sellerId,
+        //   productId: product._id,
+        //   isActive: true,
+        // }).lean();
+        variants = await product_variant_schema_1.default.aggregate([
+            { $match: { productId: product._id, isActive: true } },
+            {
+                $lookup: {
+                    from: "sellers",
+                    localField: "sellerId",
+                    foreignField: "_id",
+                    pipeline: [{ $project: { name: 1 } }],
+                    as: "seller",
+                },
+            },
+            { $unwind: "$seller" },
+            {
+                $addFields: {
+                    discountAmount: {
+                        $cond: {
+                            if: { $gt: ["$discountValue", 0] },
+                            then: {
+                                $round: [
+                                    {
+                                        $cond: {
+                                            if: { $eq: ["$discountType", "percentage"] },
+                                            then: {
+                                                $divide: [
+                                                    {
+                                                        $multiply: ["$sellingPrice", "$discountValue"],
+                                                    },
+                                                    100,
+                                                ],
+                                            },
+                                            else: "$discountValue",
+                                        },
+                                    },
+                                    2,
+                                ],
+                            },
+                            else: 0,
+                        },
+                    },
+                },
+            },
+            {
+                $addFields: {
+                    finalPrice: {
+                        $subtract: ["$sellingPrice", "$discountAmount"],
+                    },
+                },
+            },
+            {
+                $project: {
+                    productId: 1,
+                    seller: 1,
+                    attributes: 1,
+                    sku: 1,
+                    image: 1,
+                    sellingPrice: 1,
+                    stock: 1,
+                    discountType: 1,
+                    discountValue: 1,
+                    discountAmount: 1,
+                    finalPrice: 1,
+                },
+            },
+        ]);
+    }
+    return { product, variants };
+};
+exports.getProductBySlug = getProductBySlug;
+const getProductForCart = async (payload) => {
+    const { productId, variantId } = payload;
+    const filter = {
+        productId: new mongoose_1.Types.ObjectId(productId),
+        isActive: true,
+        stock: { $gt: 0 },
+    };
+    if (variantId)
+        filter._id = new mongoose_1.Types.ObjectId(variantId);
+    const [product] = await product_variant_schema_1.default.aggregate([
+        { $match: filter },
+        {
+            $lookup: {
+                from: "products",
+                localField: "productId",
+                foreignField: "_id",
+                pipeline: [
+                    {
+                        $project: {
+                            name: 1,
+                            slug: 1,
+                        },
+                    },
+                ],
+                as: "productId",
+            },
+        },
+        {
+            $unwind: "$productId"
+        },
+        {
+            $lookup: {
+                from: "sellers",
+                localField: "sellerId",
+                foreignField: "_id",
+                pipeline: [
+                    {
+                        $project: {
+                            name: 1,
+                        },
+                    },
+                ],
+                as: "sellerId",
+            },
+        },
+        {
+            $unwind: "$sellerId"
+        },
+        {
+            $addFields: {
+                discountAmount: {
+                    $switch: {
+                        branches: [
+                            {
+                                case: { $lte: ["$discountValue", 0] },
+                                then: 0,
+                            },
+                            {
+                                case: { $eq: ["$discountType", "percentage"] },
+                                then: {
+                                    $round: [
+                                        {
+                                            $divide: [
+                                                {
+                                                    $multiply: ["$sellingPrice", "$discountValue"],
+                                                },
+                                                100,
+                                            ],
+                                        },
+                                        2,
+                                    ],
+                                },
+                            },
+                        ],
+                        default: "$discountValue",
+                    },
+                },
+            },
+        },
+        {
+            $addFields: {
+                finalPrice: {
+                    $max: [{ $subtract: ["$sellingPrice", "$discountAmount"] }, 0],
+                }
+            }
+        },
+        {
+            $project: {
+                attributes: 1,
+                discountType: 1,
+                finalPrice: 1,
+                discountAmount: 1,
+                discountValue: 1,
+                image: 1,
+                productId: 1,
+                sellerId: 1,
+                sellingPrice: 1,
+                sku: 1,
+                stock: 1,
+            },
+        },
+    ]);
+    // const product = await ProductVariant.findOne(filter)
+    //   .populate(
+    //     "productId",
+    //     "name slug description images specification productType",
+    //   )
+    //   .lean();
+    if (!product)
+        throw new appError_1.AppError("Variant not found", 404);
+    return product;
+};
+exports.getProductForCart = getProductForCart;
 //# sourceMappingURL=public.service.js.map

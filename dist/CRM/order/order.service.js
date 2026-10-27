@@ -51,6 +51,7 @@ const constants_1 = require("../../shared/notifications/constants");
 const orderHelper_1 = require("../../utils/orderHelper");
 const seller_schema_1 = require("../../module/seller/seller.schema");
 const helper_1 = require("../../utils/helper");
+const subOrder_interface_1 = require("../subOrder/subOrder.interface");
 const money_1 = require("../../utils/money");
 const subOrder_schema_1 = __importDefault(require("../subOrder/subOrder.schema"));
 const payment_schema_1 = __importDefault(require("../payment/payment.schema"));
@@ -83,7 +84,7 @@ const resolveCustomer = async (input) => {
                 phone: normalizedPhone,
                 email,
                 ...(newAddress && { addresses: [newAddress] }),
-                ...userId !== null && { userId }
+                ...(userId !== null && { userId }),
             },
         ], { session });
         if (!newCustomer)
@@ -97,7 +98,7 @@ const resolveCustomer = async (input) => {
                     profileId: newCustomer._id,
                     profileType: "Customer",
                     phone: normalizedPhone,
-                    role: "customer"
+                    role: "customer",
                 },
             }, {
                 session,
@@ -115,523 +116,6 @@ const resolveCustomer = async (input) => {
     return existingCustomer;
 };
 exports.ENABLED_PAYMENT_METHODS = ["cash_on_delivery"];
-// export const createOrder = async (input: TCreateOrderInput) => {
-//   const { name, phone, email, items, shippingAddress, paymentMethod, note } =
-//     input;
-//   if (!(ENABLED_PAYMENT_METHODS as readonly string[]).includes(paymentMethod)) {
-//     throw new AppError("This payment method is not available yet", 400);
-//   }
-//   // order Number generation
-//   const orderId = new Types.ObjectId();
-//   const paymentId = new Types.ObjectId();
-//   const variantIds = items.map((item) => new Types.ObjectId(item.variantId));
-//   const variants = await ProductVariant.find({
-//     _id: { $in: variantIds },
-//     isActive: true,
-//   })
-//     .select(
-//       "_id productId sellerId sku image attributes  sellingPrice stock discountType discountValue ",
-//     )
-//     .lean();
-//   if (variants.length !== items.length) {
-//     throw new AppError("One or more variants not found or inactive", 404);
-//   }
-//   const productIds = variants.map((v) => v.productId);
-//   const products = await Product.find({
-//     _id: { $in: productIds },
-//     isActive: true,
-//   })
-//     .select("_id sellerId  name slug  taxRate isActive discount hasDiscount ")
-//     .lean();
-//   const sellerIds = products.map((p) => p.sellerId);
-//   // make unique sellers
-//   const uniqueSellerIds = [
-//     ...new Set(variants.map((v) => v.sellerId.toString())),
-//   ];
-//   const sellers = await Seller.find({
-//     _id: { $in: uniqueSellerIds },
-//     isActive: true,
-//     status: "approved",
-//   })
-//     .select("_id name isPlatform commissionRate userId")
-//     .lean();
-//   // add Map
-//   const productMap = new Map(
-//     products.map((product) => [
-//       product._id.toString(),
-//       { sellerId: product.sellerId.toString(), name: product.name },
-//     ]),
-//   );
-//   const variantMap = new Map(
-//     variants.map((variant) => [
-//       variant._id.toString(),
-//       {
-//         sellingPrice: variant.sellingPrice,
-//         stock: variant.stock,
-//         attributes: variant.attributes,
-//         discountType: variant.discountType,
-//         discountValue: variant.discountValue,
-//         sku: variant.sku,
-//         productId: variant.productId,
-//         sellerId: variant.sellerId,
-//         image: variant.image,
-//       },
-//     ]),
-//   );
-//   const sellerMap = new Map(sellers.map((s) => [s._id.toString(), s]));
-//   const subOrderDrafts: TSubOrderDraft[] = [];
-//   let index = 1;
-//   const group = new Map<string, TSubOrderLineDraft[]>();
-//   if (sellerMap.size !== uniqueSellerIds.length) {
-//     throw new AppError("One or more sellers are not available", 400);
-//   }
-//   const hasSellerMismatch = variants.some(
-//     (variant) =>
-//       productMap.get(variant.productId.toString())?.sellerId !==
-//       variant.sellerId.toString(),
-//   );
-//   if (hasSellerMismatch)
-//     throw new AppError("Product and variant seller mismatch", 400);
-//   const orderNumber = await generateOrderNumber();
-//   for (const item of items) {
-//     const variant = variantMap.get(item.variantId);
-//     if (!variant) {
-//       throw new AppError(`Not found this ${item.variantId} `, 404);
-//     }
-//     const product = productMap.get(variant.productId.toString());
-//     if (!product) {
-//       throw new AppError(
-//         `Product not found for variant: ${item.variantId} `,
-//         404,
-//       );
-//     }
-//     if (variant.stock < item.quantity) {
-//       throw new AppError(
-//         `Insufficient stock for ${product.name} - ${variant.sku}. Available: ${variant.stock}`,
-//         400,
-//       );
-//     }
-//     const sellingPrice = variant.sellingPrice;
-//     const quantity = item.quantity;
-//     const lineBase = sellingPrice * quantity;
-//     const discountAmount = round2(
-//       calculateDiscount({
-//         lineBase,
-//         discountValue: variant.discountValue,
-//         discountType: variant.discountType,
-//         quantity,
-//       }),
-//     );
-//     const totalPrice = round2(lineBase - discountAmount);
-//     if (lineBase < discountAmount) {
-//       throw new AppError("Discount amount cannot exceed the total price", 400);
-//     }
-//     // const taxAmount = calculateTaxRate({totalPrice,taxRate: variant})
-//     const key = variant.sellerId.toString();
-//     if (!group.has(key)) group.set(key, []);
-//     group.get(key)!.push({
-//       productId: variant.productId,
-//       variantId: new Types.ObjectId(item.variantId),
-//       name: product.name,
-//       sku: variant.sku,
-//       image: variant.image ?? null,
-//       quantity,
-//       sellingPrice,
-//       discountType: variant.discountType ?? null,
-//       discountValue: variant.discountValue ?? 0,
-//       discountAmount,
-//       totalPrice,
-//     });
-//   }
-//   for (const [sellerId, lines] of group) {
-//     subOrderDrafts.push({
-//       sellerId,
-//       seller: sellerMap.get(sellerId)!,
-//       lines,
-//       subOrderNumber: generateSubOrderNumber(orderNumber, index++),
-//     });
-//   }
-//   const subOrderPlans = subOrderDrafts.map((draft) => ({
-//     ...draft,
-//     items: draft.lines.map((l) => ({ ...l, taxRate: 0, taxAmount: 0 })),
-//     ...calculateSubOrderMoney(draft.lines, draft.seller),
-//   }));
-//   const sum = (pick: (p: (typeof subOrderPlans)[number]) => number) =>
-//     round2(subOrderPlans.reduce((s, p) => s + pick(p), 0));
-//   const orderTotals = {
-//     subtotal: sum((p) => p.subtotal),
-//     discountTotal: sum((p) => p.discountAmount),
-//     taxTotal: 0,
-//     shippingTotal: sum((p) => p.shippingCharge),
-//     grandTotal: sum((p) => p.total),
-//   };
-//   const session = await mongoose.startSession();
-//   try {
-//     await session.withTransaction(async () => {
-//       const customer = await resolveCustomer({
-//         name,
-//         phone,
-//         email,
-//         shippingAddress,
-//         session,
-//       });
-//       const customerId = customer._id;
-//       const allLines = subOrderDrafts
-//         .flatMap((d) => d.lines)
-//         .sort((a, b) =>
-//           a.variantId.toString().localeCompare(b.variantId.toString()),
-//         );
-//       const ops = allLines.map((line) => ({
-//         updateOne: {
-//           filter: {
-//             _id: line.variantId,
-//             isActive: true,
-//             stock: { $gte: line.quantity },
-//           },
-//           update: { $inc: { stock: -line.quantity } },
-//         },
-//       }));
-//       const result = await ProductVariant.bulkWrite(ops, {
-//         session,
-//       });
-//       if (result.matchedCount < ops.length) {
-//         const current = await ProductVariant.find({
-//           _id: { $in: allLines.map((l) => l.variantId) },
-//         })
-//           .select("_id stock")
-//           .lean();
-//         const stockMap = new Map(
-//           current.map((v) => [v._id.toString(), v.stock]),
-//         );
-//         const bad = allLines.find(
-//           (l) => (stockMap.get(l.variantId.toString()) ?? 0) < l.quantity,
-//         );
-//         throw new AppError(
-//           bad
-//             ? `Not enough stock for ${bad.name} (${bad.sku}). Available: ${stockMap.get(bad.variantId.toString()) ?? 0}`
-//             : "Stock changed. Please refresh and try again.",
-//           409,
-//         );
-//       }
-//       await Order.create(
-//         [
-//           {
-//             _id: orderId,
-//             orderNumber,
-//             customerId,
-//             shippingAddress,
-//             subOrderCount: subOrderPlans.length,
-//             ...orderTotals,
-//             paidAmount: 0,
-//             dueAmount: orderTotals.grandTotal,
-//             paymentStatus: "due",
-//             paymentMethod,
-//             paymentId,
-//             note,
-//           },
-//         ],
-//         { session },
-//       );
-//       const createdSubOrders = await SubOrder.create(
-//         subOrderPlans.map((p) => ({
-//           orderId,
-//           orderNumber,
-//           customerId,
-//           subOrderNumber: p.subOrderNumber,
-//           sellerId: p.seller._id,
-//           items: p.items,
-//           subtotal: p.subtotal,
-//           discountAmount: p.discountAmount,
-//           taxAmount: p.taxAmount,
-//           shippingCharge: p.shippingCharge,
-//           total: p.total,
-//           commissionRate: p.commissionRate,
-//           commissionAmount: p.commissionAmount,
-//           sellerEarning: p.sellerEarning,
-//           status: "pending",
-//           statusHistory: [
-//             {
-//               status: "pending",
-//               at: new Date(),
-//               by: null,
-//               note: "Order placed",
-//             },
-//           ],
-//         })),
-//         { session, ordered: true },
-//       );
-//       await Payment.create(
-//         [
-//           {
-//             _id: paymentId,
-//             orderId,
-//             customerId,
-//             amount: orderTotals.grandTotal,
-//             method: paymentMethod,
-//             status: "pending",
-//           },
-//         ],
-//         { session },
-//       );
-//       eventEmitter.emit(NOTIFICATION_TYPES.ORDER.CREATED, {
-//         orderId,
-//         customerId,
-//         subOrders: createdSubOrders.map((s) => ({
-//           subOrderId: s._id,
-//           sellerId: s.sellerId,
-//           subOrderNumber: s.subOrderNumber,
-//           total: s.total,
-//         })),
-//       });
-//       return {
-//         orderId,
-//         orderNumber,
-//         status: deriveOrderStatus(createdSubOrders),
-//         paymentStatus: "due",
-//         paymentMethod,
-//         subtotal: orderTotals.subtotal,
-//         shippingTotal: orderTotals.shippingTotal,
-//         grandTotal: orderTotals.grandTotal,
-//         dueAmount: orderTotals.grandTotal,
-//         subOrders: createdSubOrders.map((s) => ({
-//           subOrderNumber: s.subOrderNumber,
-//           seller: sellerMap.get(s.sellerId.toString())?.name ?? "",
-//           total: s.total,
-//         })),
-//         paymentAction: null, // COD
-//       };
-//     });
-//   } finally {
-//     session.endSession();
-//   }
-// };
-// console.log(customer);
-// const session = await mongoose.startSession();
-// try {
-//   await session.startTransaction();
-//   // 1. load all variant
-//   const variantIds = items.map((i) => new Types.ObjectId(i.variant_id));
-//   const variants = await ProductVariant.find({
-//     sellerId: sellerId,
-//     isActive: true,
-//     _id: { $in: variantIds },
-//   }).session(session);
-//   console.log("variants", variants);
-//   if (variants.length < items.length) {
-//     throw new AppError("One or more variants not found or inactive", 404);
-//   }
-//   const variantMap = new Map(variants.map((v) => [v._id.toString(), v]));
-//   // 2. load all products
-//   const productIds = variants.map((v) => v.productId);
-//   const product = await Product.find({
-//     sellerId: sellerId,
-//     isActive: true,
-//     _id: { $in: productIds },
-//   }).session(session);
-//   console.log("product", product);
-//   const productMap = new Map(product.map((p) => [p._id.toString(), p]));
-//   // 3 validate stock
-//   const orderItem: IOrderItem[] = [];
-//   for (const item of items) {
-//     const variant = variantMap.get(item.variant_id);
-//     if (!variant) {
-//       throw new AppError(`Not found this ${item.variant_id} `, 404);
-//     }
-//     const product = productMap.get(variant.productId.toString());
-//     if (!product) {
-//       throw new AppError(
-//         `Product not found for variant: ${item.variant_id} `,
-//         404,
-//       );
-//     }
-//     if (variant.stock < item.quantity) {
-//       throw new AppError(
-//         `Insufficient stock for ${product.name} - ${variant.sku}. Available: ${variant.stock}`,
-//         400,
-//       );
-//     }
-//     const unitPrice = variant.sellingPrice;
-//     const taxRate = product.taxRate;
-//     const taxAmount = Math.round((unitPrice * item.quantity * taxRate) / 100);
-//     const discountAmount = calculateDiscount({
-//       sellingPrice: unitPrice,
-//       quantity: item.quantity,
-//       discountType: variant.discountType ?? null,
-//       discountValue: variant.discountValue ?? 0,
-//     });
-//     const totalPrice = unitPrice * item.quantity - discountAmount;
-//     orderItem.push({
-//       totalPrice: totalPrice,
-//       sellingPrice: unitPrice,
-//       quantity: item.quantity,
-//       sku: variant.sku,
-//       name: product.name,
-//       image: variant.image,
-//       variant: variant._id,
-//       product: product._id,
-//       discountType: variant.discountType ?? null,
-//       discountValue: variant.discountValue ?? 0,
-//       discountAmount,
-//       taxAmount,
-//       taxRate,
-//     });
-//   }
-//   // 4. calculate total
-//   const subTotal = orderItem.reduce((sum, item) => sum + item.totalPrice, 0);
-//   const discountTotal = orderItem.reduce(
-//     (sum, item) => sum + item.discountAmount,
-//     0,
-//   );
-//   const shippingCharge = 60;
-//   const totalTax = orderItem.reduce((sum, item) => sum + item.taxAmount, 0);
-//   const grandTotal = subTotal + totalTax + shippingCharge;
-//   //  check is paid or unpaid or partial
-//   const effectivePaid =
-//     paymentMethod === "cash_on_delivery"
-//       ? 0
-//       : Math.min(paidAmount, grandTotal);
-//   const dueAmount = Math.max(grandTotal - effectivePaid, 0);
-//   let paymentStatus: PaymentStatus;
-//   if (paymentMethod === "cash_on_delivery") {
-//     paymentStatus = "due";
-//   } else {
-//     paymentStatus =
-//       effectivePaid <= 0
-//         ? "due"
-//         : effectivePaid >= grandTotal
-//           ? "paid"
-//           : "partial";
-//   }
-//   // 5. resolve customer
-//   const customerId = await resolveCustomer(
-//     sellerId,
-//     name,
-//     phone,
-//     email,
-//     shippingAddress,
-//     session,
-//     userId ? new Types.ObjectId(userId) : undefined,
-//   );
-//   // 6. update customer info
-//   await Customer.updateOne(
-//     { _id: customerId },
-//     [
-//       {
-//         $set: {
-//           totalPurchased: { $add: ["$totalPurchased", grandTotal] },
-//           totalPaid: { $add: ["$totalPaid", effectivePaid] },
-//           due: {
-//             $max: [
-//               0,
-//               {
-//                 $subtract: [
-//                   { $add: ["$totalPurchased", grandTotal] },
-//                   { $add: ["$totalPaid", effectivePaid] },
-//                 ],
-//               },
-//             ],
-//           },
-//           credit: {
-//             $max: [
-//               0,
-//               {
-//                 $subtract: [
-//                   { $add: ["$totalPaid", effectivePaid] },
-//                   { $add: ["$totalPurchased", grandTotal] },
-//                 ],
-//               },
-//             ],
-//           },
-//           lastPurchasedAt: new Date(),
-//         },
-//       },
-//     ],
-//     { session, updatePipeline: true },
-//   );
-//   //7. deduct stock
-//   for (const item of orderItem) {
-//     await ProductVariant.updateOne(
-//       { _id: item.variant },
-//       {
-//         $inc: { stock: -item.quantity },
-//       },
-//       {
-//         session,
-//       },
-//     );
-//   }
-//   //8 generate order
-//   const orderNumber = await generateOderNumber(sellerId);
-//   //9 create order
-//   const [order] = await Order.create(
-//     [
-//       {
-//         sellerId: sellerId,
-//         orderNumber: orderNumber,
-//         customer: customerId,
-//         items: orderItem,
-//         shippingAddress,
-//         subtotal: subTotal,
-//         discountAmount: discountTotal,
-//         taxAmount: orderItem.reduce((sum, item) => sum + item.taxAmount, 0),
-//         shippingCharge: shippingCharge,
-//         grandTotal: grandTotal,
-//         paidAmount: effectivePaid,
-//         dueAmount: dueAmount,
-//         paymentStatus: paymentStatus,
-//         paymentMethod,
-//         orderStatus: "pending",
-//         note: note ?? null,
-//       },
-//     ],
-//     { session },
-//   );
-//   if (!order) {
-//     throw new AppError("Failed to order", 400);
-//   }
-//   const invoiceNumber = await generateInvoiceNumber();
-//   const deliveryDate = new Date();
-//   deliveryDate.setDate(deliveryDate.getDate() + 7);
-//   await Invoice.create(
-//     [
-//       {
-//         invoiceNumber,
-//         order: order._id,
-//         sellerId: sellerId,
-//         customer: order.customer,
-//         items: order.items,
-//         subtotal: order.subtotal,
-//         discountAmount: order.discountAmount,
-//         taxAmount: order.taxAmount,
-//         shippingCharge: order.shippingCharge,
-//         grandTotal: order.grandTotal,
-//         paidAmount: order.paidAmount,
-//         dueAmount: order.dueAmount,
-//         paymentMethod: order.paymentMethod,
-//         status: order.paymentStatus,
-//         issuedAt: new Date(),
-//         deliveryDate,
-//         paidDate: paymentStatus === "paid" ? new Date() : null,
-//         note: order.note,
-//       },
-//     ],
-//     { session },
-//   );
-//   // next apply here send email
-//   await session.commitTransaction();
-//   console.log(`\n📤 Emitting order.created event for #${order.orderNumber}`);
-//   eventEmitter.emit(NOTIFICATION_TYPES.ORDER.CREATED, {
-//     order,
-//     customerId,
-//     sellerId,
-//   });
-//   return order;
-// } catch (error) {
-//   await session.abortTransaction();
-//   throw error;
-// } finally {
-//   session.endSession();
-// }
 const createOrder = async (input, userId) => {
     const { name, phone, email, items, shippingAddress, paymentMethod, note } = input;
     if (!exports.ENABLED_PAYMENT_METHODS.includes(paymentMethod)) {
@@ -962,88 +446,61 @@ exports.getAllOrder = getAllOrder;
 // Returns paginated list of orders for the authenticated customer.
 // Each order includes a lightweight item list (no population needed —
 // items are embedded snapshots).
-const getMyOrders = async (customerId, sellerId, query) => {
-    const { page = 1, limit = 10, orderStatus, search } = query;
-    const skip = (page - 1) * limit;
+const MY_ORDER_FIELDS = [
+    "orderId orderNumber subOrderNumber sellerId status createdAt",
+    "items.productId items.variantId items.name items.image",
+    "items.quantity items.sellingPrice items.discountAmount items.totalPrice",
+    "subtotal discountAmount shippingCharge total",
+    "trackingNumber courierName shippedAt deliveredAt cancelledAt cancelReason",
+].join(" ");
+const getMyOrders = async (customerId, query) => {
+    const { page, limit, status, search } = query;
     // ── Base match ──────────────────────────────────────────────────────────────
     const match = {
-        sellerId: new mongoose_1.Types.ObjectId(sellerId),
-        customer: new mongoose_1.Types.ObjectId(customerId),
+        customerId: new mongoose_1.Types.ObjectId(customerId),
     };
-    console.log(match);
-    if (orderStatus && orderStatus !== "all") {
-        match.orderStatus = orderStatus;
+    if (status !== "all") {
+        match.status = status;
     }
     if (search?.trim()) {
-        // order_number is a plain string field — safe to use $regex
-        match.order_number = {
-            $regex: search.trim(),
-            $options: "i",
-        };
+        const prefix = { $regex: `^${(0, helper_1.escapeRegex)(search.toUpperCase())}` };
+        match.$or = [{ orderNumber: prefix }, { subOrderNumber: prefix }];
     }
-    // ── Aggregation ─────────────────────────────────────────────────────────────
-    const [result] = await order_schema_1.default.aggregate([
-        { $match: match },
-        {
-            $facet: {
-                orders: [
-                    { $sort: { createdAt: -1 } },
-                    { $skip: skip },
-                    { $limit: limit },
-                    {
-                        $project: {
-                            order_number: 1,
-                            order_status: 1,
-                            payment_status: 1,
-                            payment_method: 1,
-                            items: {
-                                $map: {
-                                    input: "$items",
-                                    as: "item",
-                                    in: {
-                                        name: "$$item.name",
-                                        sku: "$$item.sku",
-                                        quantity: "$$item.quantity",
-                                        unit_price: "$$item.unit_price",
-                                        total_price: "$$item.total_price",
-                                        image: "$$item.image", // ✅ directly from snapshot
-                                    },
-                                },
-                            },
-                            subtotal: 1,
-                            discount_amount: 1,
-                            tax_amount: 1,
-                            shipping_charge: 1,
-                            grand_total: 1,
-                            paid_amount: 1,
-                            due_amount: 1,
-                            shipping_address: 1,
-                            note: 1,
-                            createdAt: 1,
-                            updatedAt: 1,
-                        },
-                    },
-                ],
-                total: [{ $count: "count" }],
-                // Status counts for tab badges on the frontend
-                statusCounts: [
-                    {
-                        $group: {
-                            _id: "$order_status",
-                            count: { $sum: 1 },
-                        },
-                    },
-                ],
-            },
-        },
+    const [subOrders, countRows] = await Promise.all([
+        subOrder_schema_1.default.find(match)
+            .select(MY_ORDER_FIELDS)
+            .sort({ createdAt: -1, _id: -1 })
+            .skip((0, useSkip_1.useSkip)({ page, limit }))
+            .limit(limit)
+            .lean(),
+        subOrder_schema_1.default.aggregate([
+            { $match: { customerId: new mongoose_1.Types.ObjectId(String(customerId)) } },
+            { $group: { _id: "$status", count: { $sum: 1 } } },
+        ]),
     ]);
-    const orders = result?.orders ?? [];
-    const total = result?.total?.[0]?.count ?? 0;
-    // Reshape statusCounts: [{ _id: "pending", count: 2 }] → { pending: 2, ... }
-    const statusCounts = {};
-    for (const s of result?.statusCounts ?? []) {
-        statusCounts[s._id] = s.count;
-    }
+    const statusCounts = Object.fromEntries(subOrder_interface_1.SUB_ORDER_STATUSES.map((s) => [s, 0]));
+    for (const row of countRows)
+        statusCounts[row._id] = row.count;
+    const allCount = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+    const total = search
+        ? await subOrder_schema_1.default.countDocuments(match) // counts cannot know about the search text
+        : status === "all"
+            ? allCount
+            : statusCounts[status];
+    const sellerIds = [...new Set(subOrders.map((s) => s.sellerId.toString()))];
+    const sellers = sellerIds.length
+        ? await seller_schema_1.Seller.find({ _id: { $in: sellerIds } })
+            .select("name slug image")
+            .lean()
+        : [];
+    const sellerMap = new Map(sellers.map((s) => [
+        s._id.toString(),
+        { _id: s._id, name: s.name, slug: s.slug, image: s.image },
+    ]));
+    const orders = subOrders.map((s) => ({
+        ...s,
+        seller: sellerMap.get(s.sellerId.toString()) ?? null,
+    }));
     return {
         orders,
         statusCounts,
@@ -1058,29 +515,34 @@ const getMyOrderById = async (orderId) => {
     if (!mongoose_1.Types.ObjectId.isValid(orderId)) {
         throw new appError_1.AppError("Invalid order ID", 400);
     }
-    const order = await order_schema_1.default.findOne({ _id: new mongoose_1.Types.ObjectId(orderId) })
-        .populate({
-        path: "items.product",
-        select: "name slug images",
-    })
-        .populate({
-        path: "items.variant",
-        select: "sku image attributes sellingPrice stock",
-    })
-        .populate({
-        path: "customer",
-        select: "name phone email",
-    })
-        .populate({
-        path: "sellerId",
-        select: "name storeName",
-    })
-        .lean();
-    console.log(order);
+    const [order, subOrders] = await Promise.all([
+        order_schema_1.default.findOne({ _id: new mongoose_1.Types.ObjectId(orderId) })
+            .populate({
+            path: "customerId",
+            select: "name phone email",
+        })
+            .lean(),
+        subOrder_schema_1.default.find({ orderId: new mongoose_1.Types.ObjectId(orderId) }).lean(),
+    ]);
     if (!order) {
         throw new appError_1.AppError("Order not found", 404);
     }
-    return order;
+    if (!subOrders)
+        throw new appError_1.AppError("sub Order not found", 404);
+    const data = {
+        order: order.subOrderCount,
+        paymentMethod: order.paymentMethod,
+        deliveryTo: order.shippingAddress.city,
+        shippingAddress: order.shippingAddress,
+        subOrder: subOrders.map((subOrder) => ({
+            orderNumber: subOrder.orderNumber,
+            subOrderNumber: subOrder.subOrderNumber,
+            items: subOrder.items,
+            status: subOrder.status,
+            shippingCharge: subOrder.shippingCharge,
+        })),
+    };
+    return data;
 };
 exports.getMyOrderById = getMyOrderById;
 //# sourceMappingURL=order.service.js.map

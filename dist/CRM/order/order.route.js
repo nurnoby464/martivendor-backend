@@ -52,7 +52,7 @@ router.post("/", guardCustomer_1.guardCustomer, (0, validate_1.validate)({ body:
 //   validate({ query: getOrderListQuery }),
 //   OrderController.getAllOrder,
 // );
-router.get("/my-orders", AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("customer"), (0, validate_1.validate)({ query: order_validation_1.getMyOrdersQuerySchema }), OrderController.getMyOrders);
+router.get("/my", AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("customer"), (0, validate_1.validate)({ query: order_validation_1.getMyOrdersQuerySchema }), OrderController.getMyOrders);
 router.get("/", (0, validate_1.validate)({ query: order_validation_1.getOrderListQuery }), AuthenticateHelper_1.authenticate, AuthenticateHelper_1.verifySession, (0, guard_1.guard)("super_admin", "seller", "staff", "seller_staff"), OrderController.getAllOrder);
 router.get("/:orderId", 
 // validate({ query: getOrderListQuery }),

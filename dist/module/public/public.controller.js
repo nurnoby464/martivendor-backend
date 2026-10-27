@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSuggestions = exports.getPublicMergedCategories = exports.getCategoryTree = exports.getAllCategories = exports.getProductFilterCategories = exports.getProducts = void 0;
+exports.getProductForCart = exports.getProductBySlug = exports.getSuggestions = exports.getPublicMergedCategories = exports.getCategoryTree = exports.getAllCategories = exports.getProductFilterCategories = exports.getProducts = void 0;
 const PublicService = __importStar(require("./public.service"));
 const ApiResponse_1 = require("../../utils/ApiResponse");
 const asyncHandler_1 = require("../../utils/asyncHandler");
@@ -80,5 +80,16 @@ exports.getSuggestions = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { search } = req.validatedQuery;
     const result = await PublicService.getSuggestions(search);
     return ApiResponse_1.ApiResponse.success(res, result, "successfully");
+});
+exports.getProductBySlug = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const result = await PublicService.getProductBySlug({
+        slug: req.params.slug,
+        // sellerId: req.user.sellerId!,
+    });
+    return ApiResponse_1.ApiResponse.success(res, result);
+});
+exports.getProductForCart = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const product = await PublicService.getProductForCart(req.validatedQuery);
+    return ApiResponse_1.ApiResponse.success(res, product, "Product details fetch successfully");
 });
 //# sourceMappingURL=public.controller.js.map
