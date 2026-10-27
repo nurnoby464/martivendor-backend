@@ -1,9 +1,10 @@
-import mongoose, { Types } from "mongoose";
+import  { Types } from "mongoose";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import * as OrderServices from "./order.service";
 import { Request, Response } from "express";
-import { IGetMyOrdersQuery } from "./order.interface";
+import { AppError } from "../../middlewares/appError";
+import { TMyOrdersQuery } from "./order.validation";
 
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   // const sellerId = req.body?.sellerId;
@@ -12,8 +13,8 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   // }
 
   const userId = req.user?._id ?? null;
-  console.log(userId)
-  const result = await OrderServices.createOrder(req.body,userId);
+  console.log(userId);
+  const result = await OrderServices.createOrder(req.body, userId);
   return ApiResponse.created(res, result, "Order created successfully");
 });
 
@@ -72,45 +73,27 @@ export const getAllOrder = asyncHandler(async (req: Request, res: Response) => {
 
 export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
   const customerId = req.user.profileId as Types.ObjectId;
-
-  const sellerId = req.user.sellerId as Types.ObjectId;
-  if (!sellerId) {
-    return ApiResponse.error(res, "Company not found", 404);
-  }
-  const { page, limit, order_status, search } = req.validatedQuery as {
-    page: number;
-    limit: number;
-    order_status?: string;
-    search?: string;
-  };
+  if (!customerId) throw new AppError("Customer profile not found", 403);
+  const query = req.validatedQuery as TMyOrdersQuery;
   const { orders, total, statusCounts } = await OrderServices.getMyOrders(
     customerId,
-    sellerId,
-    req.validatedQuery as unknown as IGetMyOrdersQuery,
+    query,
   );
   return ApiResponse.paginated(
     res,
     "My Orders fetched successfully",
     orders,
     total,
-    page,
-    limit,
+    query.page,
+    query.limit,
+    { statusCounts },
   );
 });
 export const getMyOrderById = asyncHandler(
   async (req: Request, res: Response) => {
-    // const customerId = req.user.profileId as Types.ObjectId;
-    // const sellerId = req.user.sellerId as Types.ObjectId;
-    // if (!sellerId) {
-    //   return ApiResponse.error(res, "Company not found", 404);
-    // }
     const { orderId } = req.params as { orderId: string };
-    
-    const order = await OrderServices.getMyOrderById(
-      // customerId,
-      // sellerId,
-      orderId,
-    );
+
+    const order = await OrderServices.getMyOrderById(orderId);
     if (!order) {
       return ApiResponse.error(res, "Order not found", 404);
     }

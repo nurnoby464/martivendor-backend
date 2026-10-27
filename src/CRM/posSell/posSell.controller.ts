@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { ApiResponse } from "../../utils/ApiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import * as SaleServices from "./posSell.service";
 import { Request, Response } from "express";
-import { create } from "node:domain";
 
 export const createSale = asyncHandler(async (req: Request, res: Response) => {
   const sellerId = new mongoose.Types.ObjectId(req.user.sellerId!);

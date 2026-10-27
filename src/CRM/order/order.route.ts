@@ -28,7 +28,7 @@ router.post(
 // );
 
 router.get(
-  "/my-orders",
+  "/my",
   authenticate,
   verifySession,
   guard("customer"),

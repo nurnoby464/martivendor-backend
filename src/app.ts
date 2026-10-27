@@ -26,6 +26,9 @@ import { PublicRoutes } from "./module/public/public.route";
 import { BannerRouter } from "./module/siteManagement/banner/banner.route";
 import { initializeEventListeners } from "./shared/events";
 import { NotificationRouter } from "./CRM/notification/notificaiton.route";
+import { SubOrderRouter } from "./CRM/subOrder/subOrder.route";
+import { DashboardRouter } from "./CRM/dashboard/dashboard.route";
+import { SellerCustomerRouter } from "./CRM/sellerCustomer/sellerCustomer.route";
 
 // routes
 // import authRoutes from './modules/auth/auth.routes';
@@ -181,6 +184,9 @@ app.use("/api/v1/sales", SaleRouter);
 app.use("/api/v1/customer", CustomerRouter);
 // app.use("/api/v1/dev", DevRouter);
 app.use("/api/v1/orders", OrderRouter);
+app.use("/api/v1/sub-orders", SubOrderRouter);
+app.use("/api/v1/seller-customers", SellerCustomerRouter);
+app.use("/api/v1/dashboard", DashboardRouter);
 app.use("/api/v1/invoices", InvoiceRouter);
 app.use("/api/v1/banners", BannerRouter);
 app.use("/api/v1/notifications", NotificationRouter);

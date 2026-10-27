@@ -17,7 +17,7 @@ router.post(
   authenticate,
   verifySession,
   saleAnAuthenticateAndUnauthenticated,
-  guard("super_admin", "admin", "sales", "account"),
+  guard("super_admin", "sales", "account", "seller"),
   SaleController.createSale,
 );
 

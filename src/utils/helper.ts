@@ -1,4 +1,4 @@
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import Customer from "../CRM/customer/customer.schema";
 import Staff from "../CRM/staff/staff.schema";
 import { SellerStaff } from "../CRM/sellerStaff/sellerStaff.schema";
@@ -183,4 +183,8 @@ export const calculateTaxRate = (input: ICalculateTaxRete) => {
   const { totalPrice, taxRate } = input;
   const taxAmount = (totalPrice * taxRate) / 100;
   return round2(taxAmount);
+};
+
+export const makeObjectId = (value: string): Types.ObjectId => {
+  return new Types.ObjectId(String(value));
 };

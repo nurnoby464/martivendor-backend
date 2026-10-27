@@ -17,12 +17,10 @@ export const posCustomerSchema = z.object({
 
 export const createSaleSchema = z.object({
   // customer
-  customerId: z.string().nullable(),
-  // customerEmail: z.string().optional(),
-  // customerName: z.string().optional(),
-  // customerPhone: z.string().optional(),
-  // customer: posCustomerSchema.optional(),
-  // .regex(/^01[3-9]\d{8}$/, "Invalid phone number"),
+  customerId: z
+    .string()
+    .regex(/^[0-9a-fA-F]{24}$/, "Invalid customer id")
+    .nullable(),
 
   items: z.array(saleItemSchema).min(1, "At least one item is required"),
 

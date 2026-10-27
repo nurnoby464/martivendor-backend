@@ -1,6 +1,7 @@
 // src/module/order/order.validation.ts
 import { z } from "zod";
 import { PAYMENT_METHODS } from "../../globalTypes/payment.types";
+import { SUB_ORDER_STATUSES } from "../subOrder/subOrder.interface";
 
 // ─── Sub-schemas ──────────────────────────────────────────────────────────────
 
@@ -119,29 +120,20 @@ const ORDER_STATUSES = [
   "cancelled",
 ] as const;
 
-export const getMyOrdersQuerySchema = z.object({
-  page: z
-    .string()
-    .optional()
-    .transform((v) => (v ? parseInt(v, 10) : 1))
-    .pipe(z.number().int().min(1)),
-
-  limit: z
-    .string()
-    .optional()
-    .transform((v) => (v ? parseInt(v, 10) : 10))
-    .pipe(z.number().int().min(1).max(50)),
-
-  order_status: z.enum(ORDER_STATUSES).optional(),
-
-  search: z.string().trim().max(100).optional(),
-});
 
 // ─── getMyOrderById param validation ─────────────────────────────────────────
 
 export const getMyOrderByIdParamSchema = z.object({
   orderId: z.string().min(1, "Order ID is required"),
 });
+
+export const getMyOrdersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  status: z.enum(["all", ...SUB_ORDER_STATUSES]).default("all"),
+  search: z.string().trim().max(50).optional(),
+});
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -150,3 +142,5 @@ export type TUpdateOrderStatusInput = z.infer<typeof updateOrderStatusBody>;
 export type TUpdatePaymentInput = z.infer<typeof updatePaymentBody>;
 export type TGetOrderListQuery = z.infer<typeof getOrderListQuery>;
 export type TShippingAddress = z.infer<typeof shippingAddressSchema>;
+export type TMyOrdersQuery = z.infer<typeof getMyOrdersQuerySchema>;
+
