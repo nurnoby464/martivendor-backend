@@ -36,6 +36,7 @@ const sellerCustomer_route_1 = require("./CRM/sellerCustomer/sellerCustomer.rout
 // import customerRoutes from './modules/customer/customer.routes';
 // import publicRoutes from './modules/public/public.routes';
 const app = (0, express_1.default)();
+app.set("trust proxy", 1);
 const allowOrigin = [
     "http://localhost:3000",
     "https://multivendorforntend.vercel.app",
